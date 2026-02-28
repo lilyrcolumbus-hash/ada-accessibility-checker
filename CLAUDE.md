@@ -1,5 +1,12 @@
 # ADA Website Accessibility Checker
 
+## Product Name (TBD)
+- Name not yet chosen. Should be short, memorable, and communicate "website accessibility" or "ADA compliance"
+- Domain must be available and affordable
+
+## Elevator Pitch (1 sentence)
+A self-service web tool that scans any website for ADA accessibility violations, explains issues in plain English, and provides continuous monitoring — so small businesses can fix problems before a $10,000+ lawsuit finds them.
+
 ## What is this project?
 A web app that scans websites for ADA/WCAG 2.1 AA compliance and helps small businesses avoid lawsuits (4,000+/year, 67% target small businesses, penalties up to $150,000).
 
@@ -155,6 +162,93 @@ A web app that scans websites for ADA/WCAG 2.1 AA compliance and helps small bus
 - **Simplicity:** "I can check my site in 30 seconds without being technical"
 - **Price:** "It's $29/month vs risking thousands in lawsuits"
 - **Proof:** "accessiBe was fined by the government, I need something real"
+
+## Market Size (TAM / SAM / SOM)
+- **TAM (Total Addressable Market):** 30.2 million small businesses in USA × ~80% have a website = ~24 million potential customers
+- **SAM (Serviceable Available Market):** ~5 million small businesses with websites doing ecommerce or taking appointments online (highest lawsuit risk)
+- **SOM (Serviceable Obtainable Market Year 1):** 500-2,000 paying customers at $29-99/mo = $15K-$200K ARR
+- **Market value:** Global web accessibility software market growing rapidly. Gartner estimates GRC tools investment increasing 50% by 2026
+
+## Unit Economics
+- **Customer Acquisition Cost (CAC):** ~$0 (organic SEO, no paid ads)
+- **Average Revenue Per User (ARPU):** $49/mo (blended across tiers)
+- **Lifetime Value (LTV):** $49 × 12 months avg retention = $588
+- **LTV:CAC ratio:** Extremely high (organic acquisition)
+- **Gross margin:** ~95% (hosting is free tier, no API costs)
+- **Break-even:** ~50 paying customers at $49/mo avg = ~$2,450/mo covers future scaling costs
+
+## Revenue Milestones (Realistic)
+| Period | Target | How |
+|---|---|---|
+| Month 1 | Launch MVP + first free users | Deploy scanner + programmatic SEO pages |
+| Month 2-3 | First 10-50 paying customers ($300-$2,500/mo) | SEO indexing + Product Hunt launch |
+| Month 4-6 | 50-200 customers ($2,500-$10K/mo) | SEO traffic growing + word of mouth |
+| Month 6-12 | 200-500 customers ($10K-$25K/mo) | Established SEO + add features |
+| Year 2 | 500-2,000 customers ($25K-$100K/mo) | Multiple traffic channels + referrals |
+
+## Risks and Challenges
+| Risk | Severity | Mitigation |
+|---|---|---|
+| Big company builds same tool | Medium | Our head start + SEO moat + niche focus on small businesses |
+| ADA lawsuits decrease | Low | Trend growing since 2018. New regulations increase, not decrease |
+| Free tools become better | Medium | We differentiate on simplicity + monitoring + reports, not just scanning |
+| Supabase free tier limits | Low | By the time we hit limits, revenue covers upgrade ($25/mo) |
+| Legal liability (false compliance) | High | Clear disclaimers: "This tool helps identify issues but does not guarantee legal compliance. Consult an attorney." |
+| User scans malicious URLs | Medium | URL validation + sandboxed fetching + rate limiting |
+
+## Legal Disclaimers (IMPORTANT)
+- The tool does NOT guarantee ADA compliance or legal protection
+- Results are informational, not legal advice
+- Users should consult an accessibility specialist or attorney for full compliance
+- We are a scanning/monitoring tool, not a remediation service
+- These disclaimers must be visible on the landing page, scan results, and terms of service
+
+## Future Roadmap (After MVP)
+| Phase | Features |
+|---|---|
+| V1 (MVP) | Single page scan + results in simple language + compliance score |
+| V2 | Full site scan + user accounts + Stripe payments |
+| V3 | Monitoring + email alerts + programmatic SEO pages |
+| V4 | PDF compliance reports + audit history |
+| V5 | Multi-site support (agencies) + team accounts |
+| V6 | API access for developers/agencies to integrate |
+| V7 | Remediation suggestions with code snippets |
+| V8 | WordPress/Shopify plugins for direct integration |
+| Future | AI-powered auto-fix suggestions + competitor benchmarking |
+
+## Competitive Moat (Why competitors can't easily copy us)
+1. **SEO moat:** 500+ programmatic pages indexed by Google. Takes months for competitors to replicate
+2. **Niche positioning:** "For small businesses" is specific. Enterprise tools won't go downmarket
+3. **Trust:** accessiBe burned the market. Being transparent and honest builds trust competitors lost
+4. **Price lock:** At $29/mo, it's not worth it for big companies to compete on price
+5. **Simple language database:** Our library of plain-English explanations for every WCAG rule is a unique asset
+
+## Potential Partnerships
+- **Web design agencies:** They build sites for small businesses. They can recommend us to clients
+- **Insurance companies:** Cyber liability insurers could bundle our tool to reduce ADA lawsuit risk
+- **Hosting platforms:** Netlify, Squarespace, Wix could integrate our scanner
+- **Legal firms:** ADA defense attorneys could recommend us to clients as prevention
+- **Business associations:** Local chambers of commerce, restaurant associations, dental associations
+
+## SEO Keywords to Target (High Intent)
+- "ADA website compliance checker" / "ADA compliance check"
+- "Is my website ADA compliant"
+- "WCAG 2.1 compliance test"
+- "Website accessibility audit free"
+- "ADA website lawsuit prevention"
+- "ADA compliance for small business"
+- "[industry] website accessibility" (restaurants, dental, ecommerce, hotels)
+- "[state] ADA website requirements"
+- "accessiBe alternative"
+- "WCAG checker free"
+
+## Landing Page Messaging (Key Copy Points)
+- Headline: "Is your website lawsuit-proof?" or "Check your website for ADA violations in 30 seconds"
+- Subhead: "4,000+ businesses were sued last year for inaccessible websites. 67% were small businesses."
+- CTA: "Scan my website free"
+- Trust signals: "Real scanning, not an overlay. accessiBe was fined $1M for fake compliance."
+- Urgency: "New federal deadline: April 26, 2026"
+- Price anchor: "Starting at $29/mo — less than a single hour with a lawyer"
 
 ## User Preferences
 - Communication: Spanish
