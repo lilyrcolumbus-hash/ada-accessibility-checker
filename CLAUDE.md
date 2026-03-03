@@ -222,14 +222,17 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 - Supabase project created (ref: `mvzolbabbkedmlhqhiwi`, Data API + automatic RLS enabled)
 - `.env.local` configured with real Supabase URL + anon key
 - Stripe account created (keys obtained — new format: `sb_publishable_*` / `sb_secret_*`)
+- Supabase schema applied (6 tables + triggers + functions live in DB)
+- 22 bug fixes applied (see Bugs Fixed section below)
 
 ### Pending (to launch)
-- Run `schema.sql` in Supabase SQL Editor (6 tables: profiles, scans, purchases, shared_reports, badges, scan_usage + triggers + functions)
 - Add Stripe publishable key to `.env.local` (`VITE_STRIPE_PUBLISHABLE_KEY`)
-- Create 2 Stripe products: $49 Full Report + $199 Agency Pack
+- Create 2 Stripe products in Stripe Dashboard: $49 Full Report + $199 Agency Pack
+- Update `priceId` in `src/config/plans.ts` with real Stripe price IDs
 - Add Stripe secret key + webhook secret to Supabase Edge Function env vars
+- Configure Stripe webhook URL: `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook` (event: `checkout.session.completed`)
 - Deploy Supabase Edge Functions (`supabase functions deploy`)
-- Deploy to Netlify (connect repo, configure env vars)
+- Deploy to Netlify (connect repo, configure env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY)
 - Buy custom domain
 - End-to-end testing of payment flow
 
@@ -239,8 +242,11 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 - Email alerts
 - Multi-page scanning (crawl entire site)
 - WordPress/Shopify plugins
+- BadgePreview page route (component exists at `components/dashboard/BadgePreview.tsx` but no route yet)
 
 ## Bugs Fixed
+
+### Original bugs (sessions 1-3)
 1. **Blank page** — AuthContext statically imported supabase, crashing when not configured. Fixed with lazy imports.
 2. **AuthContext state not updating** — signIn didn't call setSession/setUser. Fixed.
 3. **Dashboard wrong URL** — navigated to `/?url=` instead of `/scan?url=`. Fixed.
@@ -249,6 +255,32 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 6. **ScanPage no URL** — showed error instead of input form. Fixed with inline form.
 7. **RegisterForm "/mo" text** — still said monthly after plan restructure. Fixed to "one-time".
 8. **CORS proxy SSL error** — added `rejectUnauthorized: false` to Node https.get.
+
+### Bug fix round 2 — Critical (22 fixes total)
+9. **color-contrast wrong luminance** — Had duplicated parseColor/getRelativeLuminance instead of importing from color-utils.ts. Now uses correct sRGBtoLinear() and suggestCompliantColor() (iterates 255 steps instead of returning only black/white).
+10. **Input forwardRef broken** — ref pointed to wrapper `<div>`, not `<input>`. Changed wrapper to `<>` fragment.
+11. **Stripe webhook infinite retries** — Returned HTTP 500 on error; Stripe retried forever. Now returns 200 on internal errors.
+12. **Stripe webhook missing secret validation** — No check if STRIPE_WEBHOOK_SECRET env var exists. Added early validation + error logging.
+13. **Stripe webhook unvalidated plan_id** — Any string accepted as plan. Now validates against `['free', 'full-report', 'agency']`.
+14. **Scan edge function no timeout** — fetch() could hang forever on slow sites. Added 10s AbortController timeout, returns 504.
+
+### Bug fix round 2 — High
+15. **LoginForm ignores redirect** — ProtectedRoute saved `state.from` but LoginForm always went to `/dashboard`. Now reads `location.state?.from`.
+16. **RegisterForm loses plan** — Selected plan lost after email confirmation. Now saves `planId` to sessionStorage (`sitesafe_pending_plan`).
+17. **HeroSection literal `&mdash;`** — HTML entity rendered as text in JSX. Replaced with actual `—` character.
+18. **UpgradePrompt double navigation** — `<Button>` inside `<a>` caused nested interactive elements. Replaced with `onClick` + `useNavigate`.
+19. **Dashboard scanning state stuck** — `setScanning(true)` never reset after navigate. Removed unnecessary scanning state entirely.
+20. **Risk calculator ignored moderate/minor** — Only counted critical×3 + serious×2. Added moderate×0.5 + minor×0.1.
+21. **HeroSection no URL validation** — Accepted `javascript:`, `file:///`, etc. Added `new URL()` validation, only allows http/https.
+22. **form-labels skipped radio/checkbox** — Filter excluded radio and checkbox which DO need labels. Fixed filter list.
+23. **PricingSection table wrong** — "Plain English explanations" showed false for free (actually visible for 3 issues). "Cost & time estimate" showed false for free (actually visible). Updated to match real behavior.
+
+### Bug fix round 2 — Medium
+24. **AuthContext swallowed init errors** — `init().then()` had no `.catch()`. Added error logging to prevent silent failures.
+25. **useSubscription flash of free** — Paid users saw blurred content during auth loading (defaulted to 'free'). Now returns `planId: null` while loading.
+26. **link-text accepted empty aria-label** — `aria-label="  "` passed validation. Added `.trim()` check.
+27. **auto-play-media wrong severity** — Missing controls was 'moderate' but should be 'serious' (user can't pause).
+28. **CORS preflight missing Content-Type** — OPTIONS responses in scan and create-portal lacked Content-Type header. Added.
 
 ## Design System
 - **Font:** Inter (system-ui fallback), set in `index.css` body rule
@@ -346,6 +378,12 @@ BrowserRouter
 - **No ScanHistory component** — DashboardPage reads scan history directly from sessionStorage
 - **BadgePreview component exists** but has no route/page yet (pending integration)
 - **SharedReportPage** uses `import IssueCard from` (default export, not named)
+- **LoginForm reads `location.state.from`** to redirect after login (set by ProtectedRoute)
+- **RegisterForm saves `sitesafe_pending_plan`** to sessionStorage when plan is selected during signup
+- **useSubscription returns `planId: null`** while auth is loading (prevents flash of free content for paid users)
+- **color-contrast check imports from `color-utils.ts`** — no duplicated parsing logic
+- **Scan edge function has 10s timeout** via AbortController
+- **Stripe webhook validates plan_id** against `['free', 'full-report', 'agency']` and returns 200 on errors
 
 ## ADA Lawsuit Data (for marketing copy)
 - 4,605 lawsuits in 2023, 4,000+ in 2024, 2,014 in H1 2025 (37% increase)
@@ -412,17 +450,21 @@ BrowserRouter
 - **Region:** (set during project creation)
 - **Data API:** Enabled (RESTful API for public schema)
 - **Automatic RLS:** Enabled (all new tables get RLS by default)
-- **Schema:** NOT yet applied — `schema.sql` still needs to be run in SQL Editor
+- **Schema:** Applied and verified (6 tables + triggers + functions all live)
+- **Edge Functions:** NOT yet deployed (need `supabase functions deploy`)
+- **Env vars needed:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 
 ### Stripe
 - **Account:** Created
 - **Key format:** New format (`sb_publishable_*` / `sb_secret_*`, NOT the old `pk_*` / `sk_*`)
 - **Products:** NOT yet created (need $49 Full Report + $199 Agency Pack)
-- **Webhook:** NOT yet configured
+- **Webhook:** NOT yet configured (URL: `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`, event: `checkout.session.completed`)
+- **Price IDs in code:** `plans.ts` has placeholder IDs (`price_full_report`, `price_agency`) — update with real Stripe price IDs after creating products
 
 ### Netlify
 - **Status:** NOT yet deployed
 - **Config:** `netlify.toml` ready in repo
+- **Env vars needed:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`
 
 ## User Preferences
 - Communication: **Spanish**
