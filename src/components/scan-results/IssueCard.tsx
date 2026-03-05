@@ -232,6 +232,7 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
   const { user } = useAuth()
   const showFix = isPaid || isFreeFix
   const checkoutPath = user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site'
+  const isImageIssue = IMAGE_CHECKS.includes(issue.checkId)
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -299,58 +300,79 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
                 </p>
               </div>
 
-              {/* Code before/after side by side on desktop */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Code before */}
-                {issue.codeBefore && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="w-2 h-2 rounded-full bg-danger-500" />
-                      <span className="text-xs font-bold text-danger-600 uppercase tracking-wider">Current (broken)</span>
-                    </div>
-                    <pre className="text-xs font-mono bg-danger-50 border border-danger-200 text-danger-800 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                      {issue.codeBefore}
-                    </pre>
+              {isImageIssue ? (
+                <>
+                  {/* Image-friendly: show image URL to identify + simple instruction */}
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Image to fix</p>
+                    <p className="text-xs font-mono text-gray-600 break-all">{issue.codeBefore?.match(/src="([^"]*)"/)?.[1] || issue.codeBefore}</p>
                   </div>
-                )}
-
-                {/* Code after */}
-                {issue.codeAfter && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-success-500" />
-                        <span className="text-xs font-bold text-success-600 uppercase tracking-wider">Fixed</span>
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-primary-50 border border-primary-200">
+                    <Info className="w-4 h-4 text-primary-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-primary-800">What to type as alt text</p>
+                      <p className="text-xs text-primary-700 mt-0.5">
+                        Describe what the image shows in a few words. Examples: "Team photo at company retreat", "Red leather handbag on white background", "Company logo". If the image is purely decorative, leave the alt text empty.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Code before/after side by side on desktop */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Code before */}
+                    {issue.codeBefore && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className="w-2 h-2 rounded-full bg-danger-500" />
+                          <span className="text-xs font-bold text-danger-600 uppercase tracking-wider">Current (broken)</span>
+                        </div>
+                        <pre className="text-xs font-mono bg-danger-50 border border-danger-200 text-danger-800 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                          {issue.codeBefore}
+                        </pre>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCopy}
-                        className="h-6 px-2 text-xs gap-1"
-                      >
-                        {copied
-                          ? <><Check className="w-3 h-3 text-success-600" /> Copied</>
-                          : <><Copy className="w-3 h-3" /> Copy</>}
-                      </Button>
-                    </div>
-                    <pre className="text-xs font-mono bg-success-50 border border-success-200 text-success-700 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                      {issue.codeAfter}
-                    </pre>
-                  </div>
-                )}
-              </div>
+                    )}
 
-              {/* Warning if fix contains placeholders that need customization */}
-              {issue.codeAfter && /\[.*?\]/.test(issue.codeAfter) && (
-                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-warning-50 border border-warning-200">
-                  <AlertTriangle className="w-4 h-4 text-warning-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-semibold text-warning-800">Action required: customize the text in [brackets]</p>
-                    <p className="text-xs text-warning-700 mt-0.5">
-                      Replace any text in [brackets] with your own description. Don't paste it as-is — screen readers will read it literally.
-                    </p>
+                    {/* Code after */}
+                    {issue.codeAfter && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-success-500" />
+                            <span className="text-xs font-bold text-success-600 uppercase tracking-wider">Fixed</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCopy}
+                            className="h-6 px-2 text-xs gap-1"
+                          >
+                            {copied
+                              ? <><Check className="w-3 h-3 text-success-600" /> Copied</>
+                              : <><Copy className="w-3 h-3" /> Copy</>}
+                          </Button>
+                        </div>
+                        <pre className="text-xs font-mono bg-success-50 border border-success-200 text-success-700 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                          {issue.codeAfter}
+                        </pre>
+                      </div>
+                    )}
                   </div>
-                </div>
+
+                  {/* Warning if fix contains placeholders that need customization */}
+                  {issue.codeAfter && /\[.*?\]/.test(issue.codeAfter) && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-warning-50 border border-warning-200">
+                      <AlertTriangle className="w-4 h-4 text-warning-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-warning-800">Action required: customize the text in [brackets]</p>
+                        <p className="text-xs text-warning-700 mt-0.5">
+                          Replace any text in [brackets] with your own description. Don't paste it as-is — screen readers will read it literally.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Platform-specific install guide — bonus */}
