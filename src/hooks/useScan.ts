@@ -8,41 +8,32 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
 async function fetchHtml(url: string): Promise<string> {
-  // 1. Try same-origin proxy (Netlify proxies /api/scan → Supabase edge function)
-  //    This avoids ALL CORS issues since it's same-origin
+  // 1. Try Netlify Function (same-origin, no CORS, no Supabase limits)
   {
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 15000)
+    const timer = setTimeout(() => controller.abort(), 20000)
 
     try {
-      console.log('[SiteSafe] Fetching via /api/scan proxy:', url)
-      const response = await fetch('/api/scan', {
+      console.log('[SiteSafe] Fetching via Netlify Function:', url)
+      const response = await fetch('/.netlify/functions/scan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
         signal: controller.signal,
       })
       clearTimeout(timer)
 
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
-        throw new Error(errBody.error || `Scan returned ${response.status}`)
-      }
-
       const data = await response.json()
-      if (data.error) throw new Error(data.error)
-      if (!data.html) throw new Error('No HTML returned from scanner')
+      if (!response.ok || data.error) {
+        throw new Error(data.error || `Scan returned ${response.status}`)
+      }
+      if (!data.html) throw new Error('No HTML returned')
 
       console.log('[SiteSafe] Got HTML, length:', data.html.length)
       return data.html
     } catch (err) {
       clearTimeout(timer)
-      console.warn('[SiteSafe] /api/scan proxy failed:', err)
-      // Fall through to dev proxy / direct fetch
+      console.warn('[SiteSafe] Netlify Function failed:', err)
     }
   }
 
@@ -62,25 +53,9 @@ async function fetchHtml(url: string): Promise<string> {
     // Proxy not available
   }
 
-  // 3. Direct fetch (only works if target allows CORS)
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10000)
-  try {
-    const response = await fetch(url, {
-      headers: { Accept: 'text/html,application/xhtml+xml' },
-      signal: controller.signal,
-    })
-    clearTimeout(timer)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch page: ${response.status} ${response.statusText}`)
-    }
-    return response.text()
-  } catch (err) {
-    clearTimeout(timer)
-    throw new Error(
-      'Could not fetch this website. It may be blocking automated requests, or our scanner is temporarily unavailable. Please try again.'
-    )
-  }
+  throw new Error(
+    'Could not fetch this website. It may be blocking automated requests, or our scanner is temporarily unavailable. Please try again.'
+  )
 }
 
 interface UseScanReturn {
