@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Copy, Check, Lock, AlertTriangle, AlertCircle, Info, AlertOctagon, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronUp, Copy, Check, Lock, AlertTriangle, AlertCircle, Info, AlertOctagon, ChevronRight, Gift, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import Badge from '@/components/ui/Badge'
@@ -40,6 +40,119 @@ const SEVERITY_BG: Record<string, string> = {
   serious: 'bg-orange-50/40',
   moderate: 'bg-warning-50/30',
   minor: 'bg-blue-50/30',
+}
+
+type Platform = 'shopify' | 'wordpress' | 'wix' | 'squarespace' | 'html'
+
+const PLATFORM_GUIDES: Record<Platform, { label: string; steps: string[] }> = {
+  shopify: {
+    label: 'Shopify',
+    steps: [
+      'Go to Online Store → Themes → "..." → Edit code',
+      'Find the file containing this element (use Ctrl+F to search)',
+      'Common locations: theme.liquid, header.liquid, sections/*.liquid',
+      'Replace the broken code with the fixed version above',
+      'Click Save — changes go live instantly',
+    ],
+  },
+  wordpress: {
+    label: 'WordPress',
+    steps: [
+      'Go to Appearance → Theme File Editor (or use a child theme)',
+      'Find the template file containing this element',
+      'Common locations: header.php, footer.php, page.php, single.php',
+      'Replace the broken code with the fixed version above',
+      'Click Update File — clear your cache if using a caching plugin',
+    ],
+  },
+  wix: {
+    label: 'Wix',
+    steps: [
+      'Open the Wix Editor for your site',
+      'Click the element mentioned in this issue',
+      'Use the Settings panel on the right to update properties',
+      'For alt text: click the image → Settings → "What\'s in the image?"',
+      'Click Publish to make changes live',
+    ],
+  },
+  squarespace: {
+    label: 'Squarespace',
+    steps: [
+      'Open your site in the Squarespace Editor',
+      'Navigate to the page containing this element',
+      'Click the element → Edit → update the relevant property',
+      'For alt text: click image → Edit → Image Description field',
+      'Changes save automatically — click the back arrow when done',
+    ],
+  },
+  html: {
+    label: 'Plain HTML',
+    steps: [
+      'Open the HTML file in any code editor (VS Code, Notepad++, etc.)',
+      'Use Ctrl+F / Cmd+F to find the broken code shown above',
+      'Replace it with the fixed version',
+      'Save the file and upload it to your hosting provider',
+    ],
+  },
+}
+
+function PlatformGuide() {
+  const [platform, setPlatform] = useState<Platform | null>(null)
+
+  return (
+    <div className="rounded-xl border-2 border-dashed border-primary-200 bg-gradient-to-br from-primary-50/50 to-white p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 bg-primary-100 rounded-lg">
+          <Gift className="w-4 h-4 text-primary-600" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-gray-900">Step-by-step install guide</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-primary-600 px-1.5 py-0.5 rounded-full">
+              Free bonus
+            </span>
+          </div>
+          <p className="text-xs text-gray-500">Select your platform — we'll show you exactly where to paste the fix</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {(Object.entries(PLATFORM_GUIDES) as [Platform, { label: string }][]).map(([key, { label }]) => (
+          <button
+            key={key}
+            onClick={(e) => { e.stopPropagation(); setPlatform(platform === key ? null : key) }}
+            className={cn(
+              'px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors',
+              platform === key
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:bg-primary-50',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {platform && (
+        <div className="bg-white rounded-lg border border-gray-200 p-3 space-y-2">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Monitor className="w-3.5 h-3.5 text-primary-600" />
+            <span className="text-xs font-bold text-primary-700">{PLATFORM_GUIDES[platform].label} — How to apply</span>
+          </div>
+          <ol className="space-y-1.5">
+            {PLATFORM_GUIDES[platform].steps.map((step, i) => (
+              <li key={i} className="flex gap-2 text-xs text-gray-700">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center text-[10px]">
+                  {i + 1}
+                </span>
+                <span className="pt-0.5 leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SeverityIcon({ severity }: { severity: string }) {
@@ -166,6 +279,9 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
                   </div>
                 )}
               </div>
+
+              {/* Platform-specific install guide — bonus */}
+              <PlatformGuide />
 
               {/* Meta row */}
               <div className="flex flex-wrap gap-x-5 gap-y-1 pt-2 border-t border-gray-100 text-xs text-gray-400">
