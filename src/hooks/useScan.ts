@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
 async function fetchHtml(url: string): Promise<string> {
-  // 1. Try Netlify Function (same-origin, no CORS, no Supabase limits)
+  // 1. Try Netlify Edge Function (same-origin, no CORS)
   {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 20000)
@@ -29,7 +29,7 @@ async function fetchHtml(url: string): Promise<string> {
       }
       if (!data.html) throw new Error('No HTML returned')
 
-      console.log('[SiteSafe] Got HTML, length:', data.html.length)
+      console.log('[SiteSafe] Got HTML via edge function, length:', data.html.length)
       return data.html
     } catch (err) {
       clearTimeout(timer)
@@ -37,7 +37,39 @@ async function fetchHtml(url: string): Promise<string> {
     }
   }
 
-  // 2. Try local dev proxy (only works in dev mode with vite)
+  // 2. Try Supabase Edge Function directly (fallback when Netlify limits hit)
+  if (SUPABASE_URL) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 20000)
+
+    try {
+      console.log('[SiteSafe] Fetching via Supabase edge function:', url)
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/scan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ url }),
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+
+      const data = await response.json()
+      if (!response.ok || data.error) {
+        throw new Error(data.error || `Supabase scan returned ${response.status}`)
+      }
+      if (!data.html) throw new Error('No HTML returned')
+
+      console.log('[SiteSafe] Got HTML via Supabase, length:', data.html.length)
+      return data.html
+    } catch (err) {
+      clearTimeout(timer)
+      console.warn('[SiteSafe] Supabase edge function failed:', err)
+    }
+  }
+
+  // 3. Try local dev proxy (only works in dev mode with vite)
   try {
     const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`
     const controller = new AbortController()
