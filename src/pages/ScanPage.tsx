@@ -42,26 +42,20 @@ function ScanningProgress() {
 
   useEffect(() => {
     let elapsed = 0
-    const totalDuration = SCAN_STEPS.reduce((s, step) => s + step.duration, 0)
 
     const interval = setInterval(() => {
-      elapsed += 100
-      // Ease-out curve: fast at start, slows down approaching 95%
-      const linear = elapsed / totalDuration
-      const eased = 1 - Math.pow(1 - Math.min(linear, 1), 2.5)
-      setProgress(Math.min(95, Math.round(eased * 95)))
+      elapsed += 80
+      // Never stops: asymptotically approaches 99% but never reaches it
+      const pct = 99 * (1 - Math.exp(-elapsed / 8000))
+      setProgress(Math.round(pct))
 
-      let cumulative = 0
-      for (let i = 0; i < SCAN_STEPS.length; i++) {
-        cumulative += SCAN_STEPS[i].duration
-        if (elapsed < cumulative) {
-          setStepIndex(i)
-          break
-        }
-        // If past all steps, stay on last
-        if (i === SCAN_STEPS.length - 1) setStepIndex(i)
-      }
-    }, 100)
+      // Cycle through steps based on progress
+      const idx = Math.min(
+        Math.floor((pct / 99) * SCAN_STEPS.length),
+        SCAN_STEPS.length - 1
+      )
+      setStepIndex(idx)
+    }, 80)
 
     return () => clearInterval(interval)
   }, [])
