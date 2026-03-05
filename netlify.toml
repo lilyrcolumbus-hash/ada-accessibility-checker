@@ -5,6 +5,10 @@
 [functions]
   directory = "netlify/functions"
 
+[[edge_functions]]
+  path = "/api/scan"
+  function = "scan"
+
 # SPA fallback (must be last)
 [[redirects]]
   from = "/*"
