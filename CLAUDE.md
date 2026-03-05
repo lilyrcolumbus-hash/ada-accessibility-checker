@@ -211,7 +211,13 @@ Supabase Auth has email confirmation disabled. Users are logged in immediately a
 ### 9. Stripe checkout supports both modes
 `create-checkout` edge function detects plan ID: `compliance-shield` → `mode: 'subscription'`, everything else → `mode: 'payment'`. Subscription data includes metadata for webhook processing.
 
-### 10. PayPal as alternative payment
+### 10. Scan results must load before DB save
+`useScan.ts` calls `setResult(scanResult)` BEFORE saving to Supabase DB. The DB save runs in a fire-and-forget async IIFE. **NEVER** put an `await` between the scan completing and `setResult` — this caused the "stuck at 99%" bug where the DB insert hung and blocked the UI.
+
+### 11. Scanner code fixes use [bracket] placeholders
+Checks that need human-written content (alt-text, link-text, empty-interactive) generate `[Describe this image]`, `[Describe where this link goes]`, etc. IssueCard detects `/\[.*?\]/` in `codeAfter` and shows a yellow warning banner telling users to customize. **NEVER** generate fake content as alt text or link text.
+
+### 12. PayPal as alternative payment
 PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. PayPal orders use server-side price validation (PLAN_PRICES map). After capture, `paypal-capture-order` updates profiles.plan and inserts into purchases (with `paypal_` prefix on payment ID).
 
 ## DB Schema (supabase/schema.sql)
@@ -253,19 +259,28 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Shared report page + Badge preview component
 - DB schema SQL applied to Supabase
 - Supabase Edge Functions deployed: scan, create-checkout, stripe-webhook, paypal-create-order, paypal-capture-order, create-portal
-- Stripe configured: publishable key, secret key, webhook (3 events), 2 products with price IDs
+- Stripe configured: publishable key (pk_test_*), secret key (sk_test_*), webhook (3 events), 2 products with price IDs
 - Supabase secrets set: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
-- netlify.toml ready
-- Pricing restructured: Free ($0) / Fix My Site ($49 one-time) / Compliance Shield ($199/year)
+- Pricing restructured: Free ($0) / Fix My Site ($49 one-time) / Compliance Shield ($199/year shown as $17/mo)
 - Smart redirects: logged in → /checkout, not logged in → /register
-- 22+ bug fixes applied (see Bugs Fixed section below)
+- **Deployed to Netlify:** https://ada-accessibility-checker.netlify.app
+- Netlify env vars configured: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_PAYPAL_CLIENT_ID
+- Header shows Dashboard + Sign Out when logged in (auth-aware)
+- PriorityPlan deduplicates issues by title (no repeated items)
+- RiskBreakdown shows N/A when no state selected
+- UpgradePrompt: sidebar on desktop, inline on mobile (no duplication)
+- Pricing cards balanced: $0 "No credit card", $49 "vs $10K lawsuit", $17/mo "Save 66% vs accessiBe"
+- Platform-specific install guides (Shopify, WordPress, Wix, Squarespace, HTML) as "Free Bonus" in each IssueCard
+- Scanner fix quality: alt-text uses smart extraction (skips hashes), placeholders use [brackets] with warning banner
+- Scan results load instantly (DB save runs in background, never blocks UI)
+- Progress bar uses asymptotic curve (never stalls)
+- 35+ bug fixes applied (see Bugs Fixed section below)
 
 ### Pending (to launch)
-- Debug signup/signin spinner issue (API works, frontend hangs)
 - PayPal credentials (VITE_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_API_URL as Supabase secrets)
-- Deploy to Netlify (connect repo, configure env vars)
-- Buy custom domain
+- Buy custom domain + configure in Netlify
 - End-to-end testing of full payment flow (Stripe + PayPal)
+- Footer links (Privacy Policy, Terms of Service, Contact) need actual pages
 
 ### Future (post-launch)
 - Monthly automated re-scans (cron job for Compliance Shield)
@@ -317,6 +332,19 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 ### Session 4 fixes
 29. **RegisterForm showed "Check your email"** — Email confirmation disabled but form still showed confirmation screen. Now auto-redirects to /checkout or /dashboard.
 
+### Session 5 fixes (deploy + UX)
+30. **SignUp spinner hung** — `signUp` in AuthContext didn't update session/user state. User navigated to ProtectedRoute with null user → stuck or redirected. Now updates state immediately from signup response.
+31. **Stripe Invalid API Key** — `.env.local` had wrong format keys (sb_publishable_*). Updated to correct pk_test_*/sk_test_* keys. Updated Supabase secret and Netlify env var.
+32. **Header showed Login/Sign Up when logged in** — Header had no auth awareness. Added useAuth() — shows Dashboard + Sign Out when authenticated.
+33. **PriorityPlan 3x duplicate issues** — Top 3 issues were all "Missing alt text" because sorted by severity without deduplication. Added title-based dedup filter.
+34. **RiskBreakdown showed "Medium" without state** — No state selected defaulted to medium risk. Now shows N/A with gray styling and "Select a state above for risk data".
+35. **UpgradePrompt appeared 3 times** — Inline in IssuesList + sidebar + CostEstimateCard. Now: sidebar on desktop only (`hidden lg:block`), inline on mobile only (`lg:hidden`).
+36. **Progress bar stuck at 98%** — Animation duration (3.8s) was shorter than actual scan. Changed to asymptotic exponential curve that never stops moving (approaches 99% infinitely).
+37. **Scan results didn't load (stuck at 99%)** — `setResult(scanResult)` was called AFTER `await supabase.from('scans').insert()`. DB insert hung → UI never updated. Moved setResult before DB save; DB now saves in background fire-and-forget IIFE.
+38. **Alt text generated garbage** — `extractDescriptiveAlt()` used raw filename including hashes/UUIDs as alt text. Now skips hex strings, extracts readable path segments, falls back to `[Describe this image]`.
+39. **Scanner placeholders misleading** — link-text, empty-interactive used fake text ("Submit Form", "Descriptive link text"). Changed to bracket placeholders + added yellow warning banner in IssueCard when fix contains [brackets].
+40. **Compliance Shield showed as one-time** — Pricing card showed $199 with "one-time" label. Now shows $17/month with "Billed annually at $199/year" + savings badge.
+
 ## Design System
 - **Font:** Inter (system-ui fallback), set in `index.css` body rule
 - **SEO:** Title "SiteSafe — ADA Website Accessibility Checker", meta description about scanning + $10K lawsuits
@@ -360,9 +388,10 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 3. **Plain English** — "Your logo has no description for blind users" not "img missing alt"
 4. **Risk score** by industry + US state (lawsuit data)
 5. **75% cheaper** than cheapest competitor for ongoing monitoring
-6. **Copy-paste code fixes** — for every issue found
-7. **Prioritized action plan** with score impact projections
-8. **Shareable report URLs** + compliance badge
+6. **Copy-paste code fixes** — for every issue found, with [bracket] placeholders where human input needed
+7. **Platform-specific install guides** — step-by-step for Shopify, WordPress, Wix, Squarespace, HTML (free bonus in each issue card)
+8. **Prioritized action plan** with score impact projections (deduplicated by title)
+9. **Shareable report URLs** + compliance badge
 
 ## Key Files Quick Reference
 | File | Purpose |
@@ -482,7 +511,7 @@ BrowserRouter
 
 ### Stripe
 - **Account:** Created (test mode)
-- **Key format:** New format (`sb_publishable_*` / `sb_secret_*`)
+- **Key format:** Standard format (`pk_test_*` / `sk_test_*`)
 - **Products:** Created
   - Fix My Site: $49 one-time, price ID `price_1T7MPaFfYL1pGw0ot4eQO3Bp`
   - Compliance Shield: $199/year recurring, price ID `price_1T7MiPFfYL1pGw0ohwz2MHvV`
@@ -495,9 +524,11 @@ BrowserRouter
 - **Needs:** Client ID + Secret from PayPal Developer Dashboard
 
 ### Netlify
-- **Status:** NOT yet deployed
-- **Config:** `netlify.toml` ready in repo
-- **Env vars needed:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_PAYPAL_CLIENT_ID`
+- **Status:** DEPLOYED and live
+- **URL:** https://ada-accessibility-checker.netlify.app
+- **Config:** `netlify.toml` in repo (npm run build → dist/, SPA redirect)
+- **Env vars configured:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY` (pk_test_*), `VITE_PAYPAL_CLIENT_ID`
+- **Auto-deploy:** Connected to main branch — push triggers redeploy
 
 ## User Preferences
 - Communication: **Spanish**
