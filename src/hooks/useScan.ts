@@ -1,56 +1,85 @@
 import { useState, useEffect, useCallback } from 'react'
-const isSupabaseConfigured = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
-)
 import { runScan } from '@/scanner/engine'
 import type { ScanResult } from '@/scanner/types'
 
 const SESSION_KEY = 'sitesafe_scan_result'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
-    ),
-  ])
-}
+async function fetchHtml(url: string): Promise<string> {
+  // 1. Try Supabase edge function (avoids CORS) — direct fetch, no SDK
+  if (isSupabaseConfigured) {
+    const edgeFnUrl = `${SUPABASE_URL}/functions/v1/scan`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000)
 
-async function fetchViaProxy(url: string): Promise<string> {
-  const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10000)
+    try {
+      console.log('[SiteSafe] Fetching via edge function:', url)
+      const response = await fetch(edgeFnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ url }),
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
 
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
+        throw new Error(errBody.error || `Edge function returned ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+      if (!data.html) throw new Error('No HTML returned from edge function')
+
+      console.log('[SiteSafe] Got HTML from edge function, length:', data.html.length)
+      return data.html
+    } catch (err) {
+      clearTimeout(timer)
+      console.warn('[SiteSafe] Edge function failed:', err)
+      // Fall through to proxy/direct fetch
+    }
+  }
+
+  // 2. Try local dev proxy (only works in dev mode with vite)
   try {
+    const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 10000)
     const response = await fetch(proxyUrl, { signal: controller.signal })
     clearTimeout(timer)
 
-    if (!response.ok) {
-      throw new Error(`Proxy returned ${response.status}`)
+    if (response.ok) {
+      const data = await response.json()
+      if (data.html) return data.html
     }
-
-    const data = await response.json()
-    if (data.error) throw new Error(data.error)
-    return data.html
   } catch {
+    // Proxy not available (expected on Netlify)
+  }
+
+  // 3. Direct fetch (only works if target allows CORS)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10000)
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'text/html,application/xhtml+xml' },
+      signal: controller.signal,
+    })
     clearTimeout(timer)
-    // Fallback to direct fetch (works if target allows CORS)
-    const controller2 = new AbortController()
-    const timer2 = setTimeout(() => controller2.abort(), 10000)
-    try {
-      const directResponse = await fetch(url, {
-        headers: { Accept: 'text/html,application/xhtml+xml' },
-        signal: controller2.signal,
-      })
-      clearTimeout(timer2)
-      if (!directResponse.ok) {
-        throw new Error(`Failed to fetch page: ${directResponse.status} ${directResponse.statusText}`)
-      }
-      return directResponse.text()
-    } catch (err) {
-      clearTimeout(timer2)
-      throw err
+    if (!response.ok) {
+      throw new Error(`Failed to fetch page: ${response.status} ${response.statusText}`)
     }
+    return response.text()
+  } catch (err) {
+    clearTimeout(timer)
+    throw new Error(
+      'Could not fetch this website. It may be blocking automated requests, or our scanner is temporarily unavailable. Please try again.'
+    )
   }
 }
 
@@ -102,43 +131,10 @@ export function useScan(url?: string): UseScanReturn {
     }, 30000)
 
     try {
-      let html: string
+      // 1. Fetch the page HTML (edge function → dev proxy → direct)
+      const html = await fetchHtml(normalised)
 
-      // 1. Try Supabase edge function first (avoids CORS) — 15s timeout
-      if (isSupabaseConfigured) {
-        try {
-          console.log('[SiteSafe] Calling edge function for:', normalised)
-          const { supabase } = await import('@/lib/supabase')
-          const { data, error: fnError } = await withTimeout(
-            supabase.functions.invoke('scan', { body: { url: normalised } }),
-            15000,
-            'Edge function'
-          )
-
-          if (fnError) throw fnError
-
-          // supabase.functions.invoke may return data as string if Content-Type isn't detected
-          let parsed = data
-          if (typeof data === 'string') {
-            try { parsed = JSON.parse(data) } catch { /* already parsed */ }
-          }
-
-          if (!parsed?.html) {
-            console.error('[SiteSafe] Edge function returned unexpected data:', typeof data, data ? Object.keys(data) : 'null')
-            throw new Error('No HTML returned from edge function')
-          }
-
-          html = parsed.html as string
-          console.log('[SiteSafe] Got HTML from edge function, length:', html.length)
-        } catch (edgeError) {
-          console.warn('[SiteSafe] Edge function failed, trying proxy:', edgeError)
-          html = await fetchViaProxy(normalised)
-        }
-      } else {
-        html = await fetchViaProxy(normalised)
-      }
-
-      // 3. Run the scanner
+      // 2. Run the scanner
       console.log('[SiteSafe] Running scanner on HTML...')
       const scanResult = await runScan(html, normalised)
       console.log('[SiteSafe] Scan complete. Score:', scanResult.score, 'Issues:', scanResult.totalIssues)
