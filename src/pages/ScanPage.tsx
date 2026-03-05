@@ -19,10 +19,11 @@ import { INDUSTRY_RISK, TOP_LAWSUIT_STATES } from '@/config/constants'
 
 // Scanning progress steps shown during loading
 const SCAN_STEPS = [
-  { label: 'Fetching page...', duration: 1200 },
-  { label: 'Analyzing HTML...', duration: 1000 },
-  { label: 'Checking contrast...', duration: 900 },
-  { label: 'Calculating risk...', duration: 700 },
+  { label: 'Fetching page...', duration: 3000 },
+  { label: 'Analyzing HTML...', duration: 3000 },
+  { label: 'Checking contrast...', duration: 2500 },
+  { label: 'Calculating risk...', duration: 2500 },
+  { label: 'Generating report...', duration: 4000 },
 ]
 
 const INDUSTRIES = Object.keys(INDUSTRY_RISK).map(key => ({
@@ -44,8 +45,11 @@ function ScanningProgress() {
     const totalDuration = SCAN_STEPS.reduce((s, step) => s + step.duration, 0)
 
     const interval = setInterval(() => {
-      elapsed += 50
-      setProgress(Math.min(98, Math.round((elapsed / totalDuration) * 100)))
+      elapsed += 100
+      // Ease-out curve: fast at start, slows down approaching 95%
+      const linear = elapsed / totalDuration
+      const eased = 1 - Math.pow(1 - Math.min(linear, 1), 2.5)
+      setProgress(Math.min(95, Math.round(eased * 95)))
 
       let cumulative = 0
       for (let i = 0; i < SCAN_STEPS.length; i++) {
@@ -54,8 +58,10 @@ function ScanningProgress() {
           setStepIndex(i)
           break
         }
+        // If past all steps, stay on last
+        if (i === SCAN_STEPS.length - 1) setStepIndex(i)
       }
-    }, 50)
+    }, 100)
 
     return () => clearInterval(interval)
   }, [])
