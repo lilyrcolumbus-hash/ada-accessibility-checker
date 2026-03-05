@@ -13,18 +13,10 @@ function getSelector(el: Element): string {
   return tag
 }
 
-function extractDescriptiveAlt(src: string): string {
-  // Try to get a readable name from the URL path
-  const parts = src.split('/').filter(p => p && !p.includes('?'))
-  // Walk backwards looking for a human-readable segment
-  for (let i = parts.length - 1; i >= 0; i--) {
-    const segment = parts[i].split('.')[0].replace(/[-_]/g, ' ').trim()
-    // Skip hashes, UUIDs, and purely numeric/hex strings
-    if (segment.length > 3 && !/^[a-f0-9\s]+$/i.test(segment) && /[a-z]/i.test(segment)) {
-      // Capitalize first letter
-      return segment.charAt(0).toUpperCase() + segment.slice(1)
-    }
-  }
+function extractDescriptiveAlt(_src: string): string {
+  // Always use a bracket placeholder so users know they MUST customize it.
+  // Auto-extracted text from URLs (like "Preview images", "Banner") is misleading
+  // because it doesn't describe what the image actually shows.
   return '[Describe this image]'
 }
 
