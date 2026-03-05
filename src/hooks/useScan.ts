@@ -96,6 +96,7 @@ export function useScan(url?: string): UseScanReturn {
 
     // Global safety timeout — NEVER let the scan hang more than 30s
     const globalTimeout = setTimeout(() => {
+      console.error('[SiteSafe] Global 30s timeout fired — scan hung somewhere')
       setError('Scan timed out. The website may be too slow or blocking our scanner. Please try again.')
       setLoading(false)
     }, 30000)
@@ -106,6 +107,7 @@ export function useScan(url?: string): UseScanReturn {
       // 1. Try Supabase edge function first (avoids CORS) — 15s timeout
       if (isSupabaseConfigured) {
         try {
+          console.log('[SiteSafe] Calling edge function for:', normalised)
           const { supabase } = await import('@/lib/supabase')
           const { data, error: fnError } = await withTimeout(
             supabase.functions.invoke('scan', { body: { url: normalised } }),
@@ -114,11 +116,22 @@ export function useScan(url?: string): UseScanReturn {
           )
 
           if (fnError) throw fnError
-          if (!data?.html) throw new Error('No HTML returned from edge function')
 
-          html = data.html as string
+          // supabase.functions.invoke may return data as string if Content-Type isn't detected
+          let parsed = data
+          if (typeof data === 'string') {
+            try { parsed = JSON.parse(data) } catch { /* already parsed */ }
+          }
+
+          if (!parsed?.html) {
+            console.error('[SiteSafe] Edge function returned unexpected data:', typeof data, data ? Object.keys(data) : 'null')
+            throw new Error('No HTML returned from edge function')
+          }
+
+          html = parsed.html as string
+          console.log('[SiteSafe] Got HTML from edge function, length:', html.length)
         } catch (edgeError) {
-          console.warn('Edge function failed, trying proxy:', edgeError)
+          console.warn('[SiteSafe] Edge function failed, trying proxy:', edgeError)
           html = await fetchViaProxy(normalised)
         }
       } else {
@@ -126,7 +139,9 @@ export function useScan(url?: string): UseScanReturn {
       }
 
       // 3. Run the scanner
+      console.log('[SiteSafe] Running scanner on HTML...')
       const scanResult = await runScan(html, normalised)
+      console.log('[SiteSafe] Scan complete. Score:', scanResult.score, 'Issues:', scanResult.totalIssues)
 
       // 4. Persist to sessionStorage
       try {
@@ -165,6 +180,7 @@ export function useScan(url?: string): UseScanReturn {
         })()
       }
     } catch (err) {
+      console.error('[SiteSafe] Scan failed with error:', err)
       const message = err instanceof Error
         ? err.message
         : 'An unexpected error occurred. Please try again.'
