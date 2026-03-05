@@ -7,25 +7,51 @@ import type { ScanResult } from '@/scanner/types'
 
 const SESSION_KEY = 'sitesafe_scan_result'
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ])
+}
+
 async function fetchViaProxy(url: string): Promise<string> {
-  // In dev mode, use the Vite CORS proxy middleware
   const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`
-  const response = await fetch(proxyUrl)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10000)
 
-  if (!response.ok) {
-    // Fallback to direct fetch (works if target allows CORS)
-    const directResponse = await fetch(url, {
-      headers: { Accept: 'text/html,application/xhtml+xml' },
-    })
-    if (!directResponse.ok) {
-      throw new Error(`Failed to fetch page: ${directResponse.status} ${directResponse.statusText}`)
+  try {
+    const response = await fetch(proxyUrl, { signal: controller.signal })
+    clearTimeout(timer)
+
+    if (!response.ok) {
+      throw new Error(`Proxy returned ${response.status}`)
     }
-    return directResponse.text()
-  }
 
-  const data = await response.json()
-  if (data.error) throw new Error(data.error)
-  return data.html
+    const data = await response.json()
+    if (data.error) throw new Error(data.error)
+    return data.html
+  } catch {
+    clearTimeout(timer)
+    // Fallback to direct fetch (works if target allows CORS)
+    const controller2 = new AbortController()
+    const timer2 = setTimeout(() => controller2.abort(), 10000)
+    try {
+      const directResponse = await fetch(url, {
+        headers: { Accept: 'text/html,application/xhtml+xml' },
+        signal: controller2.signal,
+      })
+      clearTimeout(timer2)
+      if (!directResponse.ok) {
+        throw new Error(`Failed to fetch page: ${directResponse.status} ${directResponse.statusText}`)
+      }
+      return directResponse.text()
+    } catch (err) {
+      clearTimeout(timer2)
+      throw err
+    }
+  }
 }
 
 interface UseScanReturn {
@@ -68,27 +94,34 @@ export function useScan(url?: string): UseScanReturn {
       ? targetUrl
       : `https://${targetUrl}`
 
+    // Global safety timeout — NEVER let the scan hang more than 30s
+    const globalTimeout = setTimeout(() => {
+      setError('Scan timed out. The website may be too slow or blocking our scanner. Please try again.')
+      setLoading(false)
+    }, 30000)
+
     try {
       let html: string
 
-      // 1. Try Supabase edge function first (avoids CORS)
+      // 1. Try Supabase edge function first (avoids CORS) — 15s timeout
       if (isSupabaseConfigured) {
         try {
           const { supabase } = await import('@/lib/supabase')
-          const { data, error: fnError } = await supabase.functions.invoke('scan', {
-            body: { url: normalised },
-          })
+          const { data, error: fnError } = await withTimeout(
+            supabase.functions.invoke('scan', { body: { url: normalised } }),
+            15000,
+            'Edge function'
+          )
 
           if (fnError) throw fnError
           if (!data?.html) throw new Error('No HTML returned from edge function')
 
           html = data.html as string
         } catch (edgeError) {
-          console.warn('Edge function unavailable, trying proxy:', edgeError)
+          console.warn('Edge function failed, trying proxy:', edgeError)
           html = await fetchViaProxy(normalised)
         }
       } else {
-        // No Supabase — use dev proxy or direct fetch
         html = await fetchViaProxy(normalised)
       }
 
@@ -137,6 +170,7 @@ export function useScan(url?: string): UseScanReturn {
         : 'An unexpected error occurred. Please try again.'
       setError(message)
     } finally {
+      clearTimeout(globalTimeout)
       setLoading(false)
     }
   }, [])
