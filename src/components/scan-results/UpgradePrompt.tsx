@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { Lock, Code2, FileCheck2, ChevronRight, RotateCcw, ShieldCheck } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/ui/Button'
 
 interface UpgradePromptProps {
-  hiddenIssueCount: number
+  totalIssueCount: number
 }
 
 const FEATURES = [
@@ -13,8 +14,10 @@ const FEATURES = [
   { Icon: RotateCcw, text: 'Free re-scan after you fix everything' },
 ]
 
-export default function UpgradePrompt({ hiddenIssueCount }: UpgradePromptProps) {
+export default function UpgradePrompt({ totalIssueCount }: UpgradePromptProps) {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const checkoutPath = user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site'
 
   return (
     <div className="relative overflow-hidden rounded-xl border-2 border-primary-300 bg-gradient-to-br from-primary-50 via-white to-primary-50 shadow-sm">
@@ -27,18 +30,12 @@ export default function UpgradePrompt({ hiddenIssueCount }: UpgradePromptProps) 
             <div className="p-1.5 bg-primary-100 rounded-lg">
               <Lock className="w-4 h-4 text-primary-600" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">Unlock Full Report</h3>
+            <h3 className="text-base font-bold text-gray-900">Unlock Code Fixes</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {hiddenIssueCount > 0 ? (
-              <>
-                You have{' '}
-                <span className="font-bold text-danger-600">{hiddenIssueCount} more issue{hiddenIssueCount !== 1 ? 's' : ''}</span>{' '}
-                hidden. Get every fix before a lawsuit finds you.
-              </>
-            ) : (
-              <>Get the complete report with every code fix and a shareable link.</>
-            )}
+            Unlock code fixes for{' '}
+            <span className="font-bold text-danger-600">all {totalIssueCount} issue{totalIssueCount !== 1 ? 's' : ''}</span>.{' '}
+            Get copy-paste solutions before a lawsuit finds you.
           </p>
         </div>
 
@@ -71,9 +68,9 @@ export default function UpgradePrompt({ hiddenIssueCount }: UpgradePromptProps) 
           variant="primary"
           size="md"
           className="w-full gap-2 shadow-md"
-          onClick={() => navigate('/register?plan=full-report')}
+          onClick={() => navigate(checkoutPath)}
         >
-          Get Full Report
+          Fix My Site
           <ChevronRight className="w-4 h-4" />
         </Button>
 

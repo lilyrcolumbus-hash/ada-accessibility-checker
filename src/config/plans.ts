@@ -1,34 +1,37 @@
 export interface Plan {
   id: string
   name: string
+  tagline: string
   price: number
   priceId: string
+  billing: 'free' | 'one-time' | 'yearly'
   features: string[]
   limits: {
     pagesPerScan: number
     codeFixesVisible: number | 'unlimited'
     shareableReports: boolean
     complianceBadge: boolean
-    rescanIncluded: boolean
+    rescanIncluded: boolean | 'unlimited'
+    monthlyAutoScan: boolean
+    emailAlerts: boolean
     multiSite: number
   }
   popular?: boolean
-  oneTime: true
 }
 
 export const PLANS: Plan[] = [
   {
     id: 'free',
     name: 'Free Scan',
+    tagline: 'See what\'s broken',
     price: 0,
     priceId: '',
-    oneTime: true,
+    billing: 'free',
     features: [
       'Scan 1 page',
-      'Compliance score',
-      'Risk assessment',
-      'View 3 issues',
-      '1 code fix visible',
+      'Compliance score & risk level',
+      'View all issues found',
+      '1 code fix included',
     ],
     limits: {
       pagesPerScan: 1,
@@ -36,24 +39,26 @@ export const PLANS: Plan[] = [
       shareableReports: false,
       complianceBadge: false,
       rescanIncluded: false,
+      monthlyAutoScan: false,
+      emailAlerts: false,
       multiSite: 1,
     },
   },
   {
-    id: 'full-report',
-    name: 'Full Report',
+    id: 'fix-my-site',
+    name: 'Fix My Site',
+    tagline: 'Fix it before they sue you',
     price: 49,
-    priceId: 'price_full_report',
+    priceId: 'price_1T7MPaFfYL1pGw0ot4eQO3Bp',
+    billing: 'one-time',
     popular: true,
-    oneTime: true,
     features: [
-      'Full site scan (up to 50 pages)',
-      'Every issue explained in plain English',
-      'Copy-paste code fix for each issue',
+      'Scan up to 50 pages',
+      'All code fixes (copy-paste ready)',
       'Prioritized action plan',
-      'Cost & time estimate',
       'Shareable report link',
-      '1 free re-scan after fixes',
+      'Cost & time estimates',
+      '1 re-scan after fixes',
     ],
     limits: {
       pagesPerScan: 50,
@@ -61,30 +66,35 @@ export const PLANS: Plan[] = [
       shareableReports: true,
       complianceBadge: false,
       rescanIncluded: true,
+      monthlyAutoScan: false,
+      emailAlerts: false,
       multiSite: 1,
     },
   },
   {
-    id: 'agency',
-    name: 'Agency Pack',
+    id: 'compliance-shield',
+    name: 'Compliance Shield',
+    tagline: 'Never worry about a lawsuit again',
     price: 199,
-    priceId: 'price_agency',
-    oneTime: true,
+    priceId: 'price_1T7MiPFfYL1pGw0ohwz2MHvV',
+    billing: 'yearly',
     features: [
-      'Everything in Full Report',
-      'Scan up to 10 websites',
-      'Unlimited pages per site',
-      'Compliance badge for each site',
-      '3 re-scans per site',
-      'Shareable reports for clients',
+      'Everything in Fix My Site',
+      'Up to 5 websites',
+      'Unlimited re-scans',
+      'Monthly automated re-scans',
+      'Email alerts if score drops',
+      'Compliance badge for your site',
     ],
     limits: {
-      pagesPerScan: 500,
+      pagesPerScan: 50,
       codeFixesVisible: 'unlimited',
       shareableReports: true,
       complianceBadge: true,
-      rescanIncluded: true,
-      multiSite: 10,
+      rescanIncluded: 'unlimited',
+      monthlyAutoScan: true,
+      emailAlerts: true,
+      multiSite: 5,
     },
   },
 ]

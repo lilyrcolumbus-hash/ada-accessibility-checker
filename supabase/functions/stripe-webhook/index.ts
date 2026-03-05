@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14?target=deno'
 
-const VALID_PLANS = ['free', 'full-report', 'agency']
+const VALID_PLANS = ['free', 'fix-my-site', 'compliance-shield']
 
 const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
 const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
@@ -18,6 +18,37 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
+
+async function activatePlan(userId: string, planId: string, paymentId: string, amount: number | null) {
+  if (!VALID_PLANS.includes(planId)) {
+    console.error(`Invalid plan ID received: ${planId}`)
+    return
+  }
+
+  console.log(`Activating plan: user=${userId}, plan=${planId}, payment=${paymentId}`)
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ plan: planId })
+    .eq('id', userId)
+
+  if (profileError) {
+    console.error('Failed to update profile:', profileError)
+  }
+
+  const { error: purchaseError } = await supabase.from('purchases').insert({
+    user_id: userId,
+    plan: planId,
+    stripe_payment_id: paymentId,
+    amount,
+  })
+
+  if (purchaseError) {
+    console.error('Failed to record purchase:', purchaseError)
+  }
+
+  console.log(`Plan activated successfully: user=${userId}, plan=${planId}`)
+}
 
 Deno.serve(async (req) => {
   if (!endpointSecret) {
@@ -43,52 +74,71 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session
+    switch (event.type) {
+      // One-time payment completed
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
 
-      if (session.payment_status !== 'paid') {
-        console.log('Session not paid, skipping:', session.id)
-        return new Response('OK')
+        if (session.payment_status !== 'paid') {
+          console.log('Session not paid, skipping:', session.id)
+          break
+        }
+
+        const userId = session.metadata?.supabase_user_id
+        const planId = session.metadata?.plan_id || 'fix-my-site'
+
+        if (!userId) {
+          console.warn('No user ID in webhook metadata:', session.id)
+          break
+        }
+
+        await activatePlan(
+          userId,
+          planId,
+          (session.payment_intent as string) || session.subscription as string || session.id,
+          session.amount_total,
+        )
+        break
       }
 
-      const userId = session.metadata?.supabase_user_id
-      const planId = session.metadata?.plan_id || 'full-report'
+      // Subscription renewed (subsequent payments)
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice
+        if (!invoice.subscription) break
 
-      if (!userId) {
-        console.warn('No user ID in webhook metadata:', session.id)
-        return new Response('OK')
+        const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
+        const userId = sub.metadata?.supabase_user_id
+        const planId = sub.metadata?.plan_id
+
+        if (!userId || !planId) {
+          console.warn('No metadata on subscription:', sub.id)
+          break
+        }
+
+        // Re-activate plan on renewal
+        await activatePlan(userId, planId, invoice.payment_intent as string, invoice.amount_paid)
+        break
       }
 
-      if (!VALID_PLANS.includes(planId)) {
-        console.error(`Invalid plan ID received: ${planId}, session: ${session.id}`)
-        return new Response('OK')
+      // Subscription cancelled or expired
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription
+        const userId = sub.metadata?.supabase_user_id
+
+        if (!userId) break
+
+        console.log(`Subscription cancelled: user=${userId}, sub=${sub.id}`)
+
+        const { error } = await supabase
+          .from('profiles')
+          .update({ plan: 'free' })
+          .eq('id', userId)
+
+        if (error) {
+          console.error('Failed to downgrade profile:', error)
+        }
+        break
       }
-
-      console.log(`Processing purchase: user=${userId}, plan=${planId}, session=${session.id}`)
-
-      // Update user's plan
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ plan: planId })
-        .eq('id', userId)
-
-      if (profileError) {
-        console.error('Failed to update profile:', profileError)
-      }
-
-      // Record the purchase
-      const { error: purchaseError } = await supabase.from('purchases').insert({
-        user_id: userId,
-        plan: planId,
-        stripe_payment_id: session.payment_intent as string,
-        amount: session.amount_total,
-      })
-
-      if (purchaseError) {
-        console.error('Failed to record purchase:', purchaseError)
-      }
-
-      console.log(`Purchase recorded successfully: user=${userId}, plan=${planId}`)
     }
 
     return new Response(JSON.stringify({ received: true }), {

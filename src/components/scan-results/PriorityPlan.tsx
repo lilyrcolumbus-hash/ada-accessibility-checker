@@ -38,8 +38,15 @@ const STEP_COLORS: Record<string, { bg: string; border: string; num: string; acc
 
 export default function PriorityPlan({ issues, score }: PriorityPlanProps) {
   const severityOrder: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 }
+  // Deduplicate by title, keeping highest severity instance
+  const seen = new Set<string>()
   const topIssues = [...issues]
     .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
+    .filter(issue => {
+      if (seen.has(issue.title)) return false
+      seen.add(issue.title)
+      return true
+    })
     .slice(0, 3)
 
   const totalScoreImprovement = topIssues.reduce((sum, issue) => {

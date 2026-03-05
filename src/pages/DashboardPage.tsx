@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Globe,
   PlusCircle,
@@ -10,6 +10,7 @@ import {
   TrendingUp,
   ArrowRight,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSubscription } from '@/hooks/useSubscription'
 import Button from '@/components/ui/Button'
@@ -60,9 +61,24 @@ export function DashboardPage() {
   const { user, signOut } = useAuth()
   const { plan, isPaid } = useSubscription()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [scans] = useState<ScanRecord[]>(loadScansFromStorage)
   const [quickUrl, setQuickUrl] = useState('')
+
+  // Show payment success toast
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') {
+      const planName = searchParams.get('plan')
+      toast.success(
+        planName
+          ? `Payment successful! Your ${planName === 'compliance-shield' ? 'Compliance Shield' : 'Fix My Site'} is now active.`
+          : 'Payment successful! Your plan has been upgraded.',
+        { duration: 5000 }
+      )
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const handleQuickScan = (e: FormEvent) => {
     e.preventDefault()
@@ -95,7 +111,7 @@ export function DashboardPage() {
               {plan.name} plan
             </Badge>
             {!isPaid && (
-              <Link to="/#pricing">
+              <Link to="/checkout?plan=fix-my-site">
                 <Button size="sm" variant="primary">
                   <Zap className="mr-1.5 h-3.5 w-3.5" />
                   Upgrade
@@ -158,7 +174,7 @@ export function DashboardPage() {
                 Upgrade to scan full websites, get monitoring alerts, and protect against lawsuits.
               </p>
             </div>
-            <Link to="/#pricing">
+            <Link to="/checkout?plan=fix-my-site">
               <Button size="sm" variant="primary">
                 View plans
                 <ArrowRight className="ml-1.5 h-4 w-4" />

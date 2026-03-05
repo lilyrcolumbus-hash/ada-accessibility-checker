@@ -6,6 +6,9 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2023-10-16',
 })
 
+// Plans that use subscription mode in Stripe
+const SUBSCRIPTION_PLANS = ['compliance-shield']
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -64,18 +67,28 @@ Deno.serve(async (req) => {
         .eq('id', user.id)
     }
 
-    // Create one-time payment checkout session
+    const isSubscription = SUBSCRIPTION_PLANS.includes(planId)
+    const origin = req.headers.get('origin')
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode: 'payment',
+      mode: isSubscription ? 'subscription' : 'payment',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${req.headers.get('origin')}/dashboard?payment=success&plan=${planId}`,
-      cancel_url: `${req.headers.get('origin')}/#pricing`,
+      success_url: `${origin}/dashboard?payment=success&plan=${planId}`,
+      cancel_url: `${origin}/#pricing`,
       metadata: {
         supabase_user_id: user.id,
-        plan_id: planId || 'full-report',
+        plan_id: planId || 'fix-my-site',
       },
+      ...(isSubscription && {
+        subscription_data: {
+          metadata: {
+            supabase_user_id: user.id,
+            plan_id: planId,
+          },
+        },
+      }),
     })
 
     return new Response(

@@ -1,5 +1,8 @@
-import { Lock, Clock, DollarSign, AlertTriangle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Lock, Clock, DollarSign, AlertTriangle, ChevronRight } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency, formatTime } from '@/scanner/cost-estimator'
+import Button from '@/components/ui/Button'
 import type { CostEstimate } from '@/scanner/types'
 
 interface CostEstimateCardProps {
@@ -15,6 +18,8 @@ function CategoryLabel(name: string): string {
 }
 
 export default function CostEstimateCard({ costEstimate, isPaid }: CostEstimateCardProps) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const { totalMinutes, totalCost, byCategory } = costEstimate
   const categories = Object.entries(byCategory)
   const savingsMultiplier = totalCost > 0 ? Math.round(10000 / totalCost) : 0
@@ -96,11 +101,20 @@ export default function CostEstimateCard({ costEstimate, isPaid }: CostEstimateC
 
             {/* Overlay for blurred state */}
             {!isPaid && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                 <div className="bg-white/90 border border-gray-200 shadow-sm rounded-lg px-4 py-2 flex items-center gap-2">
                   <Lock className="w-4 h-4 text-gray-400" />
                   <span className="text-sm font-semibold text-gray-600">Unlock full breakdown</span>
                 </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => navigate(user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site')}
+                >
+                  Fix My Site
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
               </div>
             )}
           </div>

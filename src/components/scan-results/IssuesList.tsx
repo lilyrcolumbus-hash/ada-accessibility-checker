@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ListChecks } from 'lucide-react'
+import { ListChecks, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import IssueCard from './IssueCard'
 import UpgradePrompt from './UpgradePrompt'
@@ -10,32 +10,39 @@ interface IssuesListProps {
   isPaid: boolean
 }
 
-type FilterOption = 'all' | Severity
+const SEVERITY_ORDER: Severity[] = ['critical', 'serious', 'moderate', 'minor']
 
-const FREE_VISIBLE_COUNT = 3
+const SEVERITY_CONFIG: Record<Severity, { label: string; dot: string; bg: string; text: string; border: string }> = {
+  critical: { label: 'Critical', dot: 'bg-danger-500', bg: 'bg-danger-50', text: 'text-danger-700', border: 'border-danger-200' },
+  serious: { label: 'Serious', dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  moderate: { label: 'Moderate', dot: 'bg-warning-500', bg: 'bg-warning-50', text: 'text-warning-700', border: 'border-warning-200' },
+  minor: { label: 'Minor', dot: 'bg-blue-500', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+}
 
-const FILTER_CONFIG: Record<Exclude<FilterOption, 'all'>, { label: string; dot: string; active: string }> = {
-  critical: { label: 'Critical', dot: 'bg-danger-500', active: 'bg-danger-50 text-danger-700 border-danger-300 ring-1 ring-danger-200' },
-  serious: { label: 'Serious', dot: 'bg-orange-500', active: 'bg-orange-50 text-orange-700 border-orange-300 ring-1 ring-orange-200' },
-  moderate: { label: 'Moderate', dot: 'bg-warning-500', active: 'bg-warning-50 text-warning-700 border-warning-300 ring-1 ring-warning-200' },
-  minor: { label: 'Minor', dot: 'bg-blue-500', active: 'bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-200' },
+function groupBySeverity(issues: ScanIssue[]): Record<Severity, ScanIssue[]> {
+  const groups: Record<Severity, ScanIssue[]> = { critical: [], serious: [], moderate: [], minor: [] }
+  for (const issue of issues) {
+    groups[issue.severity].push(issue)
+  }
+  return groups
 }
 
 export default function IssuesList({ issues, isPaid }: IssuesListProps) {
-  const [filter, setFilter] = useState<FilterOption>('all')
+  const groups = groupBySeverity(issues)
+  // Free fix goes to first issue of first non-empty severity group (most critical)
+  const firstIssueId = SEVERITY_ORDER.reduce<string | null>((found, sev) => found ?? (groups[sev][0]?.id ?? null), null)
 
-  const counts: Record<Severity, number> = {
-    critical: issues.filter(i => i.severity === 'critical').length,
-    serious: issues.filter(i => i.severity === 'serious').length,
-    moderate: issues.filter(i => i.severity === 'moderate').length,
-    minor: issues.filter(i => i.severity === 'minor').length,
+  // Critical starts expanded, rest collapsed
+  const [expandedGroups, setExpandedGroups] = useState<Record<Severity, boolean>>({
+    critical: true,
+    serious: false,
+    moderate: false,
+    minor: false,
+  })
+
+  const toggleGroup = (severity: Severity) => {
+    setExpandedGroups(prev => ({ ...prev, [severity]: !prev[severity] }))
   }
-
-  const filteredIssues = filter === 'all' ? issues : issues.filter(i => i.severity === filter)
-
-  const visibleIssues = isPaid ? filteredIssues : filteredIssues.slice(0, FREE_VISIBLE_COUNT)
-  const blurredIssues = isPaid ? [] : filteredIssues.slice(FREE_VISIBLE_COUNT, FREE_VISIBLE_COUNT + 2)
-  const hiddenCount = isPaid ? 0 : Math.max(0, filteredIssues.length - FREE_VISIBLE_COUNT)
 
   return (
     <div className="space-y-4">
@@ -56,9 +63,10 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
 
       {/* Severity summary chips */}
       <div className="flex flex-wrap gap-2">
-        {(Object.entries(counts) as [Severity, number][]).map(([severity, count]) => {
+        {SEVERITY_ORDER.map(severity => {
+          const count = groups[severity].length
           if (count === 0) return null
-          const config = FILTER_CONFIG[severity]
+          const config = SEVERITY_CONFIG[severity]
           return (
             <span key={severity} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700">
               <span className={cn('w-2 h-2 rounded-full', config.dot)} />
@@ -68,61 +76,56 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
         })}
       </div>
 
-      {/* Filter buttons */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => setFilter('all')}
-          className={cn(
-            'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all',
-            filter === 'all'
-              ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-          )}
-        >
-          All ({issues.length})
-        </button>
-        {(Object.entries(FILTER_CONFIG) as [Severity, typeof FILTER_CONFIG['critical']][]).map(([severity, config]) => {
-          const count = counts[severity]
-          if (count === 0) return null
-          const isActive = filter === severity
+      {/* Severity groups */}
+      <div className="space-y-3">
+        {SEVERITY_ORDER.map(severity => {
+          const groupIssues = groups[severity]
+          if (groupIssues.length === 0) return null
+          const config = SEVERITY_CONFIG[severity]
+          const isExpanded = expandedGroups[severity]
+
           return (
-            <button
-              key={severity}
-              onClick={() => setFilter(severity)}
-              className={cn(
-                'px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all inline-flex items-center gap-1.5',
-                isActive ? config.active : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            <div key={severity} className={cn('rounded-xl border overflow-hidden', config.border)}>
+              {/* Group header — clickable */}
+              <button
+                onClick={() => toggleGroup(severity)}
+                className={cn(
+                  'w-full flex items-center justify-between px-4 py-3 transition-colors',
+                  config.bg,
+                  'hover:opacity-80',
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={cn('w-2.5 h-2.5 rounded-full', config.dot)} />
+                  <span className={cn('text-sm font-bold', config.text)}>
+                    {config.label}
+                  </span>
+                  <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full bg-white/70', config.text)}>
+                    {groupIssues.length}
+                  </span>
+                </div>
+                {isExpanded
+                  ? <ChevronDown className={cn('w-4 h-4', config.text)} />
+                  : <ChevronRight className={cn('w-4 h-4', config.text)} />}
+              </button>
+
+              {/* Issues within group */}
+              {isExpanded && (
+                <div className="p-3 space-y-3 bg-white">
+                  {groupIssues.map(issue => (
+                    <IssueCard key={issue.id} issue={issue} isPaid={isPaid} isFreeFix={!isPaid && issue.id === firstIssueId} />
+                  ))}
+                </div>
               )}
-            >
-              <span className={cn('w-1.5 h-1.5 rounded-full', config.dot)} />
-              {config.label} ({count})
-            </button>
+            </div>
           )
         })}
-      </div>
 
-      {/* Issue cards */}
-      <div className="space-y-3">
-        {visibleIssues.length === 0 && blurredIssues.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
-            No {filter !== 'all' ? filter : ''} issues found.
+        {/* Upgrade CTA for free users — only inline on mobile, sidebar handles desktop */}
+        {!isPaid && issues.length > 0 && (
+          <div className="lg:hidden">
+            <UpgradePrompt totalIssueCount={issues.length} />
           </div>
-        ) : (
-          <>
-            {visibleIssues.map(issue => (
-              <IssueCard key={issue.id} issue={issue} isBlurred={false} />
-            ))}
-
-            {/* Blurred preview issues */}
-            {blurredIssues.map(issue => (
-              <IssueCard key={issue.id} issue={issue} isBlurred={true} />
-            ))}
-
-            {/* Upgrade CTA for hidden issues */}
-            {hiddenCount > 0 && (
-              <UpgradePrompt hiddenIssueCount={hiddenCount} />
-            )}
-          </>
         )}
       </div>
     </div>

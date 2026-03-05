@@ -69,24 +69,32 @@ export default function RiskBreakdown({ riskAssessment, industry, state }: RiskB
         </div>
 
         {/* State risk */}
-        <div className={cn('flex items-start gap-3 p-3 rounded-lg border', RISK_BG[stateRisk] || 'bg-gray-50 border-gray-200')}>
-          <div className={cn('mt-0.5 p-1.5 rounded-md', RISK_ICON_BG[stateRisk] || 'bg-gray-100')}>
-            <MapPin className="w-4 h-4" style={{ color: getRiskColor(stateRisk) }} />
+        <div className={cn('flex items-start gap-3 p-3 rounded-lg border', state ? (RISK_BG[stateRisk] || 'bg-gray-50 border-gray-200') : 'bg-gray-50 border-gray-200')}>
+          <div className={cn('mt-0.5 p-1.5 rounded-md', state ? (RISK_ICON_BG[stateRisk] || 'bg-gray-100') : 'bg-gray-100')}>
+            <MapPin className="w-4 h-4" style={{ color: state ? getRiskColor(stateRisk) : '#9ca3af' }} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-gray-800">{stateLabel}</span>
-              <span
-                className="text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ color: getRiskColor(stateRisk), backgroundColor: `${getRiskColor(stateRisk)}15` }}
-              >
-                {RISK_LABEL[stateRisk] || stateRisk}
-              </span>
+              {state ? (
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ color: getRiskColor(stateRisk), backgroundColor: `${getRiskColor(stateRisk)}15` }}
+                >
+                  {RISK_LABEL[stateRisk] || stateRisk}
+                </span>
+              ) : (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full text-gray-400 bg-gray-100">
+                  N/A
+                </span>
+              )}
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
-              {stateLawsuits > 0
-                ? `${stateLawsuits.toLocaleString()} ADA lawsuits filed`
-                : 'State data not available'}
+              {state
+                ? stateLawsuits > 0
+                  ? `${stateLawsuits.toLocaleString()} ADA lawsuits filed`
+                  : 'State data not available'
+                : 'Select a state above for risk data'}
             </p>
           </div>
         </div>

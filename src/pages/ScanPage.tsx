@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { RefreshCw, AlertCircle, ChevronDown, Shield } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { getDomain } from '@/lib/utils'
+import { cn, getDomain } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import ScoreGauge from '@/components/scan-results/ScoreGauge'
 import RiskBadge from '@/components/scan-results/RiskBadge'
@@ -28,7 +27,7 @@ const SCAN_STEPS = [
 
 const INDUSTRIES = Object.keys(INDUSTRY_RISK).map(key => ({
   value: key,
-  label: key.charAt(0).toUpperCase() + key.slice(1).replace('-', ' '),
+  label: key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
 }))
 
 const STATES = Object.keys(TOP_LAWSUIT_STATES).map(key => ({
@@ -121,6 +120,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 export function ScanPage() {
   const [searchParams] = useSearchParams()
+  const scanNavigate = useNavigate()
   const rawUrl = searchParams.get('url') || ''
   const [industry, setIndustry] = useState('other')
   const [state, setState] = useState('')
@@ -150,9 +150,7 @@ export function ScanPage() {
     ? estimateCosts(result.issues)
     : null
 
-  const hiddenIssueCount = result && !isPaid
-    ? Math.max(0, result.issues.length - 3)
-    : 0
+  const totalIssueCount = result ? result.issues.length : 0
 
   if (loading) return <ScanningProgress />
 
@@ -171,7 +169,8 @@ export function ScanPage() {
             e.preventDefault()
             const input = (e.target as HTMLFormElement).elements.namedItem('url') as HTMLInputElement
             if (input.value.trim()) {
-              window.location.href = `/scan?url=${encodeURIComponent(input.value.trim())}`
+              scanNavigate(`/scan?url=${encodeURIComponent(input.value.trim())}`)
+
             }
           }}
         >
@@ -347,9 +346,11 @@ export function ScanPage() {
             <CostEstimateCard costEstimate={costEstimate} isPaid={isPaid} />
           )}
 
-          {/* Upgrade prompt */}
-          {!isPaid && (
-            <UpgradePrompt hiddenIssueCount={hiddenIssueCount} />
+          {/* Upgrade prompt — only show in sidebar on desktop when issues exist */}
+          {!isPaid && totalIssueCount > 0 && (
+            <div className="hidden lg:block">
+              <UpgradePrompt totalIssueCount={totalIssueCount} />
+            </div>
           )}
         </div>
       </div>

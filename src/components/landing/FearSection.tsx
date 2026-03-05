@@ -113,7 +113,7 @@ export function FearSection() {
         {/* CTA */}
         <div className="mt-12 text-center">
           <a href="#hero">
-            <Button size="lg">Check Your Risk &mdash; Free</Button>
+            <Button size="lg">Check Your Risk — Free</Button>
           </a>
           <p className="mt-3 text-sm text-gray-400">No signup required. Instant results.</p>
         </div>

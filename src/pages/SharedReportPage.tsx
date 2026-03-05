@@ -124,7 +124,7 @@ export default function SharedReportPage() {
             Issues Found ({issues.length})
           </h2>
           {issues.slice(0, 10).map((issue) => (
-            <IssueCard key={issue.id} issue={issue} isBlurred={false} />
+            <IssueCard key={issue.id} issue={issue} isPaid={true} />
           ))}
           {issues.length > 10 && (
             <p className="text-center text-gray-500 py-4">
