@@ -280,6 +280,19 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
                 )}
               </div>
 
+              {/* Warning if fix contains placeholders that need customization */}
+              {issue.codeAfter && /\[.*?\]/.test(issue.codeAfter) && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-warning-50 border border-warning-200">
+                  <AlertTriangle className="w-4 h-4 text-warning-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-warning-800">Action required: customize the text in [brackets]</p>
+                    <p className="text-xs text-warning-700 mt-0.5">
+                      Replace any text in [brackets] with your own description. Don't paste it as-is — screen readers will read it literally.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Platform-specific install guide — bonus */}
               <PlatformGuide />
 

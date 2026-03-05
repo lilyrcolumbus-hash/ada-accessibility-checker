@@ -14,9 +14,18 @@ function getSelector(el: Element): string {
 }
 
 function extractDescriptiveAlt(src: string): string {
-  const filename = src.split('/').pop() || 'image'
-  const nameWithoutExt = filename.split('.')[0]
-  return nameWithoutExt.replace(/[-_]/g, ' ')
+  // Try to get a readable name from the URL path
+  const parts = src.split('/').filter(p => p && !p.includes('?'))
+  // Walk backwards looking for a human-readable segment
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const segment = parts[i].split('.')[0].replace(/[-_]/g, ' ').trim()
+    // Skip hashes, UUIDs, and purely numeric/hex strings
+    if (segment.length > 3 && !/^[a-f0-9\s]+$/i.test(segment) && /[a-z]/i.test(segment)) {
+      // Capitalize first letter
+      return segment.charAt(0).toUpperCase() + segment.slice(1)
+    }
+  }
+  return '[Describe this image]'
 }
 
 export function checkAltText(doc: Document, url: string): ScanIssue[] {
@@ -41,7 +50,7 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
         selector: getSelector(img),
         wcagCriteria: '1.1.1',
         wcagLevel: 'A',
-        fixDescription: 'Add a descriptive alt attribute that conveys the meaning and purpose of the image.',
+        fixDescription: 'Add a descriptive alt attribute that conveys the meaning and purpose of the image. Replace [Describe this image] with a real description of what the image shows (e.g., "Team photo at company retreat" or "Red leather handbag product shot").',
         codeBefore: img.outerHTML,
         codeAfter: `<img src="${src}" alt="${descriptiveAlt}" />`,
         estimatedFixMinutes: 2,
