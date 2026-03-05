@@ -75,20 +75,36 @@ export function PricingSection() {
 
                 {/* Price */}
                 <div className="mb-5">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-gray-900">
-                      {plan.price === 0 ? '$0' : `$${plan.price}`}
-                    </span>
-                    {PRICE_LABELS[plan.billing] && (
-                      <span className="text-sm text-gray-500">
-                        {PRICE_LABELS[plan.billing]}
-                      </span>
-                    )}
-                  </div>
-                  {plan.billing === 'yearly' && (
-                    <p className="mt-1 text-xs text-gray-400">
-                      That's just ${(plan.price / 12).toFixed(0)}/month
-                    </p>
+                  {plan.billing === 'yearly' ? (
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extrabold text-gray-900">
+                          ${Math.round(plan.price / 12)}
+                        </span>
+                        <span className="text-sm text-gray-500">/month</span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Billed annually at <span className="font-semibold text-gray-700">${plan.price}/year</span>
+                      </p>
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-success-50 border border-success-200 px-2.5 py-1">
+                        <span className="text-xs font-bold text-success-700">
+                          Save 66% vs accessiBe ($490+/yr)
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extrabold text-gray-900">
+                          {plan.price === 0 ? '$0' : `$${plan.price}`}
+                        </span>
+                        {PRICE_LABELS[plan.billing] && (
+                          <span className="text-sm text-gray-500">
+                            {PRICE_LABELS[plan.billing]}
+                          </span>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
 
