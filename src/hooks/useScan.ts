@@ -8,15 +8,15 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
 async function fetchHtml(url: string): Promise<string> {
-  // 1. Try Supabase edge function (avoids CORS) — direct fetch, no SDK
-  if (isSupabaseConfigured) {
-    const edgeFnUrl = `${SUPABASE_URL}/functions/v1/scan`
+  // 1. Try same-origin proxy (Netlify proxies /api/scan → Supabase edge function)
+  //    This avoids ALL CORS issues since it's same-origin
+  {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15000)
 
     try {
-      console.log('[SiteSafe] Fetching via edge function:', url)
-      const response = await fetch(edgeFnUrl, {
+      console.log('[SiteSafe] Fetching via /api/scan proxy:', url)
+      const response = await fetch('/api/scan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,19 +30,19 @@ async function fetchHtml(url: string): Promise<string> {
 
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
-        throw new Error(errBody.error || `Edge function returned ${response.status}`)
+        throw new Error(errBody.error || `Scan returned ${response.status}`)
       }
 
       const data = await response.json()
       if (data.error) throw new Error(data.error)
-      if (!data.html) throw new Error('No HTML returned from edge function')
+      if (!data.html) throw new Error('No HTML returned from scanner')
 
-      console.log('[SiteSafe] Got HTML from edge function, length:', data.html.length)
+      console.log('[SiteSafe] Got HTML, length:', data.html.length)
       return data.html
     } catch (err) {
       clearTimeout(timer)
-      console.warn('[SiteSafe] Edge function failed:', err)
-      // Fall through to proxy/direct fetch
+      console.warn('[SiteSafe] /api/scan proxy failed:', err)
+      // Fall through to dev proxy / direct fetch
     }
   }
 
@@ -59,7 +59,7 @@ async function fetchHtml(url: string): Promise<string> {
       if (data.html) return data.html
     }
   } catch {
-    // Proxy not available (expected on Netlify)
+    // Proxy not available
   }
 
   // 3. Direct fetch (only works if target allows CORS)
