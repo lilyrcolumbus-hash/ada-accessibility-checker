@@ -9,7 +9,7 @@ interface PayPalCheckoutButtonProps {
 }
 
 export default function PayPalCheckoutButton({ planId, price }: PayPalCheckoutButtonProps) {
-  const { session, refreshProfile } = useAuth()
+  const { getAccessToken, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
 
@@ -28,11 +28,13 @@ export default function PayPalCheckoutButton({ planId, price }: PayPalCheckoutBu
           style={{ layout: 'horizontal', color: 'gold', shape: 'rect', label: 'paypal', height: 48 }}
           createOrder={async () => {
             setError(null)
+            const token = await getAccessToken()
+            if (!token) throw new Error('Please log in to continue')
             const res = await fetch(`${supabaseUrl}/functions/v1/paypal-create-order`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${session?.access_token}`,
+                Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({ planId }),
             })
@@ -44,11 +46,13 @@ export default function PayPalCheckoutButton({ planId, price }: PayPalCheckoutBu
           }}
           onApprove={async (data) => {
             try {
+              const token = await getAccessToken()
+              if (!token) throw new Error('Please log in to continue')
               const res = await fetch(`${supabaseUrl}/functions/v1/paypal-capture-order`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  Authorization: `Bearer ${session?.access_token}`,
+                  Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ orderId: data.orderID, planId }),
               })

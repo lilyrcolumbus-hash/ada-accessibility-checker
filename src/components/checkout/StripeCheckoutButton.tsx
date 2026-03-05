@@ -9,23 +9,25 @@ interface StripeCheckoutButtonProps {
 }
 
 export default function StripeCheckoutButton({ planId, priceId }: StripeCheckoutButtonProps) {
-  const { session } = useAuth()
+  const { getAccessToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleClick = async () => {
-    if (!session?.access_token) return
     setLoading(true)
     setError(null)
 
     try {
+      const token = await getAccessToken()
+      if (!token) throw new Error('Please log in to continue')
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ priceId, planId }),
         }
