@@ -2,13 +2,8 @@
   command = "npm run build"
   publish = "dist"
 
-# Proxy scan requests to Supabase edge function (same-origin, no CORS issues)
-[[redirects]]
-  from = "/api/scan"
-  to = "https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/scan"
-  status = 200
-  force = true
-  headers = {X-Custom-Proxy = "netlify"}
+[functions]
+  directory = "netlify/functions"
 
 # SPA fallback (must be last)
 [[redirects]]
