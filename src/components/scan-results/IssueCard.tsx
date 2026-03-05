@@ -300,24 +300,49 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
                 </p>
               </div>
 
-              {isImageIssue ? (
-                <>
-                  {/* Image-friendly: show image URL to identify + simple instruction */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Image to fix</p>
-                    <p className="text-xs font-mono text-gray-600 break-all">{issue.codeBefore?.match(/src="([^"]*)"/)?.[1] || issue.codeBefore}</p>
-                  </div>
-                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-primary-50 border border-primary-200">
-                    <Info className="w-4 h-4 text-primary-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-semibold text-primary-800">What to type as alt text</p>
-                      <p className="text-xs text-primary-700 mt-0.5">
-                        Describe what the image shows in a few words. Examples: "Team photo at company retreat", "Red leather handbag on white background", "Company logo". If the image is purely decorative, leave the alt text empty.
-                      </p>
+              {isImageIssue ? (() => {
+                const imgSrc = issue.codeBefore?.match(/src="([^"]*)"/)?.[1] || ''
+                const fullSrc = imgSrc.startsWith('//') ? `https:${imgSrc}` : imgSrc
+                return (
+                  <>
+                    {/* Image preview + link to identify */}
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Image to fix</p>
+                      {fullSrc && (
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={fullSrc}
+                            alt=""
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-200 bg-white flex-shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-mono text-gray-500 break-all line-clamp-2">{imgSrc}</p>
+                            <a
+                              href={fullSrc}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-1 text-xs font-semibold text-primary-600 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Open image in new tab to identify it →
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </>
-              ) : (
+                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-primary-50 border border-primary-200">
+                      <Info className="w-4 h-4 text-primary-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-primary-800">What to type as alt text</p>
+                        <p className="text-xs text-primary-700 mt-0.5">
+                          Describe what the image shows in a few words. Examples: "Team photo at company retreat", "Red leather handbag on white background", "Company logo". If the image is purely decorative, leave the alt text empty.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )
+              })() : (
                 <>
                   {/* Code before/after side by side on desktop */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
