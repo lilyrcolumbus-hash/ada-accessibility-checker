@@ -14,8 +14,8 @@ async function fetchHtml(url: string): Promise<string> {
     const timer = setTimeout(() => controller.abort(), 20000)
 
     try {
-      console.log('[SiteSafe] Fetching via Netlify Function:', url)
-      const response = await fetch('/.netlify/functions/scan', {
+      console.log('[SiteSafe] Fetching via edge function:', url)
+      const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -33,7 +33,7 @@ async function fetchHtml(url: string): Promise<string> {
       return data.html
     } catch (err) {
       clearTimeout(timer)
-      console.warn('[SiteSafe] Netlify Function failed:', err)
+      console.warn('[SiteSafe] Edge function failed:', err)
     }
   }
 
