@@ -66,7 +66,7 @@ export function checkEmptyInteractive(doc: Document, url: string): ScanIssue[] {
         fixDescription:
           'Add descriptive text content to the button, or provide an aria-label, title attribute, or an img with alt text inside.',
         codeBefore: truncateHtml(button),
-        codeAfter: '<button>Submit Form</button>',
+        codeAfter: '<button>[Describe what this button does]</button>',
         estimatedFixMinutes: 2,
         category: 'Interactive Elements'
       })
@@ -91,7 +91,7 @@ export function checkEmptyInteractive(doc: Document, url: string): ScanIssue[] {
         fixDescription:
           'Add descriptive text content to the link, or provide an aria-label, title attribute, or an img with alt text inside.',
         codeBefore: truncateHtml(link),
-        codeAfter: '<a href="/page">Learn More</a>',
+        codeAfter: '<a href="/page">[Describe where this link goes]</a>',
         estimatedFixMinutes: 2,
         category: 'Interactive Elements'
       })

@@ -59,7 +59,7 @@ export function checkLinkText(doc: Document, url: string): ScanIssue[] {
         wcagLevel: 'A',
         fixDescription: 'Add descriptive text content to the link that explains where it goes or what it does.',
         codeBefore: `<a href="${href}"></a>`,
-        codeAfter: `<a href="${href}">Descriptive link text</a>`,
+        codeAfter: `<a href="${href}">[Describe where this link goes]</a>`,
         estimatedFixMinutes: 3,
         category: 'Links',
       })
@@ -77,7 +77,7 @@ export function checkLinkText(doc: Document, url: string): ScanIssue[] {
         wcagLevel: 'A',
         fixDescription: `Change link text from "${linkText}" to something that describes the link destination or purpose.`,
         codeBefore: `<a href="${href}">${linkText}</a>`,
-        codeAfter: `<a href="${href}">Descriptive link text about the destination</a>`,
+        codeAfter: `<a href="${href}">[Describe where this link goes]</a>`,
         estimatedFixMinutes: 3,
         category: 'Links',
       })
