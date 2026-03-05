@@ -187,6 +187,10 @@ export function ScanPage() {
   }
 
   if (!result) {
+    // If we have a URL but no result and not loading, the scan failed silently — show error
+    if (rawUrl && !loading) {
+      return <ErrorState message="Scan completed but no results were returned. Please try again." onRetry={handleRescan} />
+    }
     return <ScanningProgress />
   }
 
