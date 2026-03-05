@@ -92,18 +92,31 @@ export function PricingSection() {
                         </span>
                       </div>
                     </>
-                  ) : (
+                  ) : plan.billing === 'one-time' ? (
                     <>
                       <div className="flex items-baseline gap-1">
                         <span className="text-4xl font-extrabold text-gray-900">
-                          {plan.price === 0 ? '$0' : `$${plan.price}`}
+                          ${plan.price}
                         </span>
-                        {PRICE_LABELS[plan.billing] && (
-                          <span className="text-sm text-gray-500">
-                            {PRICE_LABELS[plan.billing]}
-                          </span>
-                        )}
+                        <span className="text-sm text-gray-500">one-time</span>
                       </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Pay once, <span className="font-semibold text-gray-700">no recurring fees ever</span>
+                      </p>
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-warning-50 border border-warning-200 px-2.5 py-1">
+                        <span className="text-xs font-bold text-warning-700">
+                          vs $10,000+ average lawsuit
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extrabold text-gray-900">$0</span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        No credit card required
+                      </p>
                     </>
                   )}
                 </div>
