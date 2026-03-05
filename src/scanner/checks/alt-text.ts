@@ -26,7 +26,8 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
   const images = doc.querySelectorAll('img')
   images.forEach((img) => {
     const alt = img.getAttribute('alt')
-    if (alt === null || alt.trim() === '') {
+    // alt="" is valid for decorative images per WCAG — only flag missing alt
+    if (alt === null) {
       const src = img.getAttribute('src') || 'unknown'
       const descriptiveAlt = extractDescriptiveAlt(src)
 
@@ -34,8 +35,8 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
         id: crypto.randomUUID(),
         checkId: 'alt-text-missing',
         severity: 'critical',
-        title: 'Missing or empty alt text',
-        description: `Image element is missing alt attribute or has empty alt text. All images must have descriptive alt text for screen readers.`,
+        title: 'Missing alt text on image',
+        description: `Image element is missing the alt attribute. All non-decorative images must have descriptive alt text for screen readers. Use alt="" only for decorative images.`,
         element: truncateHtml(img),
         selector: getSelector(img),
         wcagCriteria: '1.1.1',
@@ -53,7 +54,7 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
   const imageInputs = doc.querySelectorAll('input[type="image"]')
   imageInputs.forEach((input) => {
     const alt = input.getAttribute('alt')
-    if (alt === null || alt.trim() === '') {
+    if (alt === null || alt?.trim() === '') {
       const src = input.getAttribute('src') || 'unknown'
       const descriptiveAlt = extractDescriptiveAlt(src)
 
@@ -80,7 +81,7 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
   const areas = doc.querySelectorAll('area')
   areas.forEach((area) => {
     const alt = area.getAttribute('alt')
-    if (alt === null || alt.trim() === '') {
+    if (alt === null || alt?.trim() === '') {
       issues.push({
         id: crypto.randomUUID(),
         checkId: 'alt-text-missing-area',

@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { UserPlus, CheckCircle } from 'lucide-react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getPlan } from '@/config/plans'
 import Button from '@/components/ui/Button'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 export function RegisterForm() {
   const { signUp } = useAuth()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
   const planId = searchParams.get('plan') || 'free'
@@ -21,7 +22,6 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const [passwordError, setPasswordError] = useState<string | undefined>()
   const [confirmError, setConfirmError] = useState<string | undefined>()
@@ -56,45 +56,17 @@ export function RegisterForm() {
 
     try {
       await signUp(email, password)
+      // With email confirmation disabled, user is logged in immediately
       if (hasPlanParam) {
-        sessionStorage.setItem('sitesafe_pending_plan', planId)
+        navigate(`/checkout?plan=${planId}`)
+      } else {
+        navigate('/dashboard')
       }
-      setSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardContent className="py-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-100">
-            <CheckCircle className="h-7 w-7 text-success-600" />
-          </div>
-          <h2 className="mb-2 text-xl font-bold text-gray-900">Check your email</h2>
-          <p className="mb-4 text-sm text-gray-600">
-            We've sent a confirmation link to{' '}
-            <span className="font-medium text-gray-900">{email}</span>.
-            Click the link to activate your account.
-          </p>
-          {hasPlanParam && (
-            <p className="rounded-lg bg-primary-50 px-4 py-2 text-sm text-primary-700">
-              After confirming, you'll be taken to checkout for the{' '}
-              <strong>{selectedPlan.name}</strong> plan.
-            </p>
-          )}
-          <Link
-            to="/login"
-            className="mt-6 inline-block text-sm font-medium text-primary-600 hover:text-primary-700"
-          >
-            Back to sign in
-          </Link>
-        </CardContent>
-      </Card>
-    )
   }
 
   return (

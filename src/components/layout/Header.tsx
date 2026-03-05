@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Shield, Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Shield, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import Button from '@/components/ui/Button';
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -14,9 +18,19 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
+    e.preventDefault();
+    if (location.pathname !== '/') {
+      navigate('/' + hash);
+    } else {
+      document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
+    }
+    setMenuOpen(false);
+  };
+
   const navLinks = [
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Pricing', href: '#pricing' },
+    { label: 'How It Works', hash: '#how-it-works' },
+    { label: 'Pricing', hash: '#pricing' },
   ];
 
   return (
@@ -38,21 +52,43 @@ export function Header() {
           {navLinks.map((link) => (
             <a
               key={link.label}
-              href={link.href}
+              href={link.hash}
+              onClick={(e) => handleNavClick(e, link.hash)}
               className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
             >
               {link.label}
             </a>
           ))}
-          <Link
-            to="/login"
-            className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-          >
-            Login
-          </Link>
-          <Link to="/register">
-            <Button size="sm">Sign Up</Button>
-          </Link>
+          {user ? (
+            <>
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Link>
+              <button
+                onClick={async () => { await signOut(); navigate('/'); }}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
+              >
+                Login
+              </Link>
+              <Link to="/register">
+                <Button size="sm">Sign Up</Button>
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Mobile hamburger */}
@@ -73,23 +109,45 @@ export function Header() {
             {navLinks.map((link) => (
               <a
                 key={link.label}
-                href={link.href}
+                href={link.hash}
+                onClick={(e) => handleNavClick(e, link.hash)}
                 className="text-sm font-medium text-gray-700 hover:text-primary-700"
-                onClick={() => setMenuOpen(false)}
               >
                 {link.label}
               </a>
             ))}
-            <Link
-              to="/login"
-              className="text-sm font-medium text-gray-700 hover:text-primary-700"
-              onClick={() => setMenuOpen(false)}
-            >
-              Login
-            </Link>
-            <Link to="/register" onClick={() => setMenuOpen(false)}>
-              <Button className="w-full">Sign Up</Button>
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+                <button
+                  onClick={async () => { setMenuOpen(false); await signOut(); navigate('/'); }}
+                  className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700 text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-700"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link to="/register" onClick={() => setMenuOpen(false)}>
+                  <Button className="w-full">Sign Up</Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

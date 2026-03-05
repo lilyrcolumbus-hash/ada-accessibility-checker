@@ -3,21 +3,25 @@
 ## Product Overview
 A self-service web tool that scans any website for ADA/WCAG 2.1 AA accessibility violations, explains issues in plain English with copy-paste code fixes, and provides risk assessment — so small businesses can fix problems before a $10,000+ lawsuit finds them.
 
-**Business model:** One-time payments (NOT subscriptions). User explicitly rejected subscriptions as unnecessary — if we tell them the errors and how to fix them, there's no reason to keep paying monthly.
+**Business model:** Hybrid — one-time payment for the fix report ($49), annual subscription for ongoing monitoring ($199/year). No monthly subscriptions on the entry tier.
 
-## Pricing (One-Time, No Subscriptions)
-| Plan | Price | Key Features |
-|---|---|---|
-| **Free Scan** | $0 | 1 page, score, risk, 3 issues visible, 1 code fix |
-| **Full Report** | $49 one-time | Up to 50 pages, all issues + fixes, shareable report, 1 re-scan |
-| **Agency Pack** | $199 one-time | Unlimited pages, up to 10 websites, 3 re-scans, compliance badge |
+## Pricing
+| Plan | ID | Price | Model | Key Features |
+|---|---|---|---|---|
+| **Free Scan** | `free` | $0 | Free | 1 page, score, risk, all issues visible, 1 code fix free |
+| **Fix My Site** | `fix-my-site` | $49 one-time | One-time payment | Up to 50 pages, all code fixes, action plan, shareable report, 1 re-scan |
+| **Compliance Shield** | `compliance-shield` | $199/year | Annual subscription | Everything in Fix My Site + up to 5 sites, unlimited re-scans, monthly auto-scans, email alerts, compliance badge |
 
-Plan IDs: `free`, `full-report`, `agency`. Old IDs (`starter`, `pro`, `business`) no longer exist.
+Old plan IDs (`full-report`, `agency`, `starter`, `pro`, `business`) no longer exist.
+
+Stripe Price IDs:
+- Fix My Site: `price_1T7MPaFfYL1pGw0ot4eQO3Bp`
+- Compliance Shield: `price_1T7MiPFfYL1pGw0ohwz2MHvV`
 
 ## Tech Stack
 - **Frontend:** React 19 + Vite 7 + TypeScript + Tailwind CSS v4 (uses `@theme` for custom colors)
 - **Backend/DB:** Supabase (Auth + PostgreSQL + Edge Functions in Deno)
-- **Payments:** Stripe one-time payments (mode: `payment`, NOT `subscription`) via `@stripe/stripe-js`
+- **Payments:** Stripe (one-time `mode: 'payment'` for Fix My Site, `mode: 'subscription'` for Compliance Shield) + PayPal (`@paypal/react-paypal-js`)
 - **Deploy:** Netlify (free tier)
 - **Icons:** Lucide React
 - **State:** React Context (AuthContext) + sessionStorage for scan results + TanStack React Query (`@tanstack/react-query`)
@@ -67,7 +71,7 @@ ada-accessibility-checker/
 │   │   │   ├── StatsSection.tsx    # 4,605 lawsuits stat cards
 │   │   │   ├── HowItWorksSection.tsx # 3-step process
 │   │   │   ├── FearSection.tsx     # Risk factors + top lawsuit states + industries
-│   │   │   ├── PricingSection.tsx  # 3-plan comparison table (12 feature rows)
+│   │   │   ├── PricingSection.tsx  # 3 pricing cards + competitor comparison
 │   │   │   └── TrustSection.tsx    # "Real scanning, not an overlay"
 │   │   ├── scan-results/
 │   │   │   ├── ScoreGauge.tsx      # 160px SVG circle with glow + shield icon
@@ -78,11 +82,14 @@ ada-accessibility-checker/
 │   │   │   ├── PriorityPlan.tsx    # Top 3 issues with score projection
 │   │   │   ├── CostEstimateCard.tsx # Time/cost + lawsuit comparison + category bars
 │   │   │   └── UpgradePrompt.tsx   # $49 CTA with features list + price anchoring
+│   │   ├── checkout/
+│   │   │   ├── StripeCheckoutButton.tsx  # Calls create-checkout edge function → redirect to Stripe
+│   │   │   └── PayPalCheckoutButton.tsx  # PayPal SDK buttons → create + capture orders
 │   │   ├── dashboard/
 │   │   │   └── BadgePreview.tsx    # Embeddable compliance badge + embed code
 │   │   ├── auth/
-│   │   │   ├── LoginForm.tsx
-│   │   │   ├── RegisterForm.tsx
+│   │   │   ├── LoginForm.tsx       # Detects sitesafe_pending_plan → redirect to /checkout
+│   │   │   ├── RegisterForm.tsx    # Auto-redirects after signup (no email confirmation)
 │   │   │   └── ProtectedRoute.tsx  # Redirects to /login if not authenticated
 │   │   └── ui/
 │   │       ├── Button.tsx          # variant: primary/outline/ghost, size: sm/md/lg
@@ -92,7 +99,8 @@ ada-accessibility-checker/
 │   ├── pages/
 │   │   ├── LandingPage.tsx         # Assembles all landing sections
 │   │   ├── ScanPage.tsx            # Main results page (score + issues + risk + cost)
-│   │   ├── DashboardPage.tsx       # Scan history + subscription status (protected)
+│   │   ├── DashboardPage.tsx       # Scan history + plan status + payment success toast
+│   │   ├── CheckoutPage.tsx        # Protected: plan summary + Stripe/PayPal payment buttons
 │   │   ├── LoginPage.tsx
 │   │   ├── RegisterPage.tsx
 │   │   └── SharedReportPage.tsx    # Public read-only report (no auth required)
@@ -100,9 +108,9 @@ ada-accessibility-checker/
 │   │   ├── useScan.ts              # Core: fetch HTML → run scanner → persist to sessionStorage + DB
 │   │   └── useSubscription.ts      # Returns { plan, isPaid, isLoading }
 │   ├── contexts/
-│   │   └── AuthContext.tsx          # Supabase auth provider (LAZY imports only!)
+│   │   └── AuthContext.tsx          # Supabase auth provider (LAZY imports only!) + refreshProfile()
 │   ├── config/
-│   │   ├── plans.ts                # Plan definitions: free / full-report / agency
+│   │   ├── plans.ts                # Plan definitions: free / fix-my-site / compliance-shield
 │   │   └── constants.ts            # INDUSTRY_RISK, TOP_LAWSUIT_STATES, lawsuit data
 │   └── lib/
 │       ├── supabase.ts             # Conditional client: Proxy stub when env vars missing
@@ -110,19 +118,22 @@ ada-accessibility-checker/
 ├── supabase/
 │   ├── schema.sql                  # DB schema (6 tables + triggers + functions, see DB Schema section)
 │   └── functions/
-│       ├── _shared/cors.ts         # CORS headers helper for all edge functions
+│       ├── _shared/
+│       │   ├── cors.ts             # CORS headers helper for all edge functions
+│       │   └── paypal.ts           # getPayPalAccessToken() helper
 │       ├── scan/index.ts           # Fetch URL HTML (CORS proxy)
-│       ├── create-checkout/index.ts # Stripe Checkout Session (mode: 'payment')
-│       ├── stripe-webhook/index.ts  # Handles checkout.session.completed → purchases table
-│       └── create-portal/index.ts   # Stripe Customer Portal link
+│       ├── create-checkout/index.ts # Stripe Checkout Session (payment or subscription mode)
+│       ├── stripe-webhook/index.ts  # Handles checkout.session.completed, invoice.paid, customer.subscription.deleted
+│       ├── create-portal/index.ts   # Stripe Customer Portal link
+│       ├── paypal-create-order/index.ts  # Creates PayPal order with server-side price validation
+│       └── paypal-capture-order/index.ts # Captures PayPal payment → updates profile + purchases
 ├── vite.config.ts                  # Custom CORS proxy plugin (HTTP+HTTPS, follows redirects, rejectUnauthorized: false)
 ├── netlify.toml                    # Build config (npm run build → dist/) + SPA redirect (/* → /index.html)
 ├── tsconfig.json                   # Base config: ES2020, bundler resolution, @/* path alias
 ├── tsconfig.app.json               # Extends tsconfig.json, includes only src/
 ├── package.json                    # name: "sitesafe", type: module
-└── .env.local                      # VITE_SUPABASE_URL (configured),
-                                    # VITE_SUPABASE_ANON_KEY (configured),
-                                    # VITE_STRIPE_PUBLISHABLE_KEY (pending)
+└── .env.local                      # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+                                    # VITE_STRIPE_PUBLISHABLE_KEY, VITE_PAYPAL_CLIENT_ID
 ```
 
 ## Routes
@@ -133,12 +144,27 @@ ada-accessibility-checker/
 | `/scan?url=example.com` | ScanPage (auto-starts scan) | Public | Header + Footer |
 | `/login` | LoginPage | Public | Standalone |
 | `/register` | RegisterPage | Public | Standalone |
-| `/register?plan=full-report` | RegisterPage (pre-selected plan) | Public | Standalone |
+| `/register?plan=fix-my-site` | RegisterPage (pre-selected plan) | Public | Standalone |
 | `/dashboard` | DashboardPage | Protected | Standalone |
+| `/checkout` | CheckoutPage | Protected | Standalone |
+| `/checkout?plan=fix-my-site` | CheckoutPage (plan from URL) | Protected | Standalone |
 | `/shared/:token` | SharedReportPage | Public | Standalone |
 | `*` | Redirect to `/` | — | — |
 
 Note: `BadgePreviewPage` does NOT have a route yet. `BadgePreview.tsx` exists as a component in `components/dashboard/` but is not integrated into any page. This is a pending task.
+
+## Payment Flow
+```
+CTA "Fix My Site" → /register?plan=fix-my-site (or /checkout if logged in)
+→ Register → auto-login (no email confirmation)
+→ /checkout?plan=fix-my-site
+→ Choose Stripe or PayPal
+→ Pay → webhook/capture updates profiles.plan
+→ /dashboard?payment=success → toast + everything unlocked
+```
+
+LoginForm detects `sitesafe_pending_plan` in sessionStorage → redirects to `/checkout?plan=X` after login.
+All upgrade CTAs (UpgradePrompt, IssueCard, CostEstimateCard, PricingSection) use smart redirects: logged in → `/checkout`, not logged in → `/register`.
 
 ## Critical Technical Decisions & Gotchas
 
@@ -167,16 +193,26 @@ Edge Function only fetches HTML to avoid CORS. All parsing/analysis happens in t
 Key: `sitesafe_scan_result`. Stores the full ScanResult JSON. No login required for free scan. If user logs in later, result can be associated with their account.
 
 ### 5. Free vs Paid gating
-- Free: score visible, risk visible, first 3 issues visible, rest blurred with Lock overlay
-- Paid: everything visible + shareable reports + compliance badge
+- Free: score visible, risk visible, ALL issues visible (title + severity + description), 1st issue has free code fix, rest blurred with Lock overlay + CTA button when expanded
+- Paid: everything visible including all code fixes + shareable reports + compliance badge
 - `useSubscription()` hook returns `{ plan, isPaid, isLoading }`
-- `IssuesList` shows 3 visible + 2 blurred + UpgradePrompt for remaining
+- `IssueCard` receives `isPaid` + optional `isFreeFix` props — controls blur on code fix section
+- `IssuesList` passes `isFreeFix={true}` to first issue for free users, shows UpgradePrompt at bottom
 
 ### 6. DB schema uses `purchases` table (NOT `subscriptions`)
-One-time payments. `stripe-webhook` handles `checkout.session.completed` and inserts into `purchases` table with `plan_id` and `amount`.
+Both one-time and subscription payments recorded in `purchases` table. `stripe-webhook` handles `checkout.session.completed` (one-time + first subscription payment), `invoice.paid` (subscription renewals), and `customer.subscription.deleted` (downgrade to free).
 
 ### 7. Path alias `@/*`
 `tsconfig.json` defines `@/*` → `./src/*`. All imports use `@/components/...`, `@/lib/...`, etc. Vite resolves it via `resolve.alias` in `vite.config.ts`.
+
+### 8. Email confirmation disabled
+Supabase Auth has email confirmation disabled. Users are logged in immediately after signup. RegisterForm auto-redirects to `/checkout` or `/dashboard` after successful signup — no "check your email" screen.
+
+### 9. Stripe checkout supports both modes
+`create-checkout` edge function detects plan ID: `compliance-shield` → `mode: 'subscription'`, everything else → `mode: 'payment'`. Subscription data includes metadata for webhook processing.
+
+### 10. PayPal as alternative payment
+PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. PayPal orders use server-side price validation (PLAN_PRICES map). After capture, `paypal-capture-order` updates profiles.plan and inserts into purchases (with `paypal_` prefix on payment ID).
 
 ## DB Schema (supabase/schema.sql)
 
@@ -185,7 +221,7 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 |---|---|---|
 | `profiles` | Extends auth.users (email, plan, stripe_customer_id) | Yes — own profile only |
 | `scans` | Scan results (url, domain, score, issue counts, results JSONB) | Yes — own scans only |
-| `purchases` | One-time payments (plan, stripe_payment_id, amount) | Yes — own purchases only |
+| `purchases` | Payments — one-time + subscriptions (plan, stripe_payment_id, amount) | Yes — own purchases only |
 | `shared_reports` | Shareable report links (token, scan_id, views, is_active) | Yes — own + anyone can view active |
 | `badges` | Compliance badges (domain, score, badge_token, is_active) | Yes — own + anyone can verify active |
 | `scan_usage` | Rate limiting (user_id/ip_address, scan_count, period_start) | Yes — own usage only |
@@ -209,37 +245,33 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 ### Done
 - Project setup (Vite + React 19 + TS + Tailwind v4)
 - Scanner engine (11 WCAG checks + scoring + risk calculator + cost estimator)
-- Landing page (Hero, Stats, HowItWorks, Fear, Pricing comparison table, TrustSignals, Footer)
+- Landing page (Hero, Stats, HowItWorks, Fear, Pricing cards + competitor comparison, TrustSignals, Footer)
 - Scan results page (ScoreGauge, RiskBadge, RiskBreakdown, IssueCard, IssuesList, PriorityPlan, CostEstimateCard, UpgradePrompt)
-- Auth pages (Login, Register) + AuthContext
-- Dashboard page (scan history)
-- Shared report page + Badge preview page
-- DB schema SQL
-- Supabase Edge Functions (scan, create-checkout, stripe-webhook, create-portal)
-- netlify.toml
-- Pricing restructured to one-time payments
-- Visual redesign of scan results (severity color coding, gradient score section, dramatic risk/cost display)
-- Supabase project created (ref: `mvzolbabbkedmlhqhiwi`, Data API + automatic RLS enabled)
-- `.env.local` configured with real Supabase URL + anon key
-- Stripe account created (keys obtained — new format: `sb_publishable_*` / `sb_secret_*`)
-- Supabase schema applied (6 tables + triggers + functions live in DB)
-- 22 bug fixes applied (see Bugs Fixed section below)
+- Auth pages (Login, Register) + AuthContext with refreshProfile()
+- Dashboard page (scan history + payment success toast)
+- Checkout page (plan summary + Stripe + PayPal buttons)
+- Shared report page + Badge preview component
+- DB schema SQL applied to Supabase
+- Supabase Edge Functions deployed: scan, create-checkout, stripe-webhook, paypal-create-order, paypal-capture-order, create-portal
+- Stripe configured: publishable key, secret key, webhook (3 events), 2 products with price IDs
+- Supabase secrets set: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+- netlify.toml ready
+- Pricing restructured: Free ($0) / Fix My Site ($49 one-time) / Compliance Shield ($199/year)
+- Smart redirects: logged in → /checkout, not logged in → /register
+- 22+ bug fixes applied (see Bugs Fixed section below)
 
 ### Pending (to launch)
-- Add Stripe publishable key to `.env.local` (`VITE_STRIPE_PUBLISHABLE_KEY`)
-- Create 2 Stripe products in Stripe Dashboard: $49 Full Report + $199 Agency Pack
-- Update `priceId` in `src/config/plans.ts` with real Stripe price IDs
-- Add Stripe secret key + webhook secret to Supabase Edge Function env vars
-- Configure Stripe webhook URL: `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook` (event: `checkout.session.completed`)
-- Deploy Supabase Edge Functions (`supabase functions deploy`)
-- Deploy to Netlify (connect repo, configure env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY)
+- Debug signup/signin spinner issue (API works, frontend hangs)
+- PayPal credentials (VITE_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_API_URL as Supabase secrets)
+- Deploy to Netlify (connect repo, configure env vars)
 - Buy custom domain
-- End-to-end testing of payment flow
+- End-to-end testing of full payment flow (Stripe + PayPal)
 
 ### Future (post-launch)
+- Monthly automated re-scans (cron job for Compliance Shield)
+- Email alerts when compliance score drops
+- Compliance certificate PDF generation
 - Programmatic SEO pages (industry × state landing pages)
-- PDF compliance reports
-- Email alerts
 - Multi-page scanning (crawl entire site)
 - WordPress/Shopify plugins
 - BadgePreview page route (component exists at `components/dashboard/BadgePreview.tsx` but no route yet)
@@ -261,12 +293,12 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 10. **Input forwardRef broken** — ref pointed to wrapper `<div>`, not `<input>`. Changed wrapper to `<>` fragment.
 11. **Stripe webhook infinite retries** — Returned HTTP 500 on error; Stripe retried forever. Now returns 200 on internal errors.
 12. **Stripe webhook missing secret validation** — No check if STRIPE_WEBHOOK_SECRET env var exists. Added early validation + error logging.
-13. **Stripe webhook unvalidated plan_id** — Any string accepted as plan. Now validates against `['free', 'full-report', 'agency']`.
+13. **Stripe webhook unvalidated plan_id** — Any string accepted as plan. Now validates against valid plan IDs.
 14. **Scan edge function no timeout** — fetch() could hang forever on slow sites. Added 10s AbortController timeout, returns 504.
 
 ### Bug fix round 2 — High
-15. **LoginForm ignores redirect** — ProtectedRoute saved `state.from` but LoginForm always went to `/dashboard`. Now reads `location.state?.from`.
-16. **RegisterForm loses plan** — Selected plan lost after email confirmation. Now saves `planId` to sessionStorage (`sitesafe_pending_plan`).
+15. **LoginForm ignores redirect** — ProtectedRoute saved `state.from` but LoginForm always went to `/dashboard`. Now reads `location.state?.from` + checks for pending plan.
+16. **RegisterForm loses plan** — Selected plan lost after email confirmation. Now auto-redirects to /checkout after signup (no email confirmation needed).
 17. **HeroSection literal `&mdash;`** — HTML entity rendered as text in JSX. Replaced with actual `—` character.
 18. **UpgradePrompt double navigation** — `<Button>` inside `<a>` caused nested interactive elements. Replaced with `onClick` + `useNavigate`.
 19. **Dashboard scanning state stuck** — `setScanning(true)` never reset after navigate. Removed unnecessary scanning state entirely.
@@ -282,6 +314,9 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 27. **auto-play-media wrong severity** — Missing controls was 'moderate' but should be 'serious' (user can't pause).
 28. **CORS preflight missing Content-Type** — OPTIONS responses in scan and create-portal lacked Content-Type header. Added.
 
+### Session 4 fixes
+29. **RegisterForm showed "Check your email"** — Email confirmation disabled but form still showed confirmation screen. Now auto-redirects to /checkout or /dashboard.
+
 ## Design System
 - **Font:** Inter (system-ui fallback), set in `index.css` body rule
 - **SEO:** Title "SiteSafe — ADA Website Accessibility Checker", meta description about scanning + $10K lawsuits
@@ -290,6 +325,7 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 - **Score colors:** >=90 green, >=70 lime, >=50 amber, >=30 orange, <30 red (from `getScoreColor()`)
 - **Risk levels:** extreme (red+pulse), high (orange), medium (amber), low (green)
 - **Cards:** white bg, rounded-xl, border-gray-200, shadow-sm
+- **Pricing cards:** 3 side-by-side cards (not comparison table), middle card highlighted with ring-2 ring-primary-600
 - **Issue cards:** 4px left border colored by severity, subtle severity background, severity icon
 - **Score gauge:** 160px SVG circle with glow shadow, extrabold score, shield icon label
 
@@ -311,23 +347,52 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 ## Competitive Landscape
 | Competitor | Price | Why we win |
 |---|---|---|
-| accessiBe | $49-349/mo | Fined $1M by FTC. Overlay doesn't work |
-| UserWay | $49-490/mo | Same overlay problem |
-| AudioEye | $49-199/mo | Targets mid-market, not small businesses |
+| accessiBe | $490+/year (overlay) | Fined $1M by FTC. Overlay doesn't fix code |
+| UserWay | $588+/year (overlay) | Same overlay problem, doesn't fix code |
+| AudioEye | Custom pricing | Targets mid-market, not small businesses |
 | WAVE | Free | 1 page only, too technical for non-devs |
 | Lighthouse | Free | For developers only |
-| Level Access | $500+/mo | Enterprise, requires sales calls |
-| **Us** | **$0 / $49 / $199** | **One-time, plain English, code fixes, risk scoring** |
+| **Us** | **$49 once / $199/yr** | **Real code fixes, not overlays. 60% cheaper than competitors** |
 
 ## Our Differentiators
-1. **One-time pricing** — no subscriptions, no recurring fees
-2. **Plain English** — "Your logo has no description for blind users" not "img missing alt"
-3. **Copy-paste code fixes** — for every issue found
+1. **Real code fixes** — not overlays (accessiBe fined $1M by FTC for fake fixes)
+2. **One-time option exists** — competitors all require monthly subscriptions
+3. **Plain English** — "Your logo has no description for blind users" not "img missing alt"
 4. **Risk score** by industry + US state (lawsuit data)
-5. **Prioritized action plan** with score impact projections
-6. **Cost/time estimate** for all fixes
-7. **Accessible color alternatives** for contrast fixes
+5. **75% cheaper** than cheapest competitor for ongoing monitoring
+6. **Copy-paste code fixes** — for every issue found
+7. **Prioritized action plan** with score impact projections
 8. **Shareable report URLs** + compliance badge
+
+## Key Files Quick Reference
+| File | Purpose |
+|---|---|
+| `src/App.tsx` | All route definitions (including /checkout) |
+| `src/pages/CheckoutPage.tsx` | Payment page: plan summary + Stripe/PayPal buttons |
+| `src/components/checkout/StripeCheckoutButton.tsx` | Calls create-checkout → redirects to Stripe |
+| `src/components/checkout/PayPalCheckoutButton.tsx` | PayPal SDK buttons → create + capture |
+| `src/config/plans.ts` | 3 plan definitions with real Stripe price IDs |
+| `src/contexts/AuthContext.tsx` | Auth provider + refreshProfile() — MUST use lazy supabase imports! |
+| `src/hooks/useSubscription.ts` | Returns { plan, isPaid, isLoading } for gating |
+| `src/pages/ScanPage.tsx` | Main results page (score hero + issues + risk + cost) |
+| `src/pages/DashboardPage.tsx` | Scan history + payment success toast |
+| `src/components/landing/PricingSection.tsx` | 3 pricing cards + competitor comparison |
+| `src/scanner/engine.ts` | Runs all 11 checks, aggregates into ScanResult |
+| `supabase/functions/create-checkout/index.ts` | Stripe checkout (payment or subscription mode) |
+| `supabase/functions/stripe-webhook/index.ts` | Handles 3 Stripe events |
+| `supabase/functions/paypal-create-order/index.ts` | Creates PayPal order |
+| `supabase/functions/paypal-capture-order/index.ts` | Captures PayPal payment → updates DB |
+| `supabase/functions/_shared/paypal.ts` | PayPal access token helper |
+
+## App Architecture
+- **AuthContext exports `refreshProfile()`** — used by PayPalCheckoutButton after successful capture
+- **LoginForm detects `sitesafe_pending_plan`** in sessionStorage → redirects to `/checkout?plan=X`
+- **RegisterForm auto-redirects** after signup (no email confirmation screen)
+- **CheckoutPage reads plan from** URL query param or sessionStorage
+- **All upgrade CTAs use smart redirects** — logged in → `/checkout`, not logged in → `/register`
+- **useSubscription returns `planId: null`** while auth is loading (prevents flash of free content for paid users)
+- **Stripe webhook handles 3 events:** checkout.session.completed, invoice.paid, customer.subscription.deleted
+- **PayPal capture verifies amount + user match** server-side before updating plan
 
 ## WCAG Checks Implemented (11)
 1. `alt-text` — Images without alt text
@@ -344,26 +409,6 @@ One-time payments. `stripe-webhook` handles `checkout.session.completed` and ins
 
 Each check returns: plain English title + description, severity, WCAG criteria, code before/after, fix description, estimated fix time in minutes.
 
-## Key Files Quick Reference
-| File | Purpose |
-|---|---|
-| `index.html` | Root HTML: SEO title + meta description, loads /src/main.tsx |
-| `src/main.tsx` | Entry point: BrowserRouter + QueryClient + AuthProvider + Toaster |
-| `src/App.tsx` | All route definitions |
-| `src/hooks/useScan.ts` | Core: fetch HTML → run scanner → persist to sessionStorage + DB |
-| `src/hooks/useSubscription.ts` | Returns { plan, isPaid, isLoading } for gating |
-| `src/pages/ScanPage.tsx` | Main results page (score hero + issues + risk + cost) |
-| `src/scanner/engine.ts` | Runs all 11 checks, aggregates into ScanResult |
-| `src/scanner/types.ts` | All TypeScript types (ScanIssue, ScanResult, RiskAssessment, etc.) |
-| `src/scanner/scoring.ts` | Score 0-100, getScoreColor(), getScoreLabel() |
-| `src/contexts/AuthContext.tsx` | Auth provider — MUST use lazy supabase imports! |
-| `src/config/plans.ts` | 3 plan definitions with limits (free/full-report/agency) |
-| `src/config/constants.ts` | INDUSTRY_RISK, TOP_LAWSUIT_STATES, lawsuit statistics |
-| `src/lib/supabase.ts` | Conditional client — Proxy stub when env vars missing |
-| `src/components/landing/PricingSection.tsx` | 3-plan comparison table (12 feature rows) |
-| `vite.config.ts` | CORS proxy plugin for dev mode scanning |
-| `supabase/schema.sql` | Full DB schema (6 tables + triggers + functions) |
-
 ## Provider Stack (main.tsx)
 ```
 BrowserRouter
@@ -372,18 +417,6 @@ BrowserRouter
           └── App (routes)
           └── Toaster (react-hot-toast, top-right)
 ```
-
-## App Architecture
-- **No useAuth hook** — auth is accessed via `useContext(AuthContext)` directly from `AuthContext.tsx`
-- **No ScanHistory component** — DashboardPage reads scan history directly from sessionStorage
-- **BadgePreview component exists** but has no route/page yet (pending integration)
-- **SharedReportPage** uses `import IssueCard from` (default export, not named)
-- **LoginForm reads `location.state.from`** to redirect after login (set by ProtectedRoute)
-- **RegisterForm saves `sitesafe_pending_plan`** to sessionStorage when plan is selected during signup
-- **useSubscription returns `planId: null`** while auth is loading (prevents flash of free content for paid users)
-- **color-contrast check imports from `color-utils.ts`** — no duplicated parsing logic
-- **Scan edge function has 10s timeout** via AbortController
-- **Stripe webhook validates plan_id** against `['free', 'full-report', 'agency']` and returns 200 on errors
 
 ## ADA Lawsuit Data (for marketing copy)
 - 4,605 lawsuits in 2023, 4,000+ in 2024, 2,014 in H1 2025 (37% increase)
@@ -407,19 +440,11 @@ BrowserRouter
 - **Communities:** Business owner groups (value sharing, not spam)
 - **Building in public:** Twitter/X
 
-## Unit Economics (One-Time Model)
+## Unit Economics
 - **CAC:** ~$0 (organic SEO)
-- **Average order:** ~$80 (blended $49 + $199)
+- **Average order:** ~$100 (blended $49 one-time + $199/year)
 - **Gross margin:** ~95% (hosting free, no API costs)
-- **Break-even:** ~30 sales covers basic infrastructure costs
-
-## Revenue Milestones
-| Period | Target |
-|---|---|
-| Month 1 | Launch MVP + first free users |
-| Month 2-3 | First 20-50 paid reports ($1K-$4K) |
-| Month 4-6 | 100-300 paid reports ($5K-$15K) |
-| Month 6-12 | 500+ paid reports ($25K+) |
+- **LTV for Shield users:** $199/year × 2-3 year avg retention = $400-$600
 
 ## SEO Keywords (High Intent)
 - "ADA website compliance checker", "Is my website ADA compliant"
@@ -447,24 +472,32 @@ BrowserRouter
 ### Supabase
 - **Project ref:** `mvzolbabbkedmlhqhiwi`
 - **Project URL:** `https://mvzolbabbkedmlhqhiwi.supabase.co`
-- **Region:** (set during project creation)
 - **Data API:** Enabled (RESTful API for public schema)
-- **Automatic RLS:** Enabled (all new tables get RLS by default)
+- **Automatic RLS:** Enabled
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
-- **Edge Functions:** NOT yet deployed (need `supabase functions deploy`)
-- **Env vars needed:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- **Edge Functions:** Deployed (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order)
+- **Secrets set:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- **Secrets pending:** `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_API_URL`
+- **Auth:** Email confirmation DISABLED, CAPTCHA/bot protection DISABLED
 
 ### Stripe
-- **Account:** Created
-- **Key format:** New format (`sb_publishable_*` / `sb_secret_*`, NOT the old `pk_*` / `sk_*`)
-- **Products:** NOT yet created (need $49 Full Report + $199 Agency Pack)
-- **Webhook:** NOT yet configured (URL: `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`, event: `checkout.session.completed`)
-- **Price IDs in code:** `plans.ts` has placeholder IDs (`price_full_report`, `price_agency`) — update with real Stripe price IDs after creating products
+- **Account:** Created (test mode)
+- **Key format:** New format (`sb_publishable_*` / `sb_secret_*`)
+- **Products:** Created
+  - Fix My Site: $49 one-time, price ID `price_1T7MPaFfYL1pGw0ot4eQO3Bp`
+  - Compliance Shield: $199/year recurring, price ID `price_1T7MiPFfYL1pGw0ohwz2MHvV`
+- **Webhook:** Configured at `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
+  - Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
+  - Signing secret: set in Supabase secrets
+
+### PayPal
+- **Status:** Code implemented, credentials pending
+- **Needs:** Client ID + Secret from PayPal Developer Dashboard
 
 ### Netlify
 - **Status:** NOT yet deployed
 - **Config:** `netlify.toml` ready in repo
-- **Env vars needed:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`
+- **Env vars needed:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_PAYPAL_CLIENT_ID`
 
 ## User Preferences
 - Communication: **Spanish**

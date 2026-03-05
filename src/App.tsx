@@ -6,6 +6,7 @@ import { ScanPage } from '@/pages/ScanPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { CheckoutPage } from '@/pages/CheckoutPage'
 import SharedReportPage from '@/pages/SharedReportPage'
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
       </Route>
 
       {/* 404 catch-all */}

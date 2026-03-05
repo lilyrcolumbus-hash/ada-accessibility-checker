@@ -64,7 +64,7 @@ export function checkLangAttribute(doc: Document, url: string): ScanIssue[] {
 
   // Validate lang code format (2-3 letter ISO 639-1 or 639-2)
   // Also accept variants like en-US
-  const langRegex = /^[a-z]{2,3}(-[a-z]{2,3})?$/i
+  const langRegex = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i
   if (!langRegex.test(langAttr)) {
     issues.push({
       id: crypto.randomUUID(),

@@ -11,7 +11,7 @@ export function LoginForm() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const redirectTo = (location.state as { from?: string })?.from || '/dashboard'
+  const stateFrom = (location.state as { from?: string })?.from || '/dashboard'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,7 +25,15 @@ export function LoginForm() {
 
     try {
       await signIn(email, password)
-      navigate(redirectTo)
+
+      // Check for pending plan from registration flow
+      const pendingPlan = sessionStorage.getItem('sitesafe_pending_plan')
+      if (pendingPlan && pendingPlan !== 'free') {
+        sessionStorage.removeItem('sitesafe_pending_plan')
+        navigate(`/checkout?plan=${pendingPlan}`)
+      } else {
+        navigate(stateFrom)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in. Please try again.')
     } finally {

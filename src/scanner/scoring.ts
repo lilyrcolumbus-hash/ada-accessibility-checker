@@ -23,7 +23,9 @@ export function calculateScore(issues: ScanIssue[], passedChecks: number): numbe
   // Bonus for passed checks
   const passedBonus = Math.min(passedChecks * 2, 15)
 
-  return Math.max(0, Math.min(MAX_SCORE, Math.round(score + passedBonus)))
+  const final = Math.max(0, Math.min(MAX_SCORE, Math.round(score + passedBonus)))
+  // Never show 100 if there are issues — cap at 99
+  return issues.length > 0 ? Math.min(final, 99) : final
 }
 
 export function getScoreLabel(score: number): string {
