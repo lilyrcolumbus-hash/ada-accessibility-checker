@@ -44,7 +44,63 @@ const SEVERITY_BG: Record<string, string> = {
 
 type Platform = 'shopify' | 'wordpress' | 'wix' | 'squarespace' | 'html'
 
-const PLATFORM_GUIDES: Record<Platform, { label: string; steps: string[] }> = {
+const IMAGE_CHECKS = ['alt-text-missing', 'alt-text-missing-input-image', 'alt-text-missing-area']
+
+type GuideSet = Record<Platform, { label: string; steps: string[] }>
+
+const IMAGE_GUIDES: GuideSet = {
+  shopify: {
+    label: 'Shopify',
+    steps: [
+      'For product images: go to Products → select the product → click the image → type alt text in the field',
+      'For section/page images: go to Online Store → Themes → Customize → find the image → click it → fill in the "Alt text" field',
+      'For blog images: go to Blog posts → select the post → click the image → add alt text',
+      'Describe what the image shows (e.g., "Red leather handbag on white background")',
+      'Click Save — changes go live instantly',
+    ],
+  },
+  wordpress: {
+    label: 'WordPress',
+    steps: [
+      'Go to Media → Library in your WordPress admin',
+      'Find and click the image (use the search box if needed)',
+      'In the right panel, fill in the "Alt Text" field',
+      'Describe what the image shows (e.g., "Team photo at company retreat")',
+      'Click Save — the alt text will update everywhere the image is used',
+    ],
+  },
+  wix: {
+    label: 'Wix',
+    steps: [
+      'Open the Wix Editor for your site',
+      'Click the image on the page',
+      'Click Settings (gear icon) → "What\'s in the image?"',
+      'Type a description of what the image shows',
+      'Click Publish to make changes live',
+    ],
+  },
+  squarespace: {
+    label: 'Squarespace',
+    steps: [
+      'Open your site in the Squarespace Editor',
+      'Navigate to the page with the image',
+      'Click the image → click Edit (pencil icon)',
+      'Fill in the "Image Description" or "Alt Text" field',
+      'Changes save automatically — click the back arrow when done',
+    ],
+  },
+  html: {
+    label: 'Plain HTML',
+    steps: [
+      'Open your HTML file in any code editor (VS Code, Notepad++, etc.)',
+      'Find the <img> tag (use Ctrl+F / Cmd+F to search for the filename)',
+      'Add alt="Your description here" inside the <img> tag',
+      'Save the file and upload it to your hosting provider',
+    ],
+  },
+}
+
+const CODE_GUIDES: GuideSet = {
   shopify: {
     label: 'Shopify',
     steps: [
@@ -71,10 +127,9 @@ const PLATFORM_GUIDES: Record<Platform, { label: string; steps: string[] }> = {
     label: 'Wix',
     steps: [
       'Open the Wix Editor for your site',
-      'Find the element on the page (image, button, link, etc.)',
+      'Find the element on the page (button, link, form, etc.)',
       'Click it → a settings panel will appear on the right side',
-      'For alt text: click the image → Settings → "What\'s in the image?" → type your description',
-      'For links/buttons: click → Settings → update the label or text',
+      'Update the property mentioned in the fix above (label, text, link, etc.)',
       'Click Publish to make changes live',
     ],
   },
@@ -83,9 +138,8 @@ const PLATFORM_GUIDES: Record<Platform, { label: string; steps: string[] }> = {
     steps: [
       'Open your site in the Squarespace Editor',
       'Navigate to the page where this element appears',
-      'Click the element (image, text, button) → click Edit',
-      'For alt text: click image → Edit → fill in the "Image Description" field',
-      'For links/text: click the element → edit the text or link directly',
+      'Click the element (text, button, link) → click Edit',
+      'Update the property mentioned in the fix above',
       'Changes save automatically — click the back arrow when done',
     ],
   },
@@ -101,8 +155,9 @@ const PLATFORM_GUIDES: Record<Platform, { label: string; steps: string[] }> = {
   },
 }
 
-function PlatformGuide() {
+function PlatformGuide({ checkId }: { checkId: string }) {
   const [platform, setPlatform] = useState<Platform | null>(null)
+  const guides = IMAGE_CHECKS.includes(checkId) ? IMAGE_GUIDES : CODE_GUIDES
 
   return (
     <div className="rounded-xl border-2 border-dashed border-primary-200 bg-gradient-to-br from-primary-50/50 to-white p-4 space-y-3">
@@ -122,7 +177,7 @@ function PlatformGuide() {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        {(Object.entries(PLATFORM_GUIDES) as [Platform, { label: string }][]).map(([key, { label }]) => (
+        {(Object.entries(guides) as [Platform, { label: string }][]).map(([key, { label }]) => (
           <button
             key={key}
             onClick={(e) => { e.stopPropagation(); setPlatform(platform === key ? null : key) }}
@@ -142,10 +197,10 @@ function PlatformGuide() {
         <div className="bg-white rounded-lg border border-gray-200 p-3 space-y-2">
           <div className="flex items-center gap-1.5 mb-2">
             <Monitor className="w-3.5 h-3.5 text-primary-600" />
-            <span className="text-xs font-bold text-primary-700">{PLATFORM_GUIDES[platform].label} — How to apply</span>
+            <span className="text-xs font-bold text-primary-700">{guides[platform].label} — How to apply</span>
           </div>
           <ol className="space-y-1.5">
-            {PLATFORM_GUIDES[platform].steps.map((step, i) => (
+            {guides[platform].steps.map((step, i) => (
               <li key={i} className="flex gap-2 text-xs text-gray-700">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 text-primary-700 font-bold flex items-center justify-center text-[10px]">
                   {i + 1}
@@ -299,7 +354,7 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
               )}
 
               {/* Platform-specific install guide — bonus */}
-              <PlatformGuide />
+              <PlatformGuide checkId={issue.checkId} />
 
               {/* Meta row */}
               <div className="flex flex-wrap gap-x-5 gap-y-1 pt-2 border-t border-gray-100 text-xs text-gray-400">
