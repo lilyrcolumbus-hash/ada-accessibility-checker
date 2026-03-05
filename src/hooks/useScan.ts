@@ -102,32 +102,35 @@ export function useScan(url?: string): UseScanReturn {
         // quota exceeded — skip
       }
 
-      // 5. Save to DB if authenticated
-      if (isSupabaseConfigured) {
-        try {
-          const { supabase } = await import('@/lib/supabase')
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user) {
-            await supabase.from('scans').insert({
-              user_id: user.id,
-              url: normalised,
-              domain: new URL(normalised).hostname,
-              score: scanResult.score,
-              total_issues: scanResult.totalIssues,
-              critical_count: scanResult.criticalCount,
-              serious_count: scanResult.seriousCount,
-              moderate_count: scanResult.moderateCount,
-              minor_count: scanResult.minorCount,
-              results: scanResult,
-              scan_duration_ms: scanResult.scanDurationMs,
-            })
-          }
-        } catch {
-          // DB save failed — not critical
-        }
-      }
-
+      // 5. Show results IMMEDIATELY — don't wait for DB
       setResult(scanResult)
+
+      // 6. Save to DB in background (fire and forget — never blocks UI)
+      if (isSupabaseConfigured) {
+        (async () => {
+          try {
+            const { supabase } = await import('@/lib/supabase')
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              await supabase.from('scans').insert({
+                user_id: user.id,
+                url: normalised,
+                domain: new URL(normalised).hostname,
+                score: scanResult.score,
+                total_issues: scanResult.totalIssues,
+                critical_count: scanResult.criticalCount,
+                serious_count: scanResult.seriousCount,
+                moderate_count: scanResult.moderateCount,
+                minor_count: scanResult.minorCount,
+                results: scanResult,
+                scan_duration_ms: scanResult.scanDurationMs,
+              })
+            }
+          } catch {
+            // DB save failed — not critical
+          }
+        })()
+      }
     } catch (err) {
       const message = err instanceof Error
         ? err.message
