@@ -13,13 +13,16 @@ interface ComboboxProps {
   onChange: (value: string) => void
   placeholder?: string
   icon?: React.ReactNode
+  label: string
+  id: string
 }
 
-export default function Combobox({ options, value, onChange, placeholder = 'Search...', icon }: ComboboxProps) {
+export default function Combobox({ options, value, onChange, placeholder = 'Search...', icon, label, id }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const listboxId = `${id}-listbox`
 
   const selectedLabel = options.find(o => o.value === value)?.label || ''
 
@@ -55,6 +58,13 @@ export default function Combobox({ options, value, onChange, placeholder = 'Sear
         <input
           ref={inputRef}
           type="text"
+          id={id}
+          role="combobox"
+          aria-label={label}
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          autoComplete="off"
           className="flex-1 bg-transparent outline-none placeholder-gray-400 min-w-0"
           placeholder={open ? 'Type to search...' : (selectedLabel || placeholder)}
           value={open ? query : selectedLabel}
@@ -68,7 +78,7 @@ export default function Combobox({ options, value, onChange, placeholder = 'Sear
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div id={listboxId} role="listbox" aria-label={label} className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
           {filtered.length === 0 ? (
             <div className="px-3 py-2 text-sm text-gray-400">No results</div>
           ) : (
@@ -76,6 +86,8 @@ export default function Combobox({ options, value, onChange, placeholder = 'Sear
               <button
                 key={opt.value}
                 type="button"
+                role="option"
+                aria-selected={opt.value === value}
                 className={cn(
                   'w-full text-left px-3 py-2 text-sm hover:bg-primary-50 transition-colors',
                   opt.value === value && 'bg-primary-50 text-primary-700 font-medium'
