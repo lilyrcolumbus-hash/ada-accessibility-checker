@@ -64,6 +64,8 @@ export default function RiskBreakdown({ riskAssessment, industry, state, onIndus
               Your Industry
             </label>
             <Combobox
+              id="risk-industry"
+              label="Select your industry"
               options={industries}
               value={industry}
               onChange={onIndustryChange}
@@ -78,6 +80,8 @@ export default function RiskBreakdown({ riskAssessment, industry, state, onIndus
               Your State
             </label>
             <Combobox
+              id="risk-state"
+              label="Select your state"
               options={states}
               value={state}
               onChange={onStateChange}
