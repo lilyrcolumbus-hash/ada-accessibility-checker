@@ -8,36 +8,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
 
 async function fetchHtml(url: string): Promise<string> {
-  // 1. Try Netlify Edge Function (same-origin, no CORS)
-  {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 20000)
-
-    try {
-      console.log('[SiteSafe] Fetching via edge function:', url)
-      const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-        signal: controller.signal,
-      })
-      clearTimeout(timer)
-
-      const data = await response.json()
-      if (!response.ok || data.error) {
-        throw new Error(data.error || `Scan returned ${response.status}`)
-      }
-      if (!data.html) throw new Error('No HTML returned')
-
-      console.log('[SiteSafe] Got HTML via edge function, length:', data.html.length)
-      return data.html
-    } catch (err) {
-      clearTimeout(timer)
-      console.warn('[SiteSafe] Edge function failed:', err)
-    }
-  }
-
-  // 2. Try Supabase Edge Function directly (fallback when Netlify limits hit)
+  // 1. Try Supabase Edge Function (primary — works from any hosting provider)
   if (SUPABASE_URL) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 20000)
@@ -57,7 +28,7 @@ async function fetchHtml(url: string): Promise<string> {
 
       const data = await response.json()
       if (!response.ok || data.error) {
-        throw new Error(data.error || `Supabase scan returned ${response.status}`)
+        throw new Error(data.error || `Scan returned ${response.status}`)
       }
       if (!data.html) throw new Error('No HTML returned')
 
@@ -69,7 +40,7 @@ async function fetchHtml(url: string): Promise<string> {
     }
   }
 
-  // 3. Try local dev proxy (only works in dev mode with vite)
+  // 2. Try local dev proxy (only works in dev mode with vite)
   try {
     const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`
     const controller = new AbortController()
