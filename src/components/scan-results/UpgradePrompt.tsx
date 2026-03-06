@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Lock, Code2, FileCheck2, ChevronRight, RotateCcw, ShieldCheck } from 'lucide-react'
+import { FileText, ShieldCheck, ChevronRight, RotateCcw, Globe } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/ui/Button'
 
@@ -8,10 +8,10 @@ interface UpgradePromptProps {
 }
 
 const FEATURES = [
-  { Icon: ShieldCheck, text: 'Every issue explained in plain English' },
-  { Icon: Code2, text: 'Copy-paste code fix for each issue' },
-  { Icon: FileCheck2, text: 'Shareable report for your developer' },
-  { Icon: RotateCcw, text: 'Free re-scan after you fix everything' },
+  { Icon: Globe, text: 'All issues + fixes for your entire site' },
+  { Icon: FileText, text: 'Accessibility Audit Report (PDF)' },
+  { Icon: ShieldCheck, text: '"ADA Tested" badge for your site' },
+  { Icon: RotateCcw, text: 'Re-scan to verify your fixes worked' },
 ]
 
 export default function UpgradePrompt({ totalIssueCount }: UpgradePromptProps) {
@@ -26,16 +26,11 @@ export default function UpgradePrompt({ totalIssueCount }: UpgradePromptProps) {
 
       <div className="relative p-5 space-y-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-primary-100 rounded-lg">
-              <Lock className="w-4 h-4 text-primary-600" />
-            </div>
-            <h3 className="text-base font-bold text-gray-900">Unlock Code Fixes</h3>
-          </div>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Unlock code fixes for{' '}
-            <span className="font-bold text-danger-600">all {totalIssueCount} issue{totalIssueCount !== 1 ? 's' : ''}</span>.{' '}
-            Get copy-paste solutions before a lawsuit finds you.
+          <h3 className="text-base font-bold text-gray-900">
+            {totalIssueCount} issues found
+          </h3>
+          <p className="text-sm text-gray-600 leading-relaxed mt-1">
+            Get all fixes + your Audit Report to prove compliance effort.
           </p>
         </div>
 

@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { ListChecks, ChevronDown, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ListChecks, ChevronDown, ChevronRight, Lock, FileText, ShieldCheck, RotateCcw, ChevronRight as ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 import IssueCard from './IssueCard'
+import Button from '@/components/ui/Button'
+import { FREE_ISSUES_VISIBLE } from '@/config/plans'
 import type { ScanIssue, Severity } from '@/scanner/types'
 
 interface IssuesListProps {
   issues: ScanIssue[]
+  isPaid: boolean
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'serious', 'moderate', 'minor']
@@ -25,8 +30,23 @@ function groupBySeverity(issues: ScanIssue[]): Record<Severity, ScanIssue[]> {
   return groups
 }
 
-export default function IssuesList({ issues }: IssuesListProps) {
+// Flatten issues sorted by severity, return first N IDs as free
+function getFreeIssueIds(issues: ScanIssue[], limit: number): Set<string> {
+  const sorted = [...issues].sort((a, b) => {
+    const order: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 }
+    return (order[a.severity] ?? 4) - (order[b.severity] ?? 4)
+  })
+  return new Set(sorted.slice(0, limit).map(i => i.id))
+}
+
+export default function IssuesList({ issues, isPaid }: IssuesListProps) {
   const groups = groupBySeverity(issues)
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const checkoutPath = user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site'
+
+  const freeIds = isPaid ? null : getFreeIssueIds(issues, FREE_ISSUES_VISIBLE)
+  const hiddenCount = isPaid ? 0 : Math.max(0, issues.length - FREE_ISSUES_VISIBLE)
 
   // Critical starts expanded, rest collapsed
   const [expandedGroups, setExpandedGroups] = useState<Record<Severity, boolean>>({
@@ -53,6 +73,11 @@ export default function IssuesList({ issues }: IssuesListProps) {
               Issues Found
               <span className="ml-2 text-sm font-normal text-gray-400">({issues.length})</span>
             </h2>
+            {!isPaid && hiddenCount > 0 && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                Showing top {FREE_ISSUES_VISIBLE} most critical · <span className="font-semibold text-primary-600">{hiddenCount} more hidden</span>
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -79,6 +104,33 @@ export default function IssuesList({ issues }: IssuesListProps) {
           if (groupIssues.length === 0) return null
           const config = SEVERITY_CONFIG[severity]
           const isExpanded = expandedGroups[severity]
+
+          // Filter: only show free issues for non-paid users
+          const visibleIssues = isPaid
+            ? groupIssues
+            : groupIssues.filter(i => freeIds!.has(i.id))
+          const lockedInGroup = isPaid ? 0 : groupIssues.length - visibleIssues.length
+
+          if (visibleIssues.length === 0 && !isPaid) {
+            // Entire group is locked — show locked header
+            return (
+              <div key={severity} className={cn('rounded-xl border overflow-hidden opacity-60', config.border)}>
+                <div className={cn('flex items-center justify-between px-4 py-3', config.bg)}>
+                  <div className="flex items-center gap-2.5">
+                    <span className={cn('w-2.5 h-2.5 rounded-full', config.dot)} />
+                    <span className={cn('text-sm font-bold', config.text)}>{config.label}</span>
+                    <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full bg-white/70', config.text)}>
+                      {groupIssues.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Lock className="w-3 h-3" />
+                    Upgrade to view
+                  </div>
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div key={severity} className={cn('rounded-xl border overflow-hidden', config.border)}>
@@ -108,15 +160,72 @@ export default function IssuesList({ issues }: IssuesListProps) {
               {/* Issues within group */}
               {isExpanded && (
                 <div className="p-3 space-y-3 bg-white">
-                  {groupIssues.map(issue => (
+                  {visibleIssues.map(issue => (
                     <IssueCard key={issue.id} issue={issue} />
                   ))}
+                  {lockedInGroup > 0 && (
+                    <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-500">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>{lockedInGroup} more {config.label.toLowerCase()} issue{lockedInGroup !== 1 ? 's' : ''} — upgrade to view</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )
         })}
 
+        {/* Upgrade CTA for free users */}
+        {!isPaid && hiddenCount > 0 && (
+          <div className="rounded-xl border-2 border-primary-300 bg-gradient-to-br from-primary-50 via-white to-primary-50 p-5 space-y-4">
+            <div className="text-center">
+              <p className="text-lg font-extrabold text-gray-900">
+                {hiddenCount} more issue{hiddenCount !== 1 ? 's' : ''} found on your site
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Get all fixes + your Accessibility Audit Report to prove compliance
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { Icon: FileText, text: 'Audit Report PDF' },
+                { Icon: ShieldCheck, text: '"ADA Tested" badge' },
+                { Icon: RotateCcw, text: 'Re-scan to verify' },
+              ].map(({ Icon, text }) => (
+                <div key={text} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-primary-200">
+                  <Icon className="w-4 h-4 text-primary-600 flex-shrink-0" />
+                  <span className="text-xs font-medium text-gray-700">{text}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-primary-200">
+              <div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-extrabold text-gray-900">$49</span>
+                  <span className="text-sm text-gray-500">one-time</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-400">vs average lawsuit</p>
+                <p className="text-sm font-bold text-danger-600">$10,000+</p>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full gap-2"
+              onClick={() => navigate(checkoutPath)}
+            >
+              Unlock All Issues + Audit Report
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+
+            <p className="text-xs text-center text-gray-400">One-time payment. No subscription.</p>
+          </div>
+        )}
       </div>
     </div>
   )
