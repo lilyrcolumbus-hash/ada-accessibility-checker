@@ -1,7 +1,8 @@
-import { Building2, MapPin, Scale, TrendingUp, ChevronDown, Crosshair } from 'lucide-react'
+import { Building2, MapPin, Scale, TrendingUp, Crosshair } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/scanner/cost-estimator'
 import { getRiskColor } from '@/scanner/risk-calculator'
+import Combobox from '@/components/ui/Combobox'
 import type { RiskAssessment } from '@/scanner/types'
 
 interface SelectOption {
@@ -60,50 +61,29 @@ export default function RiskBreakdown({ riskAssessment, industry, state, onIndus
           {/* Industry selector */}
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1">
-              <Building2 className="w-3 h-3" />
               Your Industry
             </label>
-            <div className="relative">
-              <select
-                value={industry}
-                onChange={e => onIndustryChange(e.target.value)}
-                className={cn(
-                  'w-full appearance-none pl-3 pr-8 py-2 text-sm rounded-lg border border-gray-300 bg-white',
-                  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-                  'cursor-pointer'
-                )}
-              >
-                {industries.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            </div>
+            <Combobox
+              options={industries}
+              value={industry}
+              onChange={onIndustryChange}
+              placeholder="Select your industry"
+              icon={<Building2 className="w-3.5 h-3.5" />}
+            />
           </div>
 
           {/* State selector */}
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1">
-              <MapPin className="w-3 h-3" />
               Your State
             </label>
-            <div className="relative">
-              <select
-                value={state}
-                onChange={e => onStateChange(e.target.value)}
-                className={cn(
-                  'w-full appearance-none pl-3 pr-8 py-2 text-sm rounded-lg border border-gray-300 bg-white',
-                  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-                  'cursor-pointer'
-                )}
-              >
-                <option value="">Select your state</option>
-                {states.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            </div>
+            <Combobox
+              options={states}
+              value={state}
+              onChange={onStateChange}
+              placeholder="Select your state"
+              icon={<MapPin className="w-3.5 h-3.5" />}
+            />
           </div>
 
           <p className="text-[10px] text-primary-500 text-center">Risk updates instantly when you change selections</p>
