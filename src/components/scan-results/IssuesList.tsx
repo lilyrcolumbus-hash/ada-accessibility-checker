@@ -2,12 +2,10 @@ import { useState } from 'react'
 import { ListChecks, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import IssueCard from './IssueCard'
-import UpgradePrompt from './UpgradePrompt'
 import type { ScanIssue, Severity } from '@/scanner/types'
 
 interface IssuesListProps {
   issues: ScanIssue[]
-  isPaid: boolean
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'serious', 'moderate', 'minor']
@@ -27,10 +25,8 @@ function groupBySeverity(issues: ScanIssue[]): Record<Severity, ScanIssue[]> {
   return groups
 }
 
-export default function IssuesList({ issues, isPaid }: IssuesListProps) {
+export default function IssuesList({ issues }: IssuesListProps) {
   const groups = groupBySeverity(issues)
-  // Free fix goes to first issue of first non-empty severity group (most critical)
-  const firstIssueId = SEVERITY_ORDER.reduce<string | null>((found, sev) => found ?? (groups[sev][0]?.id ?? null), null)
 
   // Critical starts expanded, rest collapsed
   const [expandedGroups, setExpandedGroups] = useState<Record<Severity, boolean>>({
@@ -113,7 +109,7 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
               {isExpanded && (
                 <div className="p-3 space-y-3 bg-white">
                   {groupIssues.map(issue => (
-                    <IssueCard key={issue.id} issue={issue} isPaid={isPaid} isFreeFix={!isPaid && issue.id === firstIssueId} />
+                    <IssueCard key={issue.id} issue={issue} />
                   ))}
                 </div>
               )}
@@ -121,12 +117,6 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
           )
         })}
 
-        {/* Upgrade CTA for free users — only inline on mobile, sidebar handles desktop */}
-        {!isPaid && issues.length > 0 && (
-          <div className="lg:hidden">
-            <UpgradePrompt totalIssueCount={issues.length} />
-          </div>
-        )}
       </div>
     </div>
   )
