@@ -19,23 +19,25 @@ export interface Plan {
   popular?: boolean
 }
 
+export const FREE_ISSUES_VISIBLE = 3
+
 export const PLANS: Plan[] = [
   {
     id: 'free',
     name: 'Free Scan',
-    tagline: 'See what\'s broken',
+    tagline: 'See your biggest risks',
     price: 0,
     priceId: '',
     billing: 'free',
     features: [
       'Scan 1 page',
       'Compliance score & risk level',
-      'View all issues found',
-      '1 code fix included',
+      `Top ${FREE_ISSUES_VISIBLE} critical issues with fixes`,
+      'Lawsuit risk by industry & state',
     ],
     limits: {
       pagesPerScan: 1,
-      codeFixesVisible: 1,
+      codeFixesVisible: FREE_ISSUES_VISIBLE,
       shareableReports: false,
       complianceBadge: false,
       rescanIncluded: false,
@@ -47,24 +49,24 @@ export const PLANS: Plan[] = [
   {
     id: 'fix-my-site',
     name: 'Fix My Site',
-    tagline: 'Fix it before they sue you',
+    tagline: 'Fix everything + prove compliance',
     price: 49,
     priceId: 'price_1T7MPaFfYL1pGw0ot4eQO3Bp',
     billing: 'one-time',
     popular: true,
     features: [
-      'Scan up to 50 pages',
-      'All code fixes (copy-paste ready)',
-      'Prioritized action plan',
+      'Scan your entire site',
+      'All issues with copy-paste fixes',
+      'Accessibility Audit Report (PDF)',
+      '"ADA Tested" badge for your site',
       'Shareable report link',
-      'Cost & time estimates',
-      '1 re-scan after fixes',
+      '1 re-scan to verify fixes',
     ],
     limits: {
       pagesPerScan: 50,
       codeFixesVisible: 'unlimited',
       shareableReports: true,
-      complianceBadge: false,
+      complianceBadge: true,
       rescanIncluded: true,
       monthlyAutoScan: false,
       emailAlerts: false,
@@ -84,7 +86,7 @@ export const PLANS: Plan[] = [
       'Unlimited re-scans',
       'Monthly automated re-scans',
       'Email alerts if score drops',
-      'Compliance badge for your site',
+      'Verified compliance badge',
     ],
     limits: {
       pagesPerScan: 50,

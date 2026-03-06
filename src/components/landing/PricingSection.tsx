@@ -175,7 +175,7 @@ export function PricingSection() {
           <p className="text-sm text-gray-700">
             <span className="font-bold text-danger-700">Average ADA lawsuit settlement: $10,000–$20,000.</span>
             {' '}Average defense cost: $50,000+.{' '}
-            <span className="font-semibold">A $49 report is the cheapest insurance you can get.</span>
+            <span className="font-semibold">A $49 audit report is the cheapest protection you can get.</span>
           </p>
         </div>
 
