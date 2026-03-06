@@ -1,18 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Copy, Check, Lock, AlertTriangle, AlertCircle, Info, AlertOctagon, ChevronRight, Gift, Monitor } from 'lucide-react'
+import { ChevronDown, ChevronUp, Copy, Check, AlertTriangle, AlertCircle, Info, AlertOctagon, Gift, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts/AuthContext'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { formatTime } from '@/scanner/cost-estimator'
 import type { ScanIssue } from '@/scanner/types'
 
-interface IssueCardProps {
-  issue: ScanIssue
-  isPaid: boolean
-  isFreeFix?: boolean
-}
 
 const SEVERITY_VARIANT: Record<string, 'critical' | 'serious' | 'moderate' | 'minor'> = {
   critical: 'critical',
@@ -225,13 +218,9 @@ function SeverityIcon({ severity }: { severity: string }) {
   }
 }
 
-export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) {
+export default function IssueCard({ issue }: { issue: ScanIssue }) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const showFix = isPaid || isFreeFix
-  const checkoutPath = user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site'
   const isImageIssue = IMAGE_CHECKS.includes(issue.checkId)
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -290,7 +279,6 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
       {/* Expandable code section */}
       {expanded && (
         <div className="border-t border-gray-100 px-4 pb-4 space-y-3 bg-white">
-          {showFix ? (
             <>
               {/* Fix description */}
               <div className="pt-3">
@@ -410,63 +398,6 @@ export default function IssueCard({ issue, isPaid, isFreeFix }: IssueCardProps) 
                 <span>Fix time <span className="font-medium text-gray-600">~{formatTime(issue.estimatedFixMinutes)}</span></span>
               </div>
             </>
-          ) : (
-            <>
-              {/* Locked fix section for free users */}
-              <div className="pt-3">
-                <p className="text-sm font-semibold text-gray-900 mb-2">How to fix:</p>
-              </div>
-              <div className="relative select-none">
-                {/* Blurred placeholder content */}
-                <div className="blur-[6px] pointer-events-none" aria-hidden="true">
-                  <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                    {issue.fixDescription}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {issue.codeBefore && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="w-2 h-2 rounded-full bg-danger-500" />
-                          <span className="text-xs font-bold text-danger-600 uppercase tracking-wider">Current (broken)</span>
-                        </div>
-                        <pre className="text-xs font-mono bg-danger-50 border border-danger-200 text-danger-800 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                          {issue.codeBefore}
-                        </pre>
-                      </div>
-                    )}
-                    {issue.codeAfter && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="w-2 h-2 rounded-full bg-success-500" />
-                          <span className="text-xs font-bold text-success-600 uppercase tracking-wider">Fixed</span>
-                        </div>
-                        <pre className="text-xs font-mono bg-success-50 border border-success-200 text-success-700 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                          {issue.codeAfter}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Lock overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                  <div className="p-2.5 bg-gray-100 rounded-full shadow-sm">
-                    <Lock className="w-5 h-5 text-gray-500" />
-                  </div>
-                  <span className="text-sm font-semibold text-gray-700">Upgrade to unlock code fixes</span>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="mt-1 gap-1"
-                    onClick={(e) => { e.stopPropagation(); navigate(checkoutPath) }}
-                  >
-                    Fix My Site
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       )}
     </div>

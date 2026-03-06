@@ -279,7 +279,7 @@ export function ScanPage() {
           )}
 
           {/* Issues list */}
-          <IssuesList issues={result.issues} isPaid={isPaid} />
+          <IssuesList issues={result.issues} />
         </div>
 
         {/* Right column: 1/3 width */}
