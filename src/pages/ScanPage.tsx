@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { RefreshCw, AlertCircle, ChevronDown, Shield } from 'lucide-react'
+import { RefreshCw, AlertCircle, Shield } from 'lucide-react'
 import { cn, getDomain } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import ScoreGauge from '@/components/scan-results/ScoreGauge'
@@ -269,45 +269,6 @@ export function ScanPage() {
         </div>
       </div>
 
-      {/* Risk refinement selectors */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-        <span className="text-sm font-medium text-gray-700">Refine risk estimate:</span>
-        <div className="relative">
-          <select
-            value={industry}
-            onChange={e => setIndustry(e.target.value)}
-            className={cn(
-              'appearance-none pl-3 pr-8 py-1.5 text-sm rounded-lg border border-gray-300 bg-white',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-              'cursor-pointer'
-            )}
-          >
-            {INDUSTRIES.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-        </div>
-        <div className="relative">
-          <select
-            value={state}
-            onChange={e => setState(e.target.value)}
-            className={cn(
-              'appearance-none pl-3 pr-8 py-1.5 text-sm rounded-lg border border-gray-300 bg-white',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-              'cursor-pointer'
-            )}
-          >
-            <option value="">Select state</option>
-            {STATES.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-        </div>
-        <span className="text-xs text-gray-400">Updates risk estimate in real time</span>
-      </div>
-
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column: 2/3 width */}
@@ -341,6 +302,10 @@ export function ScanPage() {
                 riskAssessment={riskAssessment}
                 industry={industry}
                 state={state}
+                onIndustryChange={setIndustry}
+                onStateChange={setState}
+                industries={INDUSTRIES}
+                states={STATES}
               />
             </>
           )}
