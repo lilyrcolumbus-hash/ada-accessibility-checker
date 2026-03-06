@@ -149,6 +149,7 @@ export function DashboardPage() {
               <div className="flex-1">
                 <Input
                   type="url"
+                  aria-label="Website URL to scan"
                   placeholder="https://yourwebsite.com"
                   value={quickUrl}
                   onChange={(e) => setQuickUrl(e.target.value)}
