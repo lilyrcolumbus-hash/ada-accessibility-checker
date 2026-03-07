@@ -120,7 +120,7 @@ export function DashboardPage() {
               {plan.name} plan
             </Badge>
             {!isPaid && (
-              <Link to="/checkout?plan=fix-my-site">
+              <Link to="/#pricing">
                 <Button size="sm" variant="primary">
                   <Zap className="mr-1.5 h-3.5 w-3.5" />
                   Upgrade
@@ -184,7 +184,7 @@ export function DashboardPage() {
                 Upgrade to scan full websites, get monitoring alerts, and protect against lawsuits.
               </p>
             </div>
-            <Link to="/checkout?plan=fix-my-site">
+            <Link to="/#pricing">
               <Button size="sm" variant="primary">
                 View plans
                 <ArrowRight className="ml-1.5 h-4 w-4" />

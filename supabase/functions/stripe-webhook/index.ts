@@ -11,7 +11,7 @@ if (!stripeKey || !endpointSecret) {
 }
 
 const stripe = new Stripe(stripeKey!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2026-02-25' as any,
 })
 
 const supabase = createClient(
