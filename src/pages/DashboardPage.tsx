@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, FormEvent, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Globe,
@@ -9,6 +9,8 @@ import {
   Zap,
   TrendingUp,
   ArrowRight,
+  Trash2,
+  Loader2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
@@ -38,23 +40,10 @@ function getScoreColor(score: number): string {
   return 'text-danger-600'
 }
 
-function loadScansFromStorage(): ScanRecord[] {
-  try {
-    // useScan stores the latest result in 'sitesafe_scan_result'
-    const raw = sessionStorage.getItem('sitesafe_scan_result')
-    if (!raw) return []
-    const result = JSON.parse(raw)
-    // Convert single ScanResult to ScanRecord array
-    return [{
-      id: result.scannedAt || Date.now().toString(),
-      url: result.url,
-      score: result.score,
-      issueCount: result.totalIssues,
-      date: result.scannedAt,
-    }]
-  } catch {
-    return []
-  }
+function getScoreBg(score: number): string {
+  if (score >= 80) return 'bg-success-50'
+  if (score >= 50) return 'bg-warning-50'
+  return 'bg-danger-50'
 }
 
 export function DashboardPage() {
@@ -63,8 +52,75 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const [scans] = useState<ScanRecord[]>(loadScansFromStorage)
+  const [scans, setScans] = useState<ScanRecord[]>([])
+  const [loadingScans, setLoadingScans] = useState(true)
   const [quickUrl, setQuickUrl] = useState('')
+
+  // Load scans from Supabase DB
+  const loadScans = useCallback(async () => {
+    if (!user) {
+      setLoadingScans(false)
+      return
+    }
+
+    try {
+      const { supabase } = await import('@/lib/supabase')
+      const { data, error } = await supabase
+        .from('scans')
+        .select('id, url, score, total_issues, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        setScans(data.map(s => ({
+          id: s.id,
+          url: s.url,
+          score: s.score,
+          issueCount: s.total_issues,
+          date: s.created_at,
+        })))
+      } else {
+        // Fallback: load from sessionStorage if no DB scans
+        try {
+          const raw = sessionStorage.getItem('sitesafe_scan_result')
+          if (raw) {
+            const result = JSON.parse(raw)
+            setScans([{
+              id: result.scannedAt || Date.now().toString(),
+              url: result.url,
+              score: result.score,
+              issueCount: result.totalIssues,
+              date: result.scannedAt,
+            }])
+          }
+        } catch { /* ignore */ }
+      }
+    } catch {
+      // DB not available, try sessionStorage
+      try {
+        const raw = sessionStorage.getItem('sitesafe_scan_result')
+        if (raw) {
+          const result = JSON.parse(raw)
+          setScans([{
+            id: result.scannedAt || Date.now().toString(),
+            url: result.url,
+            score: result.score,
+            issueCount: result.totalIssues,
+            date: result.scannedAt,
+          }])
+        }
+      } catch { /* ignore */ }
+    } finally {
+      setLoadingScans(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    loadScans()
+  }, [loadScans])
 
   // Show payment success toast + refresh profile to pick up plan change
   useEffect(() => {
@@ -76,8 +132,6 @@ export function DashboardPage() {
           : 'Payment successful! Your plan has been upgraded.',
         { duration: 5000 }
       )
-      // Refresh profile to pick up the plan update from webhook
-      // Retry a few times since the webhook may take a moment
       const refresh = async () => {
         for (let i = 0; i < 5; i++) {
           await new Promise(r => setTimeout(r, i === 0 ? 500 : 2000))
@@ -95,6 +149,17 @@ export function DashboardPage() {
     navigate(`/scan?url=${encodeURIComponent(quickUrl.trim())}`)
   }
 
+  const handleDeleteScan = async (scanId: string) => {
+    try {
+      const { supabase } = await import('@/lib/supabase')
+      await supabase.from('scans').delete().eq('id', scanId)
+      setScans(prev => prev.filter(s => s.id !== scanId))
+      toast.success('Scan deleted')
+    } catch {
+      toast.error('Failed to delete scan')
+    }
+  }
+
   const handleSignOut = async () => {
     await signOut()
     navigate('/')
@@ -105,7 +170,7 @@ export function DashboardPage() {
       {/* Top bar */}
       <div className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600">
               <Shield className="h-5 w-5 text-white" />
             </div>
@@ -113,7 +178,7 @@ export function DashboardPage() {
               <p className="text-sm font-semibold text-gray-900">SiteSafe Dashboard</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-3">
             <Badge variant={getPlanBadgeVariant(plan.id)}>
@@ -200,17 +265,22 @@ export function DashboardPage() {
               <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">
                 <TrendingUp className="h-4 w-4 text-primary-600" />
                 Scan History
+                {scans.length > 0 && (
+                  <span className="text-sm font-normal text-gray-400">({scans.length})</span>
+                )}
               </h2>
-              <Link to="/">
-                <Button size="sm" variant="outline">
-                  <PlusCircle className="mr-1.5 h-4 w-4" />
-                  New Scan
-                </Button>
-              </Link>
+              <Button size="sm" variant="outline" onClick={() => navigate('/scan')}>
+                <PlusCircle className="mr-1.5 h-4 w-4" />
+                New Scan
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {scans.length === 0 ? (
+            {loadingScans ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              </div>
+            ) : scans.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
                   <Globe className="h-7 w-7 text-gray-400" />
@@ -219,67 +289,58 @@ export function DashboardPage() {
                 <p className="mb-6 max-w-sm text-sm text-gray-500">
                   Run your first scan to see how your website scores for ADA compliance.
                 </p>
-                <Link to="/">
-                  <Button variant="primary">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Scan my website
-                  </Button>
-                </Link>
+                <Button variant="primary" onClick={() => navigate('/scan')}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Scan my website
+                </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-6 py-3 text-left font-medium text-gray-500">Website</th>
-                      <th className="px-6 py-3 text-left font-medium text-gray-500">Score</th>
-                      <th className="px-6 py-3 text-left font-medium text-gray-500">Issues</th>
-                      <th className="px-6 py-3 text-left font-medium text-gray-500">Date</th>
-                      <th className="px-6 py-3 text-left font-medium text-gray-500">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {scans.map((scan) => (
-                      <tr key={scan.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Globe className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                            <span className="font-medium text-gray-900">
-                              {getDomain(scan.url)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={cn('font-bold', getScoreColor(scan.score))}>
-                            {scan.score}%
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-gray-700">{scan.issueCount} issues</span>
-                        </td>
-                        <td className="px-6 py-4 text-gray-500">
-                          {formatDate(scan.date)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Link to={`/scan?url=${encodeURIComponent(scan.url)}`}>
-                              <Button size="sm" variant="ghost">
-                                <RefreshCw className="mr-1 h-3.5 w-3.5" />
-                                Re-scan
-                              </Button>
-                            </Link>
-                            <Link to={`/scan?url=${encodeURIComponent(scan.url)}`}>
-                              <Button size="sm" variant="ghost">
-                                <ExternalLink className="mr-1 h-3.5 w-3.5" />
-                                View
-                              </Button>
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="divide-y divide-gray-100">
+                {scans.map((scan) => (
+                  <div key={scan.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
+                    {/* Score circle */}
+                    <div className={cn(
+                      'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-2',
+                      scan.score >= 80 ? 'border-success-300' : scan.score >= 50 ? 'border-warning-300' : 'border-danger-300',
+                      getScoreBg(scan.score),
+                    )}>
+                      <span className={cn('text-sm font-extrabold', getScoreColor(scan.score))}>
+                        {scan.score}
+                      </span>
+                    </div>
+
+                    {/* Site info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{getDomain(scan.url)}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {scan.issueCount} issue{scan.issueCount !== 1 ? 's' : ''} · {formatDate(scan.date)}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Link to={`/scan?url=${encodeURIComponent(scan.url)}`}>
+                        <Button size="sm" variant="primary" className="gap-1.5">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          View
+                        </Button>
+                      </Link>
+                      <Link to={`/scan?url=${encodeURIComponent(scan.url)}&rescan=1`}>
+                        <Button size="sm" variant="ghost" className="gap-1">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-danger-600"
+                        onClick={() => handleDeleteScan(scan.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

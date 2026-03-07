@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { RefreshCw, AlertCircle, Shield } from 'lucide-react'
+import { useEffect, useState, useCallback, FormEvent } from 'react'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { RefreshCw, AlertCircle, Shield, ArrowLeft, Search, LayoutDashboard } from 'lucide-react'
 import { cn, getDomain } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import ScoreGauge from '@/components/scan-results/ScoreGauge'
@@ -12,6 +12,7 @@ import CostEstimateCard from '@/components/scan-results/CostEstimateCard'
 import UpgradePrompt from '@/components/scan-results/UpgradePrompt'
 import { useScan } from '@/hooks/useScan'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useAuth } from '@/contexts/AuthContext'
 import { calculateRisk } from '@/scanner/risk-calculator'
 import { estimateCosts } from '@/scanner/cost-estimator'
 import { getScoreColor } from '@/scanner/scoring'
@@ -120,13 +121,16 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 export function ScanPage() {
   const [searchParams] = useSearchParams()
-  const scanNavigate = useNavigate()
+  const navigate = useNavigate()
   const rawUrl = searchParams.get('url') || ''
+  const forceRescan = searchParams.get('rescan') === '1'
   const [industry, setIndustry] = useState('other')
   const [state, setState] = useState('')
+  const [newUrl, setNewUrl] = useState('')
 
   const { loading, result, error, startScan } = useScan(rawUrl)
   const { isPaid } = useSubscription()
+  const { user } = useAuth()
 
   // Auto-start scan when URL param is present and no result yet
   useEffect(() => {
@@ -135,9 +139,23 @@ export function ScanPage() {
     }
   }, [rawUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Force rescan when rescan=1 param is present
+  useEffect(() => {
+    if (forceRescan && rawUrl && !loading) {
+      startScan(rawUrl)
+    }
+  }, [forceRescan]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleRescan = useCallback(() => {
     if (rawUrl) startScan(rawUrl)
   }, [rawUrl, startScan])
+
+  const handleNewScan = (e: FormEvent) => {
+    e.preventDefault()
+    if (!newUrl.trim()) return
+    navigate(`/scan?url=${encodeURIComponent(newUrl.trim())}`)
+    setNewUrl('')
+  }
 
   const domain = getDomain(rawUrl)
 
@@ -169,8 +187,7 @@ export function ScanPage() {
             e.preventDefault()
             const input = (e.target as HTMLFormElement).elements.namedItem('url') as HTMLInputElement
             if (input.value.trim()) {
-              scanNavigate(`/scan?url=${encodeURIComponent(input.value.trim())}`)
-
+              navigate(`/scan?url=${encodeURIComponent(input.value.trim())}`)
             }
           }}
         >
@@ -188,7 +205,6 @@ export function ScanPage() {
   }
 
   if (!result) {
-    // If we have a URL but no result and not loading, the scan failed silently — show error
     if (rawUrl && !loading) {
       return <ErrorState message="Scan completed but no results were returned. Please try again." onRetry={handleRescan} />
     }
@@ -198,7 +214,48 @@ export function ScanPage() {
   const scoreColor = getScoreColor(result.score)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Navigation bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <span className="text-gray-300">|</span>
+          {user && (
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-600 transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </Link>
+          )}
+        </div>
+
+        {/* Inline new scan */}
+        <form onSubmit={handleNewScan} className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={newUrl}
+              onChange={(e) => setNewUrl(e.target.value)}
+              placeholder="Scan another site..."
+              aria-label="Scan another website URL"
+              className="pl-8 pr-3 py-1.5 w-48 sm:w-64 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+            />
+          </div>
+          <Button type="submit" size="sm" variant="outline">
+            Scan
+          </Button>
+        </form>
+      </div>
+
       {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
