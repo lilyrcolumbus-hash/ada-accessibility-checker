@@ -20,12 +20,12 @@ export function Footer() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               Company
             </h3>
-            <span className="text-sm text-gray-400 cursor-default">
+            <Link to="/privacy" className="text-sm text-gray-600 hover:text-primary-700">
               Privacy Policy
-            </span>
-            <span className="text-sm text-gray-400 cursor-default">
+            </Link>
+            <Link to="/terms" className="text-sm text-gray-600 hover:text-primary-700">
               Terms of Service
-            </span>
+            </Link>
             <a href="mailto:hello@sitesafe.com" className="text-sm text-gray-600 hover:text-primary-700">
               Contact
             </a>

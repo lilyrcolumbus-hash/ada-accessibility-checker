@@ -28,6 +28,15 @@ export function Header() {
     setMenuOpen(false);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch {
+      // Force clear state even if signOut fails
+    }
+    navigate('/');
+  };
+
   const navLinks = [
     { label: 'How It Works', hash: '#how-it-works' },
     { label: 'Pricing', hash: '#pricing' },
@@ -69,7 +78,7 @@ export function Header() {
                 Dashboard
               </Link>
               <button
-                onClick={async () => { await signOut(); navigate('/'); }}
+                onClick={handleSignOut}
                 className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
               >
                 <LogOut className="w-4 h-4" />
@@ -127,7 +136,7 @@ export function Header() {
                   Dashboard
                 </Link>
                 <button
-                  onClick={async () => { setMenuOpen(false); await signOut(); navigate('/'); }}
+                  onClick={() => { setMenuOpen(false); handleSignOut(); }}
                   className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700 text-left"
                 >
                   <LogOut className="w-4 h-4" />
