@@ -18,28 +18,60 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
     setError(null)
 
     try {
-      const token = await getAccessToken()
+      let token: string | null = null
+      try {
+        token = await getAccessToken()
+      } catch {
+        throw new Error('Session expired — please log in again')
+      }
       if (!token) throw new Error('Please log in to continue')
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ priceId, planId }),
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15_000)
+
+      let res: Response
+      try {
+        res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ priceId, planId }),
+            signal: controller.signal,
+          }
+        )
+      } catch (fetchErr) {
+        if ((fetchErr as Error).name === 'AbortError') {
+          throw new Error('Request timed out — please try again')
         }
-      )
-
-      const data = await res.json()
-
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || 'Failed to create checkout session')
+        throw new Error('Network error — check your connection and try again')
+      } finally {
+        clearTimeout(timeout)
       }
 
-      window.location.href = data.url
+      let data: Record<string, unknown>
+      const text = await res.text()
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error(`Server returned invalid response (HTTP ${res.status}): ${text.slice(0, 200)}`)
+      }
+
+      if (!res.ok || !data.url) {
+        // Show full debug info to diagnose the issue
+        const serverError = data.error as string | undefined
+        const details = [
+          `HTTP ${res.status}`,
+          serverError ? `Error: ${serverError}` : null,
+          `Response: ${text.slice(0, 300)}`,
+        ].filter(Boolean).join(' | ')
+        throw new Error(details)
+      }
+
+      window.location.href = data.url as string
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)
