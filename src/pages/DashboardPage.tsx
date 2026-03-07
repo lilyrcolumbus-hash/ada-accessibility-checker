@@ -150,7 +150,7 @@ export function DashboardPage() {
                 <Input
                   type="url"
                   aria-label="Website URL to scan"
-                  placeholder="https://yourwebsite.com"
+                  placeholder="yourwebsite.com"
                   value={quickUrl}
                   onChange={(e) => setQuickUrl(e.target.value)}
                   required
