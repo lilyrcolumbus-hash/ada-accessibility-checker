@@ -1,23 +1,32 @@
 import { Check, Shield, Zap, Eye } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSubscription } from '@/hooks/useSubscription'
 import { PLANS } from '@/config/plans'
 import Button from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
 const PLAN_ICONS = [Eye, Zap, Shield]
 
-const PRICE_LABELS: Record<string, string> = {
-  free: '',
-  'one-time': 'one-time',
-  yearly: '/year',
-}
-
 export function PricingSection() {
   const { user } = useAuth()
+  const { plan: currentPlan, isPaid } = useSubscription()
+
   const getLink = (planId: string) => {
     if (planId === 'free') return '/#hero'
     return user ? `/checkout?plan=${planId}` : `/register?plan=${planId}`
+  }
+
+  const isCurrentPlan = (planId: string) => {
+    if (!user) return false
+    return currentPlan.id === planId
+  }
+
+  const isDowngrade = (planId: string) => {
+    if (!user) return false
+    if (currentPlan.id === 'compliance-shield' && planId === 'fix-my-site') return true
+    if (isPaid && planId === 'free') return true
+    return false
   }
 
   return (
@@ -122,15 +131,40 @@ export function PricingSection() {
                 </div>
 
                 {/* CTA */}
-                <Link to={getLink(plan.id)} className="mb-6 block">
-                  <Button
-                    variant={isPopular ? 'primary' : 'outline'}
-                    size="md"
-                    className="w-full"
-                  >
-                    {plan.price === 0 ? 'Scan Free' : plan.billing === 'yearly' ? 'Get Protected' : 'Fix My Site'}
-                  </Button>
-                </Link>
+                {isCurrentPlan(plan.id) ? (
+                  <div className="mb-6">
+                    <Button
+                      variant="outline"
+                      size="md"
+                      className="w-full pointer-events-none border-success-300 text-success-700 bg-success-50"
+                      disabled
+                    >
+                      <Check className="w-4 h-4 mr-1.5" />
+                      Your Current Plan
+                    </Button>
+                  </div>
+                ) : isDowngrade(plan.id) ? (
+                  <div className="mb-6">
+                    <Button
+                      variant="outline"
+                      size="md"
+                      className="w-full opacity-50 cursor-not-allowed"
+                      disabled
+                    >
+                      Included in your plan
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to={getLink(plan.id)} className="mb-6 block">
+                    <Button
+                      variant={isPopular ? 'primary' : 'outline'}
+                      size="md"
+                      className="w-full"
+                    >
+                      {plan.price === 0 ? 'Scan Free' : plan.billing === 'yearly' ? 'Get Protected' : 'Fix My Site'}
+                    </Button>
+                  </Link>
+                )}
 
                 {/* Features */}
                 <ul className="flex-1 space-y-3">

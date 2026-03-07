@@ -1,9 +1,11 @@
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Shield, Check } from 'lucide-react'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { Shield, Check, CheckCircle } from 'lucide-react'
 import { getPlan, PLANS } from '@/config/plans'
+import { useSubscription } from '@/hooks/useSubscription'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import StripeCheckoutButton from '@/components/checkout/StripeCheckoutButton'
 import PayPalCheckoutButton from '@/components/checkout/PayPalCheckoutButton'
+import Button from '@/components/ui/Button'
 import { useEffect } from 'react'
 
 const PLAN_KEY = 'sitesafe_pending_plan'
@@ -11,6 +13,7 @@ const PLAN_KEY = 'sitesafe_pending_plan'
 export function CheckoutPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { plan: currentPlan, isPaid, isLoading } = useSubscription()
 
   // Read plan from URL or sessionStorage
   const planId = searchParams.get('plan') || sessionStorage.getItem(PLAN_KEY) || ''
@@ -30,6 +33,38 @@ export function CheckoutPage() {
   }, [isPaidPlan, navigate])
 
   if (!isPaidPlan) return null
+  if (isLoading) return null
+
+  // User already has this plan or a higher plan
+  const alreadyHasPlan = currentPlan.id === plan.id
+  const hasHigherPlan = currentPlan.id === 'compliance-shield' && plan.id === 'fix-my-site'
+
+  if (alreadyHasPlan || hasHigherPlan) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="p-3 bg-success-50 rounded-full">
+              <CheckCircle className="h-10 w-10 text-success-500" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              You already have the {currentPlan.name} plan
+            </h1>
+            <p className="mt-2 text-sm text-gray-500">
+              {hasHigherPlan
+                ? 'Your Compliance Shield plan already includes everything in Fix My Site.'
+                : 'Your plan is active. Go to your dashboard to start scanning.'}
+            </p>
+          </div>
+          <Link to="/dashboard">
+            <Button variant="primary" size="md">Go to Dashboard</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
