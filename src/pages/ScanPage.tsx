@@ -178,7 +178,7 @@ export function ScanPage() {
             name="url"
             type="text"
             aria-label="Website URL to scan"
-            placeholder="https://example.com"
+            placeholder="example.com"
             className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
           <Button type="submit">Scan</Button>

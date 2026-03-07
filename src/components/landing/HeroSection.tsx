@@ -84,7 +84,7 @@ export function HeroSection() {
                 setUrl(e.target.value);
                 if (error) setError('');
               }}
-              placeholder="https://yourbusiness.com"
+              placeholder="yourbusiness.com"
               className={cn(
                 'w-full rounded-lg border bg-white py-3.5 pl-10 pr-4 text-base text-gray-900 shadow-sm',
                 'placeholder:text-gray-400',
