@@ -95,6 +95,7 @@ function ScanningProgress() {
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const errorNavigate = useNavigate()
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
       <div className="max-w-md w-full text-center space-y-4">
@@ -110,10 +111,16 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         <p className="text-xs text-gray-400">
           This can happen if the site blocks automated requests or requires authentication.
         </p>
-        <Button variant="primary" onClick={onRetry} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
-          Try Again
-        </Button>
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="outline" onClick={() => errorNavigate(-1)} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </Button>
+          <Button variant="primary" onClick={onRetry} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -179,6 +186,7 @@ export function ScanPage() {
   if (!result && !rawUrl) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+        <Shield className="w-12 h-12 text-primary-600 mb-4" />
         <h2 className="text-xl font-bold text-gray-900 mb-2">Scan a Website</h2>
         <p className="text-gray-500 text-sm mb-6">Enter a URL to check for ADA/WCAG accessibility issues.</p>
         <form
@@ -200,6 +208,19 @@ export function ScanPage() {
           />
           <Button type="submit">Scan</Button>
         </form>
+        <div className="flex items-center gap-4 mt-6">
+          <Link to="/" className="text-sm text-gray-500 hover:text-primary-600 transition-colors">
+            Home
+          </Link>
+          {user && (
+            <>
+              <span className="text-gray-300">·</span>
+              <Link to="/dashboard" className="text-sm text-gray-500 hover:text-primary-600 transition-colors">
+                Dashboard
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     )
   }
@@ -217,23 +238,25 @@ export function ScanPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Navigation bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(-1)}
+        <div className="flex items-center gap-3">
+          <Link
+            to="/"
             className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <span className="text-gray-300">|</span>
+            Home
+          </Link>
           {user && (
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-600 transition-colors"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Dashboard
-            </Link>
+            <>
+              <span className="text-gray-300">·</span>
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-600 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Link>
+            </>
           )}
         </div>
 

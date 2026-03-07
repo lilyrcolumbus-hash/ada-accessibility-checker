@@ -161,7 +161,11 @@ export function DashboardPage() {
   }
 
   const handleSignOut = async () => {
-    await signOut()
+    try {
+      await signOut()
+    } catch {
+      // Force navigate even if signOut fails
+    }
     navigate('/')
   }
 

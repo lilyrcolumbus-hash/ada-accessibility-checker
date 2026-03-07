@@ -7,6 +7,8 @@ import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
+import { PrivacyPage } from '@/pages/PrivacyPage'
+import { TermsPage } from '@/pages/TermsPage'
 import SharedReportPage from '@/pages/SharedReportPage'
 
 export default function App() {
@@ -16,6 +18,8 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
       </Route>
 
       {/* Shared report — standalone page, no Layout */}
