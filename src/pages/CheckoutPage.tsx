@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Shield, Check, CheckCircle } from 'lucide-react'
+import { Shield, Check, CheckCircle, ArrowLeft } from 'lucide-react'
 import { getPlan, PLANS } from '@/config/plans'
 import { useSubscription } from '@/hooks/useSubscription'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
@@ -67,7 +67,22 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-12">
+      {/* Back navigation */}
+      <div className="w-full max-w-lg mb-4 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Go back
+        </button>
+        <Link to="/" className="flex items-center gap-2 text-primary-700">
+          <Shield className="h-5 w-5" />
+          <span className="text-sm font-bold">SiteSafe</span>
+        </Link>
+      </div>
+
       <div className="w-full max-w-lg space-y-6">
         {/* Plan summary */}
         <Card>
