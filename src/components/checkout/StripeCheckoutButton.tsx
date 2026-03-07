@@ -61,14 +61,12 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
       }
 
       if (!res.ok || !data.url) {
-        // Show full debug info to diagnose the issue
-        const serverError = data.error as string | undefined
-        const details = [
-          `HTTP ${res.status}`,
-          serverError ? `Error: ${serverError}` : null,
-          `Response: ${text.slice(0, 300)}`,
-        ].filter(Boolean).join(' | ')
-        throw new Error(details)
+        if (res.status === 401) {
+          throw new Error('Your session expired — please sign out and log in again')
+        }
+        throw new Error(
+          (data.error as string) || `Something went wrong (HTTP ${res.status})`
+        )
       }
 
       window.location.href = data.url as string
