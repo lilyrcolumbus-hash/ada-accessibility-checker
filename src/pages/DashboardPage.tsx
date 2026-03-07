@@ -58,7 +58,7 @@ function loadScansFromStorage(): ScanRecord[] {
 }
 
 export function DashboardPage() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, refreshProfile } = useAuth()
   const { plan, isPaid } = useSubscription()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -66,19 +66,28 @@ export function DashboardPage() {
   const [scans] = useState<ScanRecord[]>(loadScansFromStorage)
   const [quickUrl, setQuickUrl] = useState('')
 
-  // Show payment success toast
+  // Show payment success toast + refresh profile to pick up plan change
   useEffect(() => {
     if (searchParams.get('payment') === 'success') {
       const planName = searchParams.get('plan')
       toast.success(
         planName
-          ? `Payment successful! Your ${planName === 'compliance-shield' ? 'Compliance Shield' : 'Fix My Site'} is now active.`
+          ? `Payment successful! Your ${planName === 'compliance-shield' ? 'Compliance Shield' : 'Fix My Site'} plan is now active.`
           : 'Payment successful! Your plan has been upgraded.',
         { duration: 5000 }
       )
+      // Refresh profile to pick up the plan update from webhook
+      // Retry a few times since the webhook may take a moment
+      const refresh = async () => {
+        for (let i = 0; i < 5; i++) {
+          await new Promise(r => setTimeout(r, i === 0 ? 500 : 2000))
+          await refreshProfile()
+        }
+      }
+      refresh()
       setSearchParams({}, { replace: true })
     }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, setSearchParams, refreshProfile])
 
   const handleQuickScan = (e: FormEvent) => {
     e.preventDefault()
