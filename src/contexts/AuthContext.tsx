@@ -131,13 +131,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     try {
       const { supabase } = await import('@/lib/supabase')
-      // Always refresh to guarantee a valid token
-      const { data: { session: refreshed } } = await supabase.auth.refreshSession()
-      if (refreshed) {
-        setSession(refreshed)
-        return refreshed.access_token
+
+      // Race: refresh token vs 5s timeout
+      const refreshResult = await Promise.race([
+        supabase.auth.refreshSession(),
+        new Promise<null>(resolve => setTimeout(() => resolve(null), 5000)),
+      ])
+
+      if (refreshResult && 'data' in refreshResult && refreshResult.data.session) {
+        setSession(refreshResult.data.session)
+        return refreshResult.data.session.access_token
       }
-      // Fallback: try cached session
+
+      // Fallback: use cached session
       const { data: { session: cached } } = await supabase.auth.getSession()
       return cached?.access_token ?? null
     } catch {
