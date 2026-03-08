@@ -61,12 +61,8 @@ export function RegisterForm() {
 
     try {
       await signUp(email, password)
-      // With email confirmation disabled, user is logged in immediately
-      if (hasPlanParam) {
-        navigate(`/checkout?plan=${planId}`)
-      } else {
-        navigate('/dashboard')
-      }
+      // Always go to dashboard first — user sees their profile, scans, and upgrade options
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')
     } finally {

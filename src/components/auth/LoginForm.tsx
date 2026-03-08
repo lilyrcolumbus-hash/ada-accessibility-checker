@@ -31,15 +31,8 @@ export function LoginForm() {
 
     try {
       await signIn(email, password)
-
-      // Check for pending plan from registration flow
-      const pendingPlan = sessionStorage.getItem('sitesafe_pending_plan')
-      if (pendingPlan && pendingPlan !== 'free') {
-        sessionStorage.removeItem('sitesafe_pending_plan')
-        navigate(`/checkout?plan=${pendingPlan}`)
-      } else {
-        navigate(stateFrom)
-      }
+      // Always go to dashboard — user sees their profile and decides from there
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in. Please try again.')
     } finally {
