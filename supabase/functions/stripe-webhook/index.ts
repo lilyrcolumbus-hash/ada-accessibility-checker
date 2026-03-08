@@ -10,9 +10,7 @@ if (!stripeKey || !endpointSecret) {
   console.error('Missing required env vars: STRIPE_SECRET_KEY and/or STRIPE_WEBHOOK_SECRET')
 }
 
-const stripe = new Stripe(stripeKey!, {
-  apiVersion: '2026-02-25' as any,
-})
+const stripe = new Stripe(stripeKey!)
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -68,7 +66,8 @@ Deno.serve(async (req) => {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, signature, endpointSecret)
+    // Must use constructEventAsync in Deno (SubtleCrypto is async-only)
+    event = await stripe.webhooks.constructEventAsync(body, signature, endpointSecret)
   } catch (err) {
     return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 })
   }
