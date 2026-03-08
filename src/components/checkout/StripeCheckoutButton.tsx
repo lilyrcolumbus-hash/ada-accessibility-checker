@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/ui/Button'
 
 interface StripeCheckoutButtonProps {
@@ -9,7 +8,6 @@ interface StripeCheckoutButtonProps {
 }
 
 export default function StripeCheckoutButton({ planId, priceId }: StripeCheckoutButtonProps) {
-  const { getAccessToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,53 +16,77 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
     setError(null)
 
     try {
-      const token = await getAccessToken()
-      if (!token) throw new Error('Please log in to continue')
+      // Get token directly from Supabase — bypass AuthContext entirely
+      const { supabase } = await import('@/lib/supabase')
+      const { data: { session } } = await supabase.auth.getSession()
 
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 15_000)
-
-      let res: Response
-      try {
-        res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ priceId, planId }),
-            signal: controller.signal,
-          }
-        )
-      } catch (fetchErr) {
-        if ((fetchErr as Error).name === 'AbortError') {
-          throw new Error('Request timed out — please try again')
+      if (!session?.access_token) {
+        // Try refresh
+        const { data: { session: refreshed } } = await supabase.auth.refreshSession()
+        if (!refreshed?.access_token) {
+          throw new Error('Please log in to continue')
         }
-        throw new Error('Network error — check your connection and try again')
-      } finally {
-        clearTimeout(timeout)
+        // Use refreshed token
+        await callCheckout(refreshed.access_token)
+        return
       }
 
-      let data: Record<string, unknown>
-      const text = await res.text()
-      try {
-        data = JSON.parse(text)
-      } catch {
-        throw new Error('Server error — please try again')
-      }
+      // Try with cached token first
+      const result = await callCheckout(session.access_token)
 
-      if (!res.ok || !data.url) {
-        throw new Error(
-          (data.error as string) || `Something went wrong — please try again`
-        )
+      // If 401, try with refreshed token
+      if (result === 'unauthorized') {
+        const { data: { session: refreshed } } = await supabase.auth.refreshSession()
+        if (!refreshed?.access_token) {
+          throw new Error('Session expired — please log out and log in again')
+        }
+        const retryResult = await callCheckout(refreshed.access_token)
+        if (retryResult === 'unauthorized') {
+          throw new Error('Authentication failed — please log out and log in again')
+        }
       }
-
-      window.location.href = data.url as string
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)
+    }
+  }
+
+  const callCheckout = async (token: string): Promise<'success' | 'unauthorized'> => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15_000)
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ priceId, planId }),
+          signal: controller.signal,
+        }
+      )
+
+      if (res.status === 401) return 'unauthorized'
+
+      const data = await res.json()
+
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      // Redirect to Stripe
+      window.location.href = data.url
+      return 'success'
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        throw new Error('Request timed out — please try again')
+      }
+      throw err
+    } finally {
+      clearTimeout(timeout)
     }
   }
 
