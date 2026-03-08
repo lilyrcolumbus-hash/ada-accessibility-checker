@@ -17,6 +17,11 @@ export function RegisterForm() {
   const selectedPlan = getPlan(planId)
   const hasPlanParam = searchParams.has('plan') && planId !== 'free'
 
+  // Persist plan so LoginForm can pick it up if user switches to "Already have an account?"
+  if (hasPlanParam) {
+    sessionStorage.setItem('sitesafe_pending_plan', planId)
+  }
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -152,7 +157,7 @@ export function RegisterForm() {
 
           <p className="text-center text-sm text-gray-500">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-primary-600 hover:text-primary-700">
+            <Link to={hasPlanParam ? `/login?plan=${planId}` : '/login'} className="font-medium text-primary-600 hover:text-primary-700">
               Sign in
             </Link>
           </p>

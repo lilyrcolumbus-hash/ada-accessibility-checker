@@ -110,7 +110,10 @@ export default function CostEstimateCard({ costEstimate, isPaid }: CostEstimateC
                   variant="primary"
                   size="sm"
                   className="gap-1"
-                  onClick={() => navigate(user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site')}
+                  onClick={() => {
+                    sessionStorage.setItem('sitesafe_pending_plan', 'fix-my-site')
+                    navigate(user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site')
+                  }}
                 >
                   Fix My Site
                   <ChevronRight className="w-3.5 h-3.5" />
