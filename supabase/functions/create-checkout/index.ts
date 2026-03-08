@@ -2,9 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14?target=deno'
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-02-25' as any,
-})
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!)
 
 // Plans that use subscription mode in Stripe
 const SUBSCRIPTION_PLANS = ['compliance-shield']
@@ -68,7 +66,7 @@ Deno.serve(async (req) => {
     }
 
     const isSubscription = SUBSCRIPTION_PLANS.includes(planId)
-    const origin = req.headers.get('origin')
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || 'https://ada-accessibility-checker.netlify.app'
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
