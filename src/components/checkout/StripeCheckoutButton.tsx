@@ -9,7 +9,7 @@ interface StripeCheckoutButtonProps {
 }
 
 export default function StripeCheckoutButton({ planId, priceId }: StripeCheckoutButtonProps) {
-  const { getAccessToken } = useAuth()
+  const { getAccessToken, signOut } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,9 +22,16 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
       try {
         token = await getAccessToken()
       } catch {
-        throw new Error('Session expired — please log in again')
+        // Token refresh failed — force re-login
       }
-      if (!token) throw new Error('Please log in to continue')
+
+      if (!token) {
+        // Auto sign out and redirect to login, preserving the checkout plan
+        sessionStorage.setItem('sitesafe_pending_plan', planId)
+        try { await signOut() } catch {}
+        window.location.href = `/login`
+        return
+      }
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 15_000)
@@ -57,15 +64,20 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
       try {
         data = JSON.parse(text)
       } catch {
-        throw new Error(`Server returned invalid response (HTTP ${res.status}): ${text.slice(0, 200)}`)
+        throw new Error(`Server error — please try again`)
       }
 
       if (!res.ok || !data.url) {
         if (res.status === 401) {
-          throw new Error('Your session expired — please sign out and log in again')
+          // Token was accepted by getAccessToken but rejected by Supabase edge function
+          // Force re-login
+          sessionStorage.setItem('sitesafe_pending_plan', planId)
+          try { await signOut() } catch {}
+          window.location.href = `/login`
+          return
         }
         throw new Error(
-          (data.error as string) || `Something went wrong (HTTP ${res.status})`
+          (data.error as string) || `Something went wrong — please try again`
         )
       }
 
