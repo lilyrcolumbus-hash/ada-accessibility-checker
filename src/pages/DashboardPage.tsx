@@ -189,7 +189,7 @@ export function DashboardPage() {
               {plan.name} plan
             </Badge>
             {!isPaid && (
-              <Link to="/#pricing">
+              <Link to="/checkout?plan=fix-my-site">
                 <Button size="sm" variant="primary">
                   <Zap className="mr-1.5 h-3.5 w-3.5" />
                   Upgrade
@@ -241,24 +241,38 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Plan info banner for free users */}
+        {/* Upgrade CTA for free users */}
         {!isPaid && (
           <div className={cn(
-            'mb-8 flex items-center justify-between rounded-xl border border-primary-200',
-            'bg-primary-50 px-6 py-4'
+            'mb-8 rounded-xl border-2 border-primary-300',
+            'bg-gradient-to-r from-primary-50 via-white to-primary-50 px-6 py-5'
           )}>
-            <div>
-              <p className="font-semibold text-primary-900">You're on the Free plan</p>
-              <p className="text-sm text-primary-700">
-                Upgrade to scan full websites, get monitoring alerts, and protect against lawsuits.
-              </p>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="h-5 w-5 text-primary-600" />
+                  <p className="text-lg font-bold text-gray-900">Unlock all fixes for $49</p>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Get every code fix, your Accessibility Audit Report, and an "ADA Tested" badge — one-time payment.
+                </p>
+              </div>
+              <Link to="/checkout?plan=fix-my-site">
+                <Button variant="primary" size="md" className="gap-2 shadow-md whitespace-nowrap">
+                  Fix My Site
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/#pricing">
-              <Button size="sm" variant="primary">
-                View plans
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
+              <span>All issues with code fixes</span>
+              <span>·</span>
+              <span>Audit Report (PDF)</span>
+              <span>·</span>
+              <span>"ADA Tested" badge</span>
+              <span>·</span>
+              <span>vs $10,000+ lawsuit</span>
+            </div>
           </div>
         )}
 
