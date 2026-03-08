@@ -20,6 +20,39 @@ function extractDescriptiveAlt(_src: string): string {
   return '[Describe this image]'
 }
 
+// Tracking pixels and analytics images that should be ignored (they're decorative/invisible)
+const TRACKING_PATTERNS = [
+  /facebook\.com\/tr/i,
+  /google-analytics\.com/i,
+  /googletagmanager\.com/i,
+  /doubleclick\.net/i,
+  /pixel\./i,
+  /tracking\./i,
+  /analytics\./i,
+  /beacon\./i,
+  /\.gif\?/i,           // Most tracking pixels are 1x1 GIFs with query params
+  /pagead/i,
+  /adservice/i,
+  /hotjar\.com/i,
+  /clarity\.ms/i,
+  /hubspot\.com.*\/tracking/i,
+  /bat\.bing\.com/i,
+  /linkedin\.com\/px/i,
+  /snap\.licdn\.com/i,
+  /ads\.linkedin/i,
+  /t\.co\/i/i,
+]
+
+function isTrackingPixel(img: Element): boolean {
+  const src = img.getAttribute('src') || ''
+  if (TRACKING_PATTERNS.some(p => p.test(src))) return true
+  // Check for 1x1 pixel dimensions
+  const w = img.getAttribute('width')
+  const h = img.getAttribute('height')
+  if ((w === '1' || w === '0') && (h === '1' || h === '0')) return true
+  return false
+}
+
 export function checkAltText(doc: Document, url: string): ScanIssue[] {
   const issues: ScanIssue[] = []
 
@@ -28,7 +61,8 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
   images.forEach((img) => {
     const alt = img.getAttribute('alt')
     // alt="" is valid for decorative images per WCAG — only flag missing alt
-    if (alt === null) {
+    // Skip tracking pixels — they should use alt="" but flagging them is noise
+    if (alt === null && !isTrackingPixel(img)) {
       const src = img.getAttribute('src') || 'unknown'
       const descriptiveAlt = extractDescriptiveAlt(src)
 
