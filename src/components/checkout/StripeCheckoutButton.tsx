@@ -9,7 +9,7 @@ interface StripeCheckoutButtonProps {
 }
 
 export default function StripeCheckoutButton({ planId, priceId }: StripeCheckoutButtonProps) {
-  const { getAccessToken, signOut } = useAuth()
+  const { getAccessToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,20 +18,8 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
     setError(null)
 
     try {
-      let token: string | null = null
-      try {
-        token = await getAccessToken()
-      } catch {
-        // Token refresh failed — force re-login
-      }
-
-      if (!token) {
-        // Auto sign out and redirect to login, preserving the checkout plan
-        sessionStorage.setItem('sitesafe_pending_plan', planId)
-        try { await signOut() } catch {}
-        window.location.href = `/login`
-        return
-      }
+      const token = await getAccessToken()
+      if (!token) throw new Error('Please log in to continue')
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 15_000)
@@ -64,18 +52,10 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
       try {
         data = JSON.parse(text)
       } catch {
-        throw new Error(`Server error — please try again`)
+        throw new Error('Server error — please try again')
       }
 
       if (!res.ok || !data.url) {
-        if (res.status === 401) {
-          // Token was accepted by getAccessToken but rejected by Supabase edge function
-          // Force re-login
-          sessionStorage.setItem('sitesafe_pending_plan', planId)
-          try { await signOut() } catch {}
-          window.location.href = `/login`
-          return
-        }
         throw new Error(
           (data.error as string) || `Something went wrong — please try again`
         )

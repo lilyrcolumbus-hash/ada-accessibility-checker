@@ -131,23 +131,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     try {
       const { supabase } = await import('@/lib/supabase')
-      // First try cached session
-      const { data: { session: cached } } = await supabase.auth.getSession()
-      if (cached) {
-        // Check if token expires within 60 seconds
-        const expiresAt = cached.expires_at ?? 0
-        const isExpiringSoon = expiresAt - Math.floor(Date.now() / 1000) < 60
-        if (!isExpiringSoon) {
-          return cached.access_token
-        }
-      }
-      // Refresh to get a new token
+      // Always refresh to guarantee a valid token
       const { data: { session: refreshed } } = await supabase.auth.refreshSession()
       if (refreshed) {
         setSession(refreshed)
         return refreshed.access_token
       }
-      return null
+      // Fallback: try cached session
+      const { data: { session: cached } } = await supabase.auth.getSession()
+      return cached?.access_token ?? null
     } catch {
       return null
     }
