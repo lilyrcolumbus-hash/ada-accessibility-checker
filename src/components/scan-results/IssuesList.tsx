@@ -30,13 +30,36 @@ function groupBySeverity(issues: ScanIssue[]): Record<Severity, ScanIssue[]> {
   return groups
 }
 
-// Flatten issues sorted by severity, return first N IDs as free
+// Pick N free issues: prioritize by severity, deduplicate by title so user sees variety
 function getFreeIssueIds(issues: ScanIssue[], limit: number): Set<string> {
-  const sorted = [...issues].sort((a, b) => {
-    const order: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 }
-    return (order[a.severity] ?? 4) - (order[b.severity] ?? 4)
-  })
-  return new Set(sorted.slice(0, limit).map(i => i.id))
+  const order: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 }
+  const sorted = [...issues].sort((a, b) => (order[a.severity] ?? 4) - (order[b.severity] ?? 4))
+
+  const picked: string[] = []
+  const seenTitles = new Set<string>()
+
+  // First pass: pick one of each unique title (most severe first)
+  for (const issue of sorted) {
+    if (picked.length >= limit) break
+    if (!seenTitles.has(issue.title)) {
+      seenTitles.add(issue.title)
+      picked.push(issue.id)
+    }
+  }
+
+  // Second pass: if we still need more, fill with remaining by severity
+  if (picked.length < limit) {
+    const pickedSet = new Set(picked)
+    for (const issue of sorted) {
+      if (picked.length >= limit) break
+      if (!pickedSet.has(issue.id)) {
+        picked.push(issue.id)
+        pickedSet.add(issue.id)
+      }
+    }
+  }
+
+  return new Set(picked)
 }
 
 export default function IssuesList({ issues, isPaid }: IssuesListProps) {
@@ -217,7 +240,10 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
               variant="primary"
               size="md"
               className="w-full gap-2"
-              onClick={() => navigate(checkoutPath)}
+              onClick={() => {
+                sessionStorage.setItem('sitesafe_pending_plan', 'fix-my-site')
+                navigate(checkoutPath)
+              }}
             >
               Unlock All Issues + Audit Report
               <ArrowRight className="w-4 h-4" />

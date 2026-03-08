@@ -63,7 +63,10 @@ export default function UpgradePrompt({ totalIssueCount }: UpgradePromptProps) {
           variant="primary"
           size="md"
           className="w-full gap-2 shadow-md"
-          onClick={() => navigate(checkoutPath)}
+          onClick={() => {
+            sessionStorage.setItem('sitesafe_pending_plan', 'fix-my-site')
+            navigate(checkoutPath)
+          }}
         >
           Fix My Site
           <ChevronRight className="w-4 h-4" />

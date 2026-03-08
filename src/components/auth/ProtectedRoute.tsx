@@ -15,10 +15,17 @@ export function ProtectedRoute() {
   }
 
   if (!user) {
+    // Preserve plan param in sessionStorage so LoginForm can redirect to checkout
+    const params = new URLSearchParams(location.search)
+    const plan = params.get('plan')
+    if (plan && plan !== 'free') {
+      sessionStorage.setItem('sitesafe_pending_plan', plan)
+    }
+
     return (
       <Navigate
         to="/login"
-        state={{ from: location.pathname }}
+        state={{ from: location.pathname + location.search }}
         replace
       />
     )

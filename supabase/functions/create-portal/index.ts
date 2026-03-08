@@ -2,9 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14?target=deno'
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2026-02-25' as any,
-})
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!)
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -47,9 +45,11 @@ Deno.serve(async (req) => {
       )
     }
 
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || 'https://ada-accessibility-checker.netlify.app'
+
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${req.headers.get('origin')}/dashboard`,
+      return_url: `${origin}/dashboard`,
     })
 
     return new Response(
