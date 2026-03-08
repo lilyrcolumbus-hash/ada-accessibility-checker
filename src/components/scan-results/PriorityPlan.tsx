@@ -98,8 +98,8 @@ export default function PriorityPlan({ issues, score }: PriorityPlanProps) {
 
               {/* Score improvement */}
               <div className="flex-shrink-0">
-                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold ${colors.accent} bg-white border ${colors.border} shadow-sm`}>
-                  +{points} pts
+                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold ${colors.accent} bg-white border ${colors.border} shadow-sm`} title="Score improvement if you fix this issue">
+                  +{points} score
                 </span>
               </div>
             </div>
