@@ -11,10 +11,15 @@ import {
   ArrowRight,
   Trash2,
   Loader2,
+  Check,
+  Lock,
+  Crown,
+  Star,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSubscription } from '@/hooks/useSubscription'
+import { PLANS, type Plan } from '@/config/plans'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
@@ -28,6 +33,24 @@ interface ScanRecord {
   issueCount: number
   date: string
 }
+
+// All features across all plans, with which plan unlocks them
+const ALL_FEATURES = [
+  { label: 'Scan 1 page', plans: ['free', 'fix-my-site', 'compliance-shield'] },
+  { label: 'Compliance score & risk level', plans: ['free', 'fix-my-site', 'compliance-shield'] },
+  { label: 'Top 3 critical issues with fixes', plans: ['free', 'fix-my-site', 'compliance-shield'] },
+  { label: 'Lawsuit risk by industry & state', plans: ['free', 'fix-my-site', 'compliance-shield'] },
+  { label: 'All issues with copy-paste fixes', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: 'Scan up to 50 pages', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: 'Accessibility Audit Report (PDF)', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: '"ADA Tested" badge for your site', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: 'Shareable report link', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: '1 re-scan to verify fixes', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: 'Up to 5 websites', plans: ['compliance-shield'] },
+  { label: 'Unlimited re-scans', plans: ['compliance-shield'] },
+  { label: 'Monthly automated re-scans', plans: ['compliance-shield'] },
+  { label: 'Email alerts if score drops', plans: ['compliance-shield'] },
+]
 
 function getPlanBadgeVariant(plan: string): 'default' | 'success' | 'critical' {
   if (plan === 'free') return 'default'
@@ -44,6 +67,63 @@ function getScoreBg(score: number): string {
   if (score >= 80) return 'bg-success-50'
   if (score >= 50) return 'bg-warning-50'
   return 'bg-danger-50'
+}
+
+function UpgradePlanCard({ plan: p, currentPlanId }: { plan: Plan; currentPlanId: string }) {
+  const isNext = (currentPlanId === 'free' && p.id === 'fix-my-site') ||
+    (currentPlanId === 'fix-my-site' && p.id === 'compliance-shield')
+
+  return (
+    <div className={cn(
+      'rounded-xl border p-5 transition-all',
+      isNext
+        ? 'border-primary-300 bg-gradient-to-br from-primary-50 to-white shadow-md ring-1 ring-primary-200'
+        : 'border-gray-200 bg-white',
+    )}>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-gray-900">{p.name}</h3>
+            {p.popular && (
+              <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-semibold text-primary-700 uppercase">
+                Popular
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-0.5">{p.tagline}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-extrabold text-gray-900">
+            ${p.billing === 'yearly' ? Math.round(p.price / 12) : p.price}
+          </p>
+          <p className="text-[10px] text-gray-500">
+            {p.billing === 'yearly' ? '/mo · billed annually' : 'one-time'}
+          </p>
+        </div>
+      </div>
+      <ul className="space-y-1.5 mb-4">
+        {p.features.slice(0, 4).map((f) => (
+          <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
+            <Check className="h-3.5 w-3.5 text-success-500 flex-shrink-0" />
+            {f}
+          </li>
+        ))}
+        {p.features.length > 4 && (
+          <li className="text-xs text-gray-400">+ {p.features.length - 4} more features</li>
+        )}
+      </ul>
+      <Link to={`/checkout?plan=${p.id}`}>
+        <Button
+          variant={isNext ? 'primary' : 'outline'}
+          size="sm"
+          className="w-full gap-2"
+        >
+          {isNext ? <Zap className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
+          {isNext ? 'Upgrade Now' : `Get ${p.name}`}
+        </Button>
+      </Link>
+    </div>
+  )
 }
 
 export function DashboardPage() {
@@ -241,37 +321,70 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Upgrade CTA for free users */}
-        {!isPaid && (
-          <div className={cn(
-            'mb-8 rounded-xl border-2 border-primary-300',
-            'bg-gradient-to-r from-primary-50 via-white to-primary-50 px-6 py-5'
-          )}>
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap className="h-5 w-5 text-primary-600" />
-                  <p className="text-lg font-bold text-gray-900">Unlock all fixes for $49</p>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Get every code fix, your Accessibility Audit Report, and an "ADA Tested" badge — one-time payment.
-                </p>
-              </div>
-              <Link to="/checkout?plan=fix-my-site">
-                <Button variant="primary" size="md" className="gap-2 shadow-md whitespace-nowrap">
-                  Fix My Site
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+        {/* Your Plan section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                {plan.id === 'free' ? (
+                  <Shield className="h-4 w-4 text-gray-400" />
+                ) : plan.id === 'compliance-shield' ? (
+                  <Crown className="h-4 w-4 text-primary-600" />
+                ) : (
+                  <Star className="h-4 w-4 text-primary-600" />
+                )}
+                Your Plan
+              </h2>
+              <Badge variant={getPlanBadgeVariant(plan.id)}>
+                {plan.name}
+              </Badge>
             </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
-              <span>All issues with code fixes</span>
-              <span>·</span>
-              <span>Audit Report (PDF)</span>
-              <span>·</span>
-              <span>"ADA Tested" badge</span>
-              <span>·</span>
-              <span>vs $10,000+ lawsuit</span>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-1.5">
+              {ALL_FEATURES.map((feature) => {
+                const included = feature.plans.includes(plan.id)
+                return (
+                  <div
+                    key={feature.label}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm',
+                      included ? 'text-gray-700' : 'text-gray-400',
+                    )}
+                  >
+                    {included ? (
+                      <Check className="h-4 w-4 text-success-500 flex-shrink-0" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    )}
+                    <span className={cn(!included && 'line-through decoration-gray-300')}>
+                      {feature.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Available upgrades */}
+        {plan.id !== 'compliance-shield' && (
+          <div className="mb-8">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-4">
+              <Zap className="h-4 w-4 text-primary-600" />
+              {plan.id === 'free' ? 'Unlock More Features' : 'Upgrade Your Plan'}
+            </h2>
+            <div className={cn(
+              'grid gap-4',
+              plan.id === 'free' ? 'sm:grid-cols-2' : 'sm:grid-cols-1 max-w-md',
+            )}>
+              {PLANS.filter(p => {
+                if (plan.id === 'free') return p.id !== 'free'
+                if (plan.id === 'fix-my-site') return p.id === 'compliance-shield'
+                return false
+              }).map(p => (
+                <UpgradePlanCard key={p.id} plan={p} currentPlanId={plan.id} />
+              ))}
             </div>
           </div>
         )}
