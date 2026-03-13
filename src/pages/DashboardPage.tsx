@@ -225,8 +225,13 @@ export function DashboardPage() {
 
   const handleQuickScan = (e: FormEvent) => {
     e.preventDefault()
-    if (!quickUrl.trim()) return
-    navigate(`/scan?url=${encodeURIComponent(quickUrl.trim())}`)
+    let url = quickUrl.trim()
+    if (!url) return
+    // Auto-add https:// if user just typed a domain
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`
+    }
+    navigate(`/scan?url=${encodeURIComponent(url)}`)
   }
 
   const handleDeleteScan = async (scanId: string) => {
@@ -306,7 +311,7 @@ export function DashboardPage() {
             <form onSubmit={handleQuickScan} className="flex gap-3">
               <div className="flex-1">
                 <Input
-                  type="url"
+                  type="text"
                   aria-label="Website URL to scan"
                   placeholder="yourwebsite.com"
                   value={quickUrl}
