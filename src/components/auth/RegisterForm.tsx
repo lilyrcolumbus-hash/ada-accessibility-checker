@@ -61,8 +61,13 @@ export function RegisterForm() {
 
     try {
       await signUp(email, password)
-      // Always go to dashboard first — user sees their profile, scans, and upgrade options
-      navigate('/dashboard')
+      // If user came from an upgrade CTA, go straight to checkout
+      const pendingPlan = sessionStorage.getItem('sitesafe_pending_plan')
+      if (pendingPlan && pendingPlan !== 'free') {
+        navigate(`/checkout?plan=${pendingPlan}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')
     } finally {
