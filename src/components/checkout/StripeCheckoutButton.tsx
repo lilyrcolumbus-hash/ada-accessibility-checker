@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Button from '@/components/ui/Button'
 
 interface StripeCheckoutButtonProps {
@@ -7,47 +8,36 @@ interface StripeCheckoutButtonProps {
   priceId: string
 }
 
-async function getValidToken(): Promise<string | null> {
-  const { supabase } = await import('@/lib/supabase')
-
-  // Try refresh first (gets a fresh, non-expired token)
-  try {
-    const result = await Promise.race([
-      supabase.auth.refreshSession(),
-      new Promise<{ data: { session: null } }>((resolve) =>
-        setTimeout(() => resolve({ data: { session: null } }), 3000)
-      ),
-    ])
-    if (result.data.session?.access_token) {
-      return result.data.session.access_token
-    }
-  } catch {
-    // refresh failed
-  }
-
-  // Fallback: cached session (may be expired but worth trying)
-  try {
-    const { data } = await supabase.auth.getSession()
-    return data.session?.access_token ?? null
-  } catch {
-    return null
-  }
-}
-
 export default function StripeCheckoutButton({ planId, priceId }: StripeCheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const handleClick = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const token = await getValidToken()
+      // Read token directly from localStorage (fastest, no async hanging)
+      const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+      let token: string | null = null
+
+      if (storageKey) {
+        try {
+          const raw = localStorage.getItem(storageKey)
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            token = parsed.access_token ?? null
+          }
+        } catch {
+          // parse failed
+        }
+      }
 
       if (!token) {
-        setError('Session expired — please log out and log in again.')
+        setError('Not logged in. Redirecting to login...')
         setLoading(false)
+        setTimeout(() => navigate('/login'), 1500)
         return
       }
 
@@ -70,13 +60,17 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
 
       const data = await res.json()
 
+      if (res.status === 401) {
+        // Token expired — force re-login
+        setError('Session expired. Redirecting to login...')
+        setLoading(false)
+        sessionStorage.setItem('sitesafe_pending_plan', planId)
+        setTimeout(() => navigate('/login'), 1500)
+        return
+      }
+
       if (!res.ok || !data.url) {
-        // If 401, the token was expired — tell user to re-login
-        if (res.status === 401) {
-          setError('Session expired — please log out and log in again.')
-        } else {
-          setError(data.error || `Payment failed (${res.status})`)
-        }
+        setError(data.error || `Payment failed (${res.status})`)
         setLoading(false)
         return
       }
