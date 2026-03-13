@@ -22,7 +22,7 @@ Stripe Price IDs:
 - **Frontend:** React 19 + Vite 7 + TypeScript + Tailwind CSS v4 (uses `@theme` for custom colors)
 - **Backend/DB:** Supabase (Auth + PostgreSQL + Edge Functions in Deno)
 - **Payments:** Stripe (one-time `mode: 'payment'` for Fix My Site, `mode: 'subscription'` for Compliance Shield) + PayPal (`@paypal/react-paypal-js`)
-- **Deploy:** Netlify (free tier)
+- **Deploy:** Cloudflare Pages (free tier)
 - **Icons:** Lucide React
 - **State:** React Context (AuthContext) + sessionStorage for scan results + TanStack React Query (`@tanstack/react-query`)
 - **Router:** React Router v7 (react-router-dom@7.13.1)
@@ -155,15 +155,15 @@ Note: `BadgePreviewPage` does NOT have a route yet. `BadgePreview.tsx` exists as
 
 ## Payment Flow
 ```
-CTA "Fix My Site" → /register?plan=fix-my-site (or /checkout if logged in)
+CTA "Fix My Site" → saves plan to sessionStorage → /register?plan=fix-my-site (or /checkout if logged in)
 → Register → auto-login (no email confirmation)
-→ /checkout?plan=fix-my-site
+→ Detects pending plan → /checkout?plan=fix-my-site
 → Choose Stripe or PayPal
 → Pay → webhook/capture updates profiles.plan
 → /dashboard?payment=success → toast + everything unlocked
 ```
 
-LoginForm detects `sitesafe_pending_plan` in sessionStorage → redirects to `/checkout?plan=X` after login.
+Both LoginForm and RegisterForm detect `sitesafe_pending_plan` in sessionStorage → redirect to `/checkout?plan=X` after auth. If no pending plan, redirect to `/dashboard`.
 All upgrade CTAs (UpgradePrompt, IssueCard, CostEstimateCard, PricingSection) use smart redirects: logged in → `/checkout`, not logged in → `/register`.
 
 ## Critical Technical Decisions & Gotchas
@@ -217,7 +217,14 @@ Supabase Auth has email confirmation disabled. Users are logged in immediately a
 ### 11. Scanner code fixes use [bracket] placeholders
 Checks that need human-written content (alt-text, link-text, empty-interactive) generate `[Describe this image]`, `[Describe where this link goes]`, etc. IssueCard detects `/\[.*?\]/` in `codeAfter` and shows a yellow warning banner telling users to customize. **NEVER** generate fake content as alt text or link text.
 
-### 12. PayPal as alternative payment
+### 12. ALL edge functions need `--no-verify-jwt`
+Supabase edge function gateway ONLY accepts anon key or service role key as JWT. User access tokens (from `supabase.auth.signInWithPassword`) are REJECTED by the gateway with `{"code":401,"message":"Invalid JWT"}` before the function code even runs. Solution: deploy all functions with `--no-verify-jwt` and validate auth inside the function via `supabase.auth.getUser()`.
+
+```bash
+supabase functions deploy <name> --no-verify-jwt --project-ref mvzolbabbkedmlhqhiwi
+```
+
+### 13. PayPal as alternative payment
 PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. PayPal orders use server-side price validation (PLAN_PRICES map). After capture, `paypal-capture-order` updates profiles.plan and inserts into purchases (with `paypal_` prefix on payment ID).
 
 ## DB Schema (supabase/schema.sql)
@@ -263,8 +270,8 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Supabase secrets set: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 - Pricing restructured: Free ($0) / Fix My Site ($49 one-time) / Compliance Shield ($199/year shown as $17/mo)
 - Smart redirects: logged in → /checkout, not logged in → /register
-- **Deployed to Netlify:** https://ada-accessibility-checker.netlify.app
-- Netlify env vars configured: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_PAYPAL_CLIENT_ID
+- **Deployed to Cloudflare Pages:** https://ada-accessibility-checker.pages.dev
+- Cloudflare env vars configured: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_PAYPAL_CLIENT_ID
 - Header shows Dashboard + Sign Out when logged in (auth-aware)
 - PriorityPlan deduplicates issues by title (no repeated items)
 - RiskBreakdown shows N/A when no state selected
@@ -274,13 +281,30 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Scanner fix quality: alt-text uses smart extraction (skips hashes), placeholders use [brackets] with warning banner
 - Scan results load instantly (DB save runs in background, never blocks UI)
 - Progress bar uses asymptotic curve (never stalls)
-- 35+ bug fixes applied (see Bugs Fixed section below)
+- 55+ bug fixes applied (see Bugs Fixed section below)
+- Privacy Policy + Terms of Service pages created with routes
+- Scan history persists in Supabase DB
+- All navigation buttons/links audited and fixed
+- StripeCheckoutButton has 15s timeout + always refreshes token first with 8s timeout
+- Stripe webhook fixed: `constructEventAsync` + `--no-verify-jwt` deployment
+- Alt-text scanner skips tracking pixels (Facebook, Google Analytics, etc.)
+- Register/Login with pending plan → go to Checkout; without → go to Dashboard
+- Dashboard has "Your Plan" section (checks/locks for all features) + upgrade cards
+- All CTAs persist plan to sessionStorage for coherent auth flow
+- Compliance Shield marked as "Coming Soon" (visible but not purchasable)
+- URL inputs auto-add `https://` — user can type just `example.com`
+- **ALL 6 Supabase edge functions deployed with `--no-verify-jwt`** — required because gateway rejects user JWTs
+- Origin fallback URL fixed from Netlify to Cloudflare Pages in create-checkout + create-portal
+- SignOut always clears state + localStorage first (user never gets stuck "logged in")
+- Failed Stripe webhook events resolved: manually activated plans for 2 paying users via Supabase API
 
 ### Pending (to launch)
+- **Activate Stripe live mode** (currently test mode — real payments won't process)
+- Complete Stripe business profile (URL, support info, name)
+- Buy custom domain + configure in Cloudflare
 - PayPal credentials (VITE_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_API_URL as Supabase secrets)
-- Buy custom domain + configure in Netlify
-- End-to-end testing of full payment flow (Stripe + PayPal)
-- Footer links (Privacy Policy, Terms of Service, Contact) need actual pages
+- PDF Audit Report generation (feature listed but not implemented)
+- "ADA Tested" badge page (component exists, no route)
 
 ### Future (post-launch)
 - Monthly automated re-scans (cron job for Compliance Shield)
@@ -344,6 +368,40 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 38. **Alt text generated garbage** — `extractDescriptiveAlt()` used raw filename including hashes/UUIDs as alt text. Now skips hex strings, extracts readable path segments, falls back to `[Describe this image]`.
 39. **Scanner placeholders misleading** — link-text, empty-interactive used fake text ("Submit Form", "Descriptive link text"). Changed to bracket placeholders + added yellow warning banner in IssueCard when fix contains [brackets].
 40. **Compliance Shield showed as one-time** — Pricing card showed $199 with "one-time" label. Now shows $17/month with "Billed annually at $199/year" + savings badge.
+
+### Session 6 fixes (post-payment coherence + checkout)
+41. **Post-payment still showed "Free plan"** — useSubscription, PricingSection, DashboardPage all showed free after paying. Fixed webhook secret, ran SQL to manually update profile.
+42. **Sign Out not working** — signOut() threw error, navigate('/') never ran. Added try/catch in Header.tsx and DashboardPage.tsx.
+43. **Login/Register/Checkout no back navigation** — Users got stuck with no way back. Added "Back to home" links + SiteSafe logos.
+44. **Footer dead links** — Privacy Policy and Terms of Service were `<span>` elements. Created actual pages (PrivacyPage, TermsPage) and routes.
+45. **Stripe apiVersion broke edge functions** — Forcing `apiVersion: '2026-02-25'` caused errors with `stripe@14`. Removed explicit apiVersion, let library use its default.
+46. **Free issues showed 3 identical items** — getFreeIssueIds sorted by severity but didn't deduplicate by title. Fixed with two-pass algorithm: first picks unique titles, then fills remaining.
+47. **Stripe checkout spinner frozen forever** — No timeout on fetch to create-checkout edge function. Added 15s AbortController timeout + separate error handling for network/timeout/auth errors.
+48. **Checkout "Invalid JWT" (401)** — getAccessToken() used getSession() which returns cached (possibly expired) token. Now checks expiry and calls refreshSession() when token expires within 60 seconds.
+49. **Scan history disappears** — Previous scans lost when scanning new site. Added Supabase DB persistence for scan history with fallback to sessionStorage.
+
+### Session 7 fixes (Stripe webhook + flow coherence)
+50. **CRITICAL: stripe-webhook used `constructEvent` instead of `constructEventAsync`** — Deno's SubtleCrypto is async-only. ALL webhooks failed since day 1, meaning payments completed in Stripe but plans never activated. Fixed to `constructEventAsync`.
+51. **CRITICAL: stripe-webhook had JWT verification enabled** — Stripe calls webhook without JWT, so Supabase rejected every request with 401. Re-deployed with `--no-verify-jwt`.
+52. **create-checkout origin null** — `req.headers.get('origin')` returned null in some cases, causing Stripe to reject `null/dashboard` as invalid URL. Added fallback: origin → referer → hardcoded Cloudflare URL.
+53. **create-portal same origin null bug** — Same fix as create-checkout.
+54. **Checkout spinner infinite** — `refreshSession()` could hang forever. Added 5s timeout with Promise.race. Then simplified: StripeCheckoutButton now gets token directly from Supabase (bypassing AuthContext) with automatic retry on 401.
+55. **Alt-text flagged tracking pixels** — Facebook pixel (`/tr?id=...`), Google Analytics, etc. showed as "Missing alt text". Added `isTrackingPixel()` filter with 20+ tracking URL patterns + 1x1 dimension check.
+56. **Plan lost between Register → Login** — User clicks "Fix My Site" → Register → "Already have account?" → Login → plan was lost. Now: RegisterForm saves plan to sessionStorage, passes plan to Login link URL, ProtectedRoute preserves full URL with query params.
+57. **Register/Login went directly to checkout** — Confusing flow. Now always go to Dashboard first. Dashboard shows prominent upgrade CTA ($49) for free users.
+58. **Dashboard upgrade links went to /#pricing** — Redirected users away from dashboard to landing page. Changed to `/checkout?plan=fix-my-site` for direct checkout.
+59. **Priority Plan "+10 pts" confusing** — Changed to "+10 score" with title tooltip explaining it's the score improvement.
+
+### Session 8 fixes (Stripe checkout + UX coherence)
+60. **CRITICAL: ALL edge functions rejected user JWTs** — Supabase gateway only accepts anon/service_role keys in Authorization header. User JWTs were rejected with "Invalid JWT" before code even ran. ALL 6 functions redeployed with `--no-verify-jwt`. Functions validate auth internally via `supabase.auth.getUser()`.
+61. **Origin fallback pointed to Netlify** — `create-checkout` and `create-portal` had hardcoded `netlify.app` fallback. After payment, users redirected to wrong domain. Changed to `pages.dev`.
+62. **StripeCheckoutButton double retry logic** — Complex cached→401→refresh→retry flow. Simplified: always refresh token first (8s timeout), fallback to cached, single call to edge function.
+63. **URL inputs required `https://`** — `type="url"` made browser block `example.com`. Changed to `type="text"` + auto-prepend `https://` in both Dashboard Quick Scan and HeroSection.
+64. **Dashboard lacked plan visibility** — Users couldn't see what their plan includes. Added "Your Plan" section with check/lock icons for all features + upgrade cards for higher plans.
+65. **Compliance Shield purchasable but not ready** — Added `comingSoon` flag to plan config. Shows "Coming Soon" disabled button in pricing, dashboard, and redirects away from checkout.
+66. **SignOut left stale session** — `signOut()` only cleared state after successful API call. If API failed, user stuck as "logged in" forever. Now clears state + localStorage first, then tries API.
+67. **Register/Login ignored pending plan** — After clicking "Upgrade $49" → Register → went to Dashboard instead of Checkout. Now detects `sitesafe_pending_plan` in sessionStorage → routes to `/checkout?plan=X`.
+68. **Failed Stripe webhooks (6 events)** — 2 users paid $49 but plans never activated (webhook was broken). Manually activated plans + recorded purchases via Supabase service role API.
 
 ## Design System
 - **Font:** Inter (system-ui fallback), set in `index.css` body rule
@@ -504,7 +562,8 @@ BrowserRouter
 - **Data API:** Enabled (RESTful API for public schema)
 - **Automatic RLS:** Enabled
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
-- **Edge Functions:** Deployed (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order)
+- **Edge Functions:** Deployed with `--no-verify-jwt` (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order)
+- **IMPORTANT:** ALL edge functions MUST be deployed with `--no-verify-jwt` — Supabase gateway rejects user JWTs otherwise
 - **Secrets set:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 - **Secrets pending:** `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_API_URL`
 - **Auth:** Email confirmation DISABLED, CAPTCHA/bot protection DISABLED
@@ -523,12 +582,13 @@ BrowserRouter
 - **Status:** Code implemented, credentials pending
 - **Needs:** Client ID + Secret from PayPal Developer Dashboard
 
-### Netlify
+### Cloudflare Pages
 - **Status:** DEPLOYED and live
-- **URL:** https://ada-accessibility-checker.netlify.app
-- **Config:** `netlify.toml` in repo (npm run build → dist/, SPA redirect)
+- **URL:** https://ada-accessibility-checker.pages.dev
+- **Dashboard:** https://dash.cloudflare.com/ae34fffdc22f7b4446e782a4188c9946/pages/view/ada-accessibility-checker
 - **Env vars configured:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY` (pk_test_*), `VITE_PAYPAL_CLIENT_ID`
-- **Auto-deploy:** Connected to main branch — push triggers redeploy
+- **Auto-deploy:** Connected to main branch — `git push` triggers redeploy
+- **Note:** Also has `netlify.toml` in repo from previous Netlify setup (can be removed)
 
 ## User Preferences
 - Communication: **Spanish**
