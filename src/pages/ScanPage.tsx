@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, FormEvent } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { RefreshCw, AlertCircle, Shield, ArrowLeft, Search, LayoutDashboard } from 'lucide-react'
+import { RefreshCw, AlertCircle, Shield, ArrowLeft, Search, LayoutDashboard, FileDown } from 'lucide-react'
 import { cn, getDomain } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 import ScoreGauge from '@/components/scan-results/ScoreGauge'
@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { calculateRisk } from '@/scanner/risk-calculator'
 import { estimateCosts } from '@/scanner/cost-estimator'
 import { getScoreColor } from '@/scanner/scoring'
+import { generatePdfReport } from '@/lib/pdf-report'
 import { INDUSTRY_RISK, TOP_LAWSUIT_STATES } from '@/config/constants'
 
 // Scanning progress steps shown during loading
@@ -295,15 +296,28 @@ export function ScanPage() {
             {result.passedChecks.length} checks passed
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRescan}
-          className="gap-1.5"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Re-scan
-        </Button>
+        <div className="flex items-center gap-2">
+          {isPaid && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generatePdfReport(result, domain)}
+              className="gap-1.5"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              PDF Report
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRescan}
+            className="gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Re-scan
+          </Button>
+        </div>
       </div>
 
       {/* Score hero section with gradient */}
