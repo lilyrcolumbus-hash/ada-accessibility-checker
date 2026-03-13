@@ -25,12 +25,12 @@ export function CheckoutPage() {
     sessionStorage.removeItem(PLAN_KEY)
   }, [])
 
-  // No valid paid plan → redirect to pricing
+  // No valid paid plan or coming soon → redirect to pricing
   useEffect(() => {
-    if (!isPaidPlan) {
+    if (!isPaidPlan || plan.comingSoon) {
       navigate('/#pricing', { replace: true })
     }
-  }, [isPaidPlan, navigate])
+  }, [isPaidPlan, plan.comingSoon, navigate])
 
   if (!isPaidPlan) return null
   if (isLoading) return null
