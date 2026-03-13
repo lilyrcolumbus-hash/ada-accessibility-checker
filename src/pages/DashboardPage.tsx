@@ -112,16 +112,27 @@ function UpgradePlanCard({ plan: p, currentPlanId }: { plan: Plan; currentPlanId
           <li className="text-xs text-gray-400">+ {p.features.length - 4} more features</li>
         )}
       </ul>
-      <Link to={`/checkout?plan=${p.id}`}>
+      {p.comingSoon ? (
         <Button
-          variant={isNext ? 'primary' : 'outline'}
+          variant="outline"
           size="sm"
-          className="w-full gap-2"
+          className="w-full gap-2 opacity-60 cursor-not-allowed"
+          disabled
         >
-          {isNext ? <Zap className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
-          {isNext ? 'Upgrade Now' : `Get ${p.name}`}
+          Coming Soon
         </Button>
-      </Link>
+      ) : (
+        <Link to={`/checkout?plan=${p.id}`}>
+          <Button
+            variant={isNext ? 'primary' : 'outline'}
+            size="sm"
+            className="w-full gap-2"
+          >
+            {isNext ? <Zap className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            {isNext ? 'Upgrade Now' : `Get ${p.name}`}
+          </Button>
+        </Link>
+      )}
     </div>
   )
 }

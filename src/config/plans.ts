@@ -17,6 +17,7 @@ export interface Plan {
     multiSite: number
   }
   popular?: boolean
+  comingSoon?: boolean
 }
 
 export const FREE_ISSUES_VISIBLE = 3
@@ -80,6 +81,7 @@ export const PLANS: Plan[] = [
     price: 199,
     priceId: 'price_1T7MiPFfYL1pGw0ohwz2MHvV',
     billing: 'yearly',
+    comingSoon: true,
     features: [
       'Everything in Fix My Site',
       'Up to 5 websites',

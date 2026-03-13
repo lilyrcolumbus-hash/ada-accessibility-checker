@@ -154,6 +154,17 @@ export function PricingSection() {
                       Included in your plan
                     </Button>
                   </div>
+                ) : plan.comingSoon ? (
+                  <div className="mb-6">
+                    <Button
+                      variant="outline"
+                      size="md"
+                      className="w-full opacity-60 cursor-not-allowed"
+                      disabled
+                    >
+                      Coming Soon
+                    </Button>
+                  </div>
                 ) : (
                   <Link to={getLink(plan.id)} className="mb-6 block">
                     <Button
