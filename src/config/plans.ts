@@ -52,7 +52,7 @@ export const PLANS: Plan[] = [
     name: 'Fix My Site',
     tagline: 'Fix everything + prove compliance',
     price: 49,
-    priceId: 'price_1T7MPaFfYL1pGw0ot4eQO3Bp',
+    priceId: 'price_1TAdnSFfYL1pGw0o7zQs4NdX',
     billing: 'one-time',
     popular: true,
     features: [
@@ -79,7 +79,7 @@ export const PLANS: Plan[] = [
     name: 'Compliance Shield',
     tagline: 'Never worry about a lawsuit again',
     price: 199,
-    priceId: 'price_1T7MiPFfYL1pGw0ohwz2MHvV',
+    priceId: 'price_1TAdnUFfYL1pGw0oGAqWfMTa',
     billing: 'yearly',
     comingSoon: true,
     features: [
