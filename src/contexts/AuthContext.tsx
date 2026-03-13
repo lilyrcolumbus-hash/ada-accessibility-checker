@@ -55,7 +55,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { supabase } = await import('@/lib/supabase')
 
-        const { data: { session } } = await supabase.auth.getSession()
+        // Try to refresh the session to verify it's still valid
+        // getSession() only returns cached data — it does NOT check expiry
+        let session = null
+        try {
+          const { data, error } = await supabase.auth.refreshSession()
+          if (!error && data.session) {
+            session = data.session
+          }
+        } catch {
+          // refresh failed — session is expired
+        }
+
+        // If refresh failed, clear any stale localStorage data
+        if (!session) {
+          try {
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('sb-') && key.includes('-auth-token')) {
+                localStorage.removeItem(key)
+              }
+            })
+          } catch { /* ignore */ }
+        }
+
         if (!mounted) return
         setSession(session)
         setUser(session?.user ?? null)
