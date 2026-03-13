@@ -32,7 +32,8 @@ export function HeroSection() {
     }
 
     setError('');
-    navigate(`/scan?url=${encodeURIComponent(trimmed)}`);
+    const fullUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    navigate(`/scan?url=${encodeURIComponent(fullUrl)}`);
   }
 
   return (
@@ -78,7 +79,7 @@ export function HeroSection() {
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <input
-              type="url"
+              type="text"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
