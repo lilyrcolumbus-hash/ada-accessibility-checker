@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     }
 
     const isSubscription = SUBSCRIPTION_PLANS.includes(planId)
-    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || 'https://ada-accessibility-checker.netlify.app'
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || 'https://ada-accessibility-checker.pages.dev'
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
