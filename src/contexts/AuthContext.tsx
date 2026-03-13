@@ -120,11 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setSession(null)
     setProfile(null)
+    // Force-clear Supabase auth from localStorage so stale sessions don't persist
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') && key.includes('-auth-token')) {
+          localStorage.removeItem(key)
+        }
+      })
+    } catch { /* ignore */ }
     try {
       const { supabase } = await import('@/lib/supabase')
       await supabase.auth.signOut()
     } catch {
-      // Supabase call failed — but local state is already cleared
+      // Supabase call failed — but local state + localStorage already cleared
     }
   }
 
