@@ -7,6 +7,33 @@ interface StripeCheckoutButtonProps {
   priceId: string
 }
 
+async function getValidToken(): Promise<string | null> {
+  const { supabase } = await import('@/lib/supabase')
+
+  // Try refresh first (gets a fresh, non-expired token)
+  try {
+    const result = await Promise.race([
+      supabase.auth.refreshSession(),
+      new Promise<{ data: { session: null } }>((resolve) =>
+        setTimeout(() => resolve({ data: { session: null } }), 3000)
+      ),
+    ])
+    if (result.data.session?.access_token) {
+      return result.data.session.access_token
+    }
+  } catch {
+    // refresh failed
+  }
+
+  // Fallback: cached session (may be expired but worth trying)
+  try {
+    const { data } = await supabase.auth.getSession()
+    return data.session?.access_token ?? null
+  } catch {
+    return null
+  }
+}
+
 export default function StripeCheckoutButton({ planId, priceId }: StripeCheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -16,21 +43,7 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
     setError(null)
 
     try {
-      const { supabase } = await import('@/lib/supabase')
-
-      // Get token — try getSession first (fast), then refresh if expired
-      const { data: sessionData } = await supabase.auth.getSession()
-      let token = sessionData.session?.access_token ?? null
-
-      // If token exists but might be expired, try a quick refresh
-      if (!token) {
-        try {
-          const { data: refreshData } = await supabase.auth.refreshSession()
-          token = refreshData.session?.access_token ?? null
-        } catch {
-          // refresh failed
-        }
-      }
+      const token = await getValidToken()
 
       if (!token) {
         setError('Session expired — please log out and log in again.')
@@ -38,9 +51,8 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
         return
       }
 
-      // Call edge function with 10s timeout
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5_000)
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
@@ -59,12 +71,16 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
       const data = await res.json()
 
       if (!res.ok || !data.url) {
-        setError(data.error || `Payment failed (${res.status}). Please try again.`)
+        // If 401, the token was expired — tell user to re-login
+        if (res.status === 401) {
+          setError('Session expired — please log out and log in again.')
+        } else {
+          setError(data.error || `Payment failed (${res.status})`)
+        }
         setLoading(false)
         return
       }
 
-      // Redirect to Stripe Checkout
       window.location.href = data.url
     } catch (err) {
       const msg = err instanceof Error && err.name === 'AbortError'
