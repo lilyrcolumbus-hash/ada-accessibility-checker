@@ -116,12 +116,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    const { supabase } = await import('@/lib/supabase')
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    // Always clear local state first — user must never get stuck "logged in"
     setUser(null)
     setSession(null)
     setProfile(null)
+    try {
+      const { supabase } = await import('@/lib/supabase')
+      await supabase.auth.signOut()
+    } catch {
+      // Supabase call failed — but local state is already cleared
+    }
   }
 
   const refreshProfile = useCallback(async () => {
