@@ -31,8 +31,13 @@ export function LoginForm() {
 
     try {
       await signIn(email, password)
-      // Always go to dashboard — user sees their profile and decides from there
-      navigate('/dashboard')
+      // If user came from an upgrade CTA, go straight to checkout
+      const pendingPlan = sessionStorage.getItem('sitesafe_pending_plan')
+      if (pendingPlan && pendingPlan !== 'free') {
+        navigate(`/checkout?plan=${pendingPlan}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in. Please try again.')
     } finally {
