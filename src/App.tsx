@@ -10,6 +10,7 @@ import { CheckoutPage } from '@/pages/CheckoutPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { TermsPage } from '@/pages/TermsPage'
 import SharedReportPage from '@/pages/SharedReportPage'
+import BadgeVerifyPage from '@/pages/BadgeVerifyPage'
 
 export default function App() {
   return (
@@ -24,6 +25,9 @@ export default function App() {
 
       {/* Shared report — standalone page, no Layout */}
       <Route path="/shared/:token" element={<SharedReportPage />} />
+
+      {/* Badge verification — public, standalone */}
+      <Route path="/badge/:token" element={<BadgeVerifyPage />} />
 
       {/* Auth pages — full screen, no Layout */}
       <Route path="/login" element={<LoginPage />} />
