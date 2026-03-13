@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
+import { Shield, Menu, X, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import Button from '@/components/ui/Button';
@@ -10,7 +10,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -26,15 +26,6 @@ export function Header() {
       document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
     }
     setMenuOpen(false);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch {
-      // Force clear state even if signOut fails
-    }
-    navigate('/');
   };
 
   const navLinks = [
@@ -69,22 +60,12 @@ export function Header() {
             </a>
           ))}
           {user ? (
-            <>
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-            </>
+            <Link to="/dashboard">
+              <Button size="sm">
+                <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                My Dashboard
+              </Button>
+            </Link>
           ) : (
             <>
               <Link
@@ -126,23 +107,15 @@ export function Header() {
               </a>
             ))}
             {user ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </Link>
-                <button
-                  onClick={() => { setMenuOpen(false); handleSignOut(); }}
-                  className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary-700 text-left"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </>
+              <Link
+                to="/dashboard"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Button className="w-full">
+                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                  My Dashboard
+                </Button>
+              </Link>
             ) : (
               <>
                 <Link
