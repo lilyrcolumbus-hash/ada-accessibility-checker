@@ -40,7 +40,7 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
 
       // Call edge function with 10s timeout
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10_000)
+      const timeoutId = setTimeout(() => controller.abort(), 5_000)
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
