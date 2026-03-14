@@ -32,9 +32,16 @@ export default function BlogPage() {
           <Link
             key={post.slug}
             to={`/blog/${post.slug}`}
-            className="group block rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:border-primary-300 hover:shadow-md"
+            className="group block rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm transition-all hover:border-primary-300 hover:shadow-md"
           >
-            <div className="flex flex-col gap-3">
+            {post.image && (
+              <img
+                src={post.image}
+                alt={post.title}
+                className="w-full h-48 sm:h-56 object-cover"
+              />
+            )}
+            <div className="flex flex-col gap-3 p-6">
               <div className="flex flex-wrap items-center gap-2">
                 {post.tags.map((tag) => (
                   <span
