@@ -31,6 +31,7 @@ export function Header() {
   const navLinks = [
     { label: 'How It Works', hash: '#how-it-works' },
     { label: 'Pricing', hash: '#pricing' },
+    { label: 'Blog', hash: '/blog', isRoute: true },
   ];
 
   return (
@@ -49,16 +50,26 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
-            <a
-              key={link.label}
-              href={link.hash}
-              onClick={(e) => handleNavClick(e, link.hash)}
-              className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) =>
+            'isRoute' in link && link.isRoute ? (
+              <Link
+                key={link.label}
+                to={link.hash}
+                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.label}
+                href={link.hash}
+                onClick={(e) => handleNavClick(e, link.hash)}
+                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
+              >
+                {link.label}
+              </a>
+            ),
+          )}
           {user ? (
             <Link to="/dashboard">
               <Button size="sm">
@@ -96,16 +107,27 @@ export function Header() {
       {menuOpen && (
         <div className="border-t border-gray-100 bg-white px-4 pb-4 pt-2 md:hidden">
           <nav className="flex flex-col gap-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.hash}
-                onClick={(e) => handleNavClick(e, link.hash)}
-                className="text-sm font-medium text-gray-700 hover:text-primary-700"
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              'isRoute' in link && link.isRoute ? (
+                <Link
+                  key={link.label}
+                  to={link.hash}
+                  onClick={() => setMenuOpen(false)}
+                  className="text-sm font-medium text-gray-700 hover:text-primary-700"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.hash}
+                  onClick={(e) => handleNavClick(e, link.hash)}
+                  className="text-sm font-medium text-gray-700 hover:text-primary-700"
+                >
+                  {link.label}
+                </a>
+              ),
+            )}
             {user ? (
               <Link
                 to="/dashboard"
