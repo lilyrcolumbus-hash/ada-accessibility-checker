@@ -11,6 +11,7 @@ import PriorityPlan from '@/components/scan-results/PriorityPlan'
 import CostEstimateCard from '@/components/scan-results/CostEstimateCard'
 import UpgradePrompt from '@/components/scan-results/UpgradePrompt'
 import EmailCapture from '@/components/scan-results/EmailCapture'
+import EmbedWidget from '@/components/scan-results/EmbedWidget'
 import { useScan } from '@/hooks/useScan'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useAuth } from '@/contexts/AuthContext'
@@ -412,6 +413,11 @@ export function ScanPage() {
           {/* Cost estimate */}
           {costEstimate && (
             <CostEstimateCard costEstimate={costEstimate} isPaid={isPaid} />
+          )}
+
+          {/* Embed widget — for paid users */}
+          {isPaid && (
+            <EmbedWidget domain={domain} score={result.score} />
           )}
 
           {/* Upgrade prompt — only show in sidebar on desktop when issues exist */}
