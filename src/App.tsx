@@ -11,6 +11,8 @@ import { PrivacyPage } from '@/pages/PrivacyPage'
 import { TermsPage } from '@/pages/TermsPage'
 import SharedReportPage from '@/pages/SharedReportPage'
 import BadgeVerifyPage from '@/pages/BadgeVerifyPage'
+import IndustryLandingPage from '@/pages/IndustryLandingPage'
+import StateLandingPage from '@/pages/StateLandingPage'
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/industry/:slug" element={<IndustryLandingPage />} />
+        <Route path="/state/:slug" element={<StateLandingPage />} />
       </Route>
 
       {/* Shared report — standalone page, no Layout */}
