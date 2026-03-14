@@ -266,13 +266,13 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Shared report page + Badge preview component
 - DB schema SQL applied to Supabase
 - Supabase Edge Functions deployed: scan, create-checkout, stripe-webhook, paypal-create-order, paypal-capture-order, create-portal
-- Stripe configured: publishable key (pk_test_*), secret key (sk_test_*), webhook (3 events), 2 products with price IDs
-- Supabase secrets set: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+- Stripe configured in **LIVE mode**: publishable key (pk_live_*), secret key (sk_live_*), webhook (3 events), 2 products with live price IDs
+- Supabase secrets set: STRIPE_SECRET_KEY (live), STRIPE_WEBHOOK_SECRET (live)
 - Pricing restructured: Free ($0) / Fix My Site ($49 one-time) / Compliance Shield ($199/year shown as $17/mo)
 - Smart redirects: logged in → /checkout, not logged in → /register
 - **Deployed to Cloudflare Pages:** https://ada-accessibility-checker.pages.dev
 - Cloudflare env vars configured: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_STRIPE_PUBLISHABLE_KEY, VITE_PAYPAL_CLIENT_ID
-- Header shows Dashboard + Sign Out when logged in (auth-aware)
+- Header shows "My Dashboard" button when logged in (clean, no Sign Out in header)
 - PriorityPlan deduplicates issues by title (no repeated items)
 - RiskBreakdown shows N/A when no state selected
 - UpgradePrompt: sidebar on desktop, inline on mobile (no duplication)
@@ -285,7 +285,7 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Privacy Policy + Terms of Service pages created with routes
 - Scan history persists in Supabase DB
 - All navigation buttons/links audited and fixed
-- StripeCheckoutButton has 15s timeout + always refreshes token first with 8s timeout
+- StripeCheckoutButton reads token from localStorage (no async Supabase calls), 5s timeout, auto-redirects to login on 401
 - Stripe webhook fixed: `constructEventAsync` + `--no-verify-jwt` deployment
 - Alt-text scanner skips tracking pixels (Facebook, Google Analytics, etc.)
 - Register/Login with pending plan → go to Checkout; without → go to Dashboard
@@ -297,23 +297,33 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Origin fallback URL fixed from Netlify to Cloudflare Pages in create-checkout + create-portal
 - SignOut always clears state + localStorage first (user never gets stuck "logged in")
 - Failed Stripe webhook events resolved: manually activated plans for 2 paying users via Supabase API
+- **Session 9: Stripe live + PayPal live + SEO + PDF + Badge**
+- Stripe switched to LIVE mode: new products, prices, webhook, secrets all live (account under review 2-3 days)
+- Stripe live price IDs: Fix My Site = `price_1TAdnSFfYL1pGw0o7zQs4NdX`, Compliance Shield = `price_1TAdnUFfYL1pGw0oGAqWfMTa`
+- Stripe live webhook ID: `we_1TAdnrFfYL1pGw0oncRY4Cgt`
+- PayPal Business account created (SiteSafe) with LIVE credentials configured
+- PayPal secrets set in Supabase: PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_API_URL (api-m.paypal.com)
+- PDF Audit Report: `src/lib/pdf-report.ts` generates print-friendly HTML, button on ScanPage for paid users
+- Badge verification page: `/badge/:token` route with `BadgeVerifyPage.tsx`
+- AuthContext fixed: validates session on init with `refreshSession()`, clears stale sessions from localStorage
+- Header cleaned: logged-in users see "My Dashboard" button only (no Sign Out in header)
+- StripeCheckoutButton rewritten: reads token from localStorage (instant), 5s timeout, auto-redirects to login on expired session
+- Programmatic SEO: 78 landing pages (28 industries + 50 states) with dynamic content
+- SEO: sitemap.xml (82 URLs), robots.txt, Open Graph, Twitter Cards, Schema.org JSON-LD
+- Footer updated with links to top 5 industries and states
+- Removed `netlify.toml` (no longer on Netlify)
 
 ### Pending (to launch)
-- **Activate Stripe live mode** (currently test mode — real payments won't process)
-- Complete Stripe business profile (URL, support info, name)
+- **Stripe account review** (2-3 days, payments paused until approved)
 - Buy custom domain + configure in Cloudflare
-- PayPal credentials (VITE_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_API_URL as Supabase secrets)
-- PDF Audit Report generation (feature listed but not implemented)
-- "ADA Tested" badge page (component exists, no route)
+- Submit sitemap to Google Search Console
 
 ### Future (post-launch)
 - Monthly automated re-scans (cron job for Compliance Shield)
 - Email alerts when compliance score drops
 - Compliance certificate PDF generation
-- Programmatic SEO pages (industry × state landing pages)
 - Multi-page scanning (crawl entire site)
 - WordPress/Shopify plugins
-- BadgePreview page route (component exists at `components/dashboard/BadgePreview.tsx` but no route yet)
 
 ## Bugs Fixed
 
@@ -564,31 +574,31 @@ BrowserRouter
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
 - **Edge Functions:** Deployed with `--no-verify-jwt` (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order)
 - **IMPORTANT:** ALL edge functions MUST be deployed with `--no-verify-jwt` — Supabase gateway rejects user JWTs otherwise
-- **Secrets set:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- **Secrets pending:** `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_API_URL`
+- **Secrets set:** `STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET` (live), `PAYPAL_CLIENT_ID` (live), `PAYPAL_SECRET` (live), `PAYPAL_API_URL` (api-m.paypal.com)
 - **Auth:** Email confirmation DISABLED, CAPTCHA/bot protection DISABLED
 
 ### Stripe
-- **Account:** Created (test mode)
-- **Key format:** Standard format (`pk_test_*` / `sk_test_*`)
-- **Products:** Created
-  - Fix My Site: $49 one-time, price ID `price_1T7MPaFfYL1pGw0ot4eQO3Bp`
-  - Compliance Shield: $199/year recurring, price ID `price_1T7MiPFfYL1pGw0ohwz2MHvV`
-- **Webhook:** Configured at `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
+- **Account:** LIVE mode (under review, 2-3 days for approval)
+- **Key format:** Live keys (`pk_live_*` / `sk_live_*`)
+- **Products (LIVE):**
+  - Fix My Site: $49 one-time, price ID `price_1TAdnSFfYL1pGw0o7zQs4NdX`
+  - Compliance Shield: $199/year recurring, price ID `price_1TAdnUFfYL1pGw0oGAqWfMTa`
+- **Webhook (LIVE):** `we_1TAdnrFfYL1pGw0oncRY4Cgt` at `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
   - Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
-  - Signing secret: set in Supabase secrets
+  - Signing secret: `whsec_zBWUU48zFcFTOcILdY19gQmc1WrqKJdF`
 
 ### PayPal
-- **Status:** Code implemented, credentials pending
-- **Needs:** Client ID + Secret from PayPal Developer Dashboard
+- **Account:** SiteSafe Business (codebake.saas@outlook.com)
+- **Status:** LIVE credentials configured
+- **Client ID:** `AS1BWXkIsiqpaAfwqcYoobVPS9DXhjaPc7cF0nb2siW5-BSWX7Vb3eQlsGTUJL37oiegMjrNaDI-Q7KL`
+- **API URL:** `https://api-m.paypal.com` (live, NOT sandbox)
 
 ### Cloudflare Pages
 - **Status:** DEPLOYED and live
 - **URL:** https://ada-accessibility-checker.pages.dev
 - **Dashboard:** https://dash.cloudflare.com/ae34fffdc22f7b4446e782a4188c9946/pages/view/ada-accessibility-checker
-- **Env vars configured:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY` (pk_test_*), `VITE_PAYPAL_CLIENT_ID`
+- **Env vars configured:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY` (pk_live_*), `VITE_PAYPAL_CLIENT_ID` (live)
 - **Auto-deploy:** Connected to main branch — `git push` triggers redeploy
-- **Note:** Also has `netlify.toml` in repo from previous Netlify setup (can be removed)
 
 ## User Preferences
 - Communication: **Spanish**
