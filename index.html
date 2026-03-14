@@ -6,6 +6,104 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SiteSafe — ADA Website Accessibility Checker</title>
     <meta name="description" content="Scan your website for ADA/WCAG 2.1 AA violations. Get plain English results with copy-paste fixes. Avoid $10,000+ lawsuits." />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="SiteSafe — ADA Website Accessibility Checker" />
+    <meta property="og:description" content="Scan your website for ADA/WCAG 2.1 AA violations. Get plain English results with copy-paste fixes. Avoid $10,000+ lawsuits." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ada-accessibility-checker.pages.dev" />
+    <meta property="og:site_name" content="SiteSafe" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SiteSafe — ADA Website Accessibility Checker" />
+    <meta name="twitter:description" content="Scan your website for ADA/WCAG 2.1 AA violations. Get plain English results with copy-paste fixes. Avoid $10,000+ lawsuits." />
+
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SiteSafe",
+      "url": "https://ada-accessibility-checker.pages.dev",
+      "description": "ADA website accessibility checker with plain English results and copy-paste code fixes.",
+      "foundingDate": "2025"
+    }
+    </script>
+
+    <!-- Structured Data: WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SiteSafe",
+      "url": "https://ada-accessibility-checker.pages.dev",
+      "description": "Scan your website for ADA/WCAG 2.1 AA violations. Get plain English results with copy-paste fixes.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free Scan",
+          "price": "0",
+          "priceCurrency": "USD",
+          "description": "Scan 1 page, see your compliance score, risk level, and all issues with 1 free code fix."
+        },
+        {
+          "@type": "Offer",
+          "name": "Fix My Site",
+          "price": "49",
+          "priceCurrency": "USD",
+          "description": "Up to 50 pages scanned with all code fixes, action plan, and shareable report."
+        },
+        {
+          "@type": "Offer",
+          "name": "Compliance Shield",
+          "price": "199",
+          "priceCurrency": "USD",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "billingDuration": "P1Y"
+          },
+          "description": "Up to 5 sites, unlimited re-scans, monthly auto-scans, email alerts, and compliance badge."
+        }
+      ]
+    }
+    </script>
+
+    <!-- Structured Data: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is ADA website compliance?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ADA (Americans with Disabilities Act) website compliance means your website meets WCAG 2.1 AA accessibility standards, making it usable by people with disabilities. This includes proper image descriptions, sufficient color contrast, keyboard navigation, and screen reader compatibility. The DOJ has set April 26, 2026 as the deadline for all public-facing websites to comply."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I get sued for a non-compliant website?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. In 2023 alone, there were 4,605 ADA website accessibility lawsuits filed in the US, with 67% targeting small businesses. Typical settlements range from $5,000 to $20,000, and defense costs can reach $50,000 to $100,000. States like New York, Florida, and California have the highest lawsuit volumes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does SiteSafe differ from accessibility overlays like accessiBe?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Unlike accessibility overlays (which were shown to be ineffective — accessiBe was fined $1M by the FTC), SiteSafe provides actual code fixes you can copy and paste into your website. Overlays add a JavaScript widget on top of your site without fixing the underlying code, while SiteSafe identifies each specific issue and gives you the exact code change needed to fix it."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
