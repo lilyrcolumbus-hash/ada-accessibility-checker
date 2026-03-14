@@ -4,6 +4,7 @@ export interface BlogPost {
   description: string;
   date: string;
   tags: string[];
+  image: string;
   content: string;
 }
 
@@ -14,7 +15,10 @@ export const blogPosts: BlogPost[] = [
     description: 'Learn about the 10 most frequently cited ADA website accessibility violations and get actionable steps to fix each one before you face a lawsuit.',
     date: '2026-03-10',
     tags: ['WCAG', 'Compliance', 'How-To'],
+    image: '/blog-violations.jpg',
     content: `
+<img src="/blog-violations.jpg" alt="SiteSafe accessibility score dashboard showing 43/100 compliance score with a list of violations" style="width:100%;border-radius:12px;margin-bottom:24px;" />
+
 <h2>Why These Violations Matter</h2>
 <p>Over 4,600 ADA website accessibility lawsuits were filed in 2023 alone, and 67% targeted small businesses. Most of these lawsuits cite the same recurring violations. Here are the 10 issues that appear in nearly every complaint — and how to fix them.</p>
 
@@ -58,7 +62,10 @@ export const blogPosts: BlogPost[] = [
     description: 'The DOJ has set April 26, 2026 as the deadline for website ADA compliance. Learn what this means for your small business, the penalties, and what steps to take now.',
     date: '2026-03-08',
     tags: ['Legal', 'Deadline', 'Small Business'],
+    image: '/blog-deadline.jpg',
     content: `
+<img src="/blog-deadline.jpg" alt="Calendar showing April 26, 2026 deadline circled in red next to SiteSafe scanner showing 43 days left" style="width:100%;border-radius:12px;margin-bottom:24px;" />
+
 <h2>The Clock Is Ticking</h2>
 <p>On April 24, 2024, the U.S. Department of Justice published a final rule under Title II of the ADA requiring state and local government websites to meet WCAG 2.1 Level AA standards. While Title II applies directly to government entities, the rule has accelerated enforcement expectations for <strong>all</strong> businesses with public-facing websites — especially those operating in states with aggressive ADA litigation like New York, Florida, and California.</p>
 
@@ -111,7 +118,10 @@ export const blogPosts: BlogPost[] = [
     description: 'Accessibility overlay widgets like accessiBe promise instant ADA compliance, but courts disagree. Learn why overlays fail and what actually protects your business.',
     date: '2026-03-05',
     tags: ['Overlays', 'Legal', 'accessiBe'],
+    image: '/blog-overlays.jpg',
     content: `
+<img src="/blog-overlays.jpg" alt="Broken overlay widget versus SiteSafe secure code shield — real protection vs fake solutions" style="width:100%;border-radius:12px;margin-bottom:24px;" />
+
 <h2>The $490/Year Promise That Falls Apart in Court</h2>
 <p>Accessibility overlay companies like accessiBe, UserWay, and AudioEye promise a simple pitch: add one line of JavaScript to your site, and you're ADA compliant. Prices start around $490/year, and the widget adds a toolbar letting users adjust font sizes, contrast, and other settings.</p>
 
