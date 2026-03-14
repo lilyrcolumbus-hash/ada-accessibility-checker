@@ -366,6 +366,11 @@ export function ScanPage() {
         </div>
       </div>
 
+      {/* Embed widget — for paid users, right after score */}
+      {isPaid && (
+        <EmbedWidget domain={domain} score={result.score} />
+      )}
+
       {/* Email capture for non-logged-in users */}
       {!user && result && <EmailCapture />}
 
@@ -413,11 +418,6 @@ export function ScanPage() {
           {/* Cost estimate */}
           {costEstimate && (
             <CostEstimateCard costEstimate={costEstimate} isPaid={isPaid} />
-          )}
-
-          {/* Embed widget — for paid users */}
-          {isPaid && (
-            <EmbedWidget domain={domain} score={result.score} />
           )}
 
           {/* Upgrade prompt — only show in sidebar on desktop when issues exist */}
