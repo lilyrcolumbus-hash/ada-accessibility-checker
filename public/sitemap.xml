@@ -8899,4 +8899,30 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- Blog pages -->
+  <url>
+    <loc>https://ada-accessibility-checker.pages.dev/blog</loc>
+    <lastmod>2026-03-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ada-accessibility-checker.pages.dev/blog/10-common-ada-website-violations</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ada-accessibility-checker.pages.dev/blog/ada-website-compliance-deadline-2026</loc>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ada-accessibility-checker.pages.dev/blog/why-accessibility-overlays-dont-protect-you</loc>
+    <lastmod>2026-03-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>

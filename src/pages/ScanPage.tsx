@@ -10,6 +10,7 @@ import IssuesList from '@/components/scan-results/IssuesList'
 import PriorityPlan from '@/components/scan-results/PriorityPlan'
 import CostEstimateCard from '@/components/scan-results/CostEstimateCard'
 import UpgradePrompt from '@/components/scan-results/UpgradePrompt'
+import EmailCapture from '@/components/scan-results/EmailCapture'
 import { useScan } from '@/hooks/useScan'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useAuth } from '@/contexts/AuthContext'
@@ -363,6 +364,9 @@ export function ScanPage() {
           </div>
         </div>
       </div>
+
+      {/* Email capture for non-logged-in users */}
+      {!user && result && <EmailCapture />}
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

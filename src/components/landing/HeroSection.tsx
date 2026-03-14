@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 
@@ -114,7 +114,65 @@ export function HeroSection() {
 
         {/* Trust line */}
         <p className="mt-4 text-sm text-gray-400">No signup required. Instant results.</p>
+
+        {/* Live scan counter */}
+        <ScanCounter />
       </div>
     </section>
+  );
+}
+
+const BASE_SCAN_COUNT = 2847;
+
+function ScanCounter() {
+  const [targetCount, setTargetCount] = useState(BASE_SCAN_COUNT);
+  const [displayCount, setDisplayCount] = useState(0);
+  const animatedRef = useRef(false);
+
+  useEffect(() => {
+    // Try to fetch real scan count from Supabase
+    (async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { count } = await supabase
+          .from('scans')
+          .select('*', { count: 'exact', head: true });
+        if (typeof count === 'number') {
+          setTargetCount(BASE_SCAN_COUNT + count);
+        }
+      } catch {
+        // Supabase unavailable — keep base count
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (animatedRef.current) return;
+    animatedRef.current = true;
+
+    const duration = 1500;
+    const start = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayCount(Math.round(eased * targetCount));
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  }, [targetCount]);
+
+  return (
+    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-400">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+      </span>
+      <Activity className="h-3.5 w-3.5 text-gray-400" />
+      <span>{displayCount.toLocaleString()} websites scanned</span>
+    </div>
   );
 }

@@ -14,6 +14,8 @@ import BadgeVerifyPage from '@/pages/BadgeVerifyPage'
 import IndustryLandingPage from '@/pages/IndustryLandingPage'
 import StateLandingPage from '@/pages/StateLandingPage'
 import IndustryStateLandingPage from '@/pages/IndustryStateLandingPage'
+import BlogPage from '@/pages/BlogPage'
+import BlogPostPage from '@/pages/BlogPostPage'
 
 export default function App() {
   return (
@@ -27,6 +29,8 @@ export default function App() {
         <Route path="/industry/:slug" element={<IndustryLandingPage />} />
         <Route path="/industry/:industrySlug/:stateSlug" element={<IndustryStateLandingPage />} />
         <Route path="/state/:slug" element={<StateLandingPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
       </Route>
 
       {/* Shared report — standalone page, no Layout */}
