@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://ada-accessibility-checker.pages.dev/sitemap.xml
