@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Check, Shield, Gift, ExternalLink } from 'lucide-react'
+import { Copy, Check, Shield, Gift, ExternalLink, Code, Share2, Globe, Sparkles } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 interface EmbedWidgetProps {
@@ -10,9 +10,9 @@ interface EmbedWidgetProps {
 export default function EmbedWidget({ domain, score }: EmbedWidgetProps) {
   const [copiedHtml, setCopiedHtml] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [showHtml, setShowHtml] = useState(false)
 
   const scanUrl = `https://ada-accessibility-checker.pages.dev/scan?url=https://${domain}`
-  const scoreColor = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444'
   const scoreLabel = score >= 80 ? 'Excellent' : score >= 50 ? 'Needs Work' : 'At Risk'
   const scoreBgClass = score >= 80 ? 'from-success-500 to-success-600' : score >= 50 ? 'from-warning-400 to-warning-500' : 'from-danger-500 to-danger-600'
 
@@ -38,80 +38,123 @@ export default function EmbedWidget({ domain, score }: EmbedWidgetProps) {
   }
 
   return (
-    <div className="rounded-xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 to-white p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700">
-          <Gift className="h-4.5 w-4.5 text-white" />
+    <div className="rounded-2xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 via-white to-primary-50/50 p-6 shadow-sm">
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md flex-shrink-0">
+          <Gift className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-900">Your Free Compliance Badge</h3>
-          <p className="text-[10px] text-gray-500">A gift from SiteSafe — included with your plan</p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-gray-900">Your Free Compliance Badge</h3>
+            <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-semibold text-primary-700 uppercase">Free Gift</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-0.5">Included with your plan — yours to keep forever</p>
         </div>
       </div>
-      <p className="text-xs text-gray-600 mb-3">
-        Show your customers you care about accessibility. Share your badge anywhere — your website, social media, or emails.
-      </p>
 
-      {/* Badge preview — large and eye-catching */}
-      <div className="flex items-center justify-center p-5 bg-white rounded-xl border border-gray-200 mb-4 shadow-inner">
-        <div className={`inline-flex items-center gap-3 bg-gradient-to-r ${scoreBgClass} rounded-xl px-5 py-3 shadow-lg`}>
-          <Shield className="h-7 w-7 text-white" />
+      {/* What it does — benefits */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+        <div className="flex items-start gap-2 rounded-lg bg-white border border-gray-100 p-3">
+          <Sparkles className="h-4 w-4 text-primary-500 flex-shrink-0 mt-0.5" />
           <div>
-            <div className="text-[13px] font-bold text-white">ADA Tested by SiteSafe</div>
-            <div className="text-[11px] text-white/85 font-medium">Score: {score}/100 · {scoreLabel}</div>
+            <p className="text-xs font-semibold text-gray-800">Build Trust</p>
+            <p className="text-[10px] text-gray-500">Show customers you care about accessibility</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 rounded-lg bg-white border border-gray-100 p-3">
+          <Shield className="h-4 w-4 text-success-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-gray-800">Prove Compliance</p>
+            <p className="text-[10px] text-gray-500">Display your ADA score publicly</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 rounded-lg bg-white border border-gray-100 p-3">
+          <Globe className="h-4 w-4 text-warning-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-gray-800">Stand Out</p>
+            <p className="text-[10px] text-gray-500">Differentiate from competitors who ignore ADA</p>
           </div>
         </div>
       </div>
 
-      {/* Option 1: Simple link */}
-      <div className="mb-3">
-        <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
-          <ExternalLink className="h-3 w-3" />
-          Easy: Share this link
+      {/* Badge preview */}
+      <p className="text-xs font-semibold text-gray-700 mb-2">This is how your badge looks:</p>
+      <div className="flex items-center justify-center p-5 bg-white rounded-xl border border-gray-200 mb-5">
+        <div className={`inline-flex items-center gap-3 bg-gradient-to-r ${scoreBgClass} rounded-xl px-6 py-3.5 shadow-lg`}>
+          <Shield className="h-8 w-8 text-white" />
+          <div>
+            <div className="text-sm font-bold text-white">ADA Tested by SiteSafe</div>
+            <div className="text-xs text-white/85 font-medium">Score: {score}/100 · {scoreLabel}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Option 1: Share link */}
+      <div className="rounded-xl bg-white border border-gray-200 p-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Share2 className="h-4 w-4 text-primary-600" />
+          <p className="text-sm font-semibold text-gray-800">Share your results</p>
+        </div>
+        <p className="text-xs text-gray-500 mb-2">
+          Copy this link and share it anywhere — social media, email, or messaging apps. Anyone who clicks it will see your accessibility score.
         </p>
         <div className="flex gap-2">
           <input
             type="text"
             readOnly
             value={scanUrl}
-            className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-600 truncate"
+            className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-600 truncate"
           />
           <Button
             size="sm"
             variant={copiedLink ? 'primary' : 'outline'}
             onClick={handleCopyLink}
-            className="flex-shrink-0"
+            className="flex-shrink-0 gap-1.5"
           >
-            {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copiedLink ? <><Check className="h-3.5 w-3.5" /> Copied!</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
           </Button>
         </div>
       </div>
 
-      {/* Option 2: HTML embed */}
-      <div>
-        <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
-          {'</>'}
-          Pro: Embed badge on your site
-        </p>
-        <div className="relative">
-          <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-[10px] overflow-x-auto leading-relaxed max-h-24">
-            {embedCode}
-          </pre>
+      {/* Option 2: Embed on website */}
+      <div className="rounded-xl bg-white border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Code className="h-4 w-4 text-primary-600" />
+            <p className="text-sm font-semibold text-gray-800">Add badge to your website</p>
+          </div>
           <button
-            onClick={handleCopyHtml}
-            className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded-md bg-gray-700 px-2 py-1 text-[10px] font-medium text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+            onClick={() => setShowHtml(!showHtml)}
+            className="text-[11px] font-medium text-primary-600 hover:text-primary-700"
           >
-            {copiedHtml ? (
-              <><Check className="h-3 w-3 text-green-400" /> Copied!</>
-            ) : (
-              <><Copy className="h-3 w-3" /> Copy HTML</>
-            )}
+            {showHtml ? 'Hide code' : 'Show code'}
           </button>
         </div>
+        <p className="text-xs text-gray-500 mb-2">
+          Paste this code in your website's footer or sidebar. It creates a badge that links back to your accessibility report — showing visitors you take compliance seriously.
+        </p>
+        {showHtml && (
+          <div className="relative mt-2">
+            <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-[10px] overflow-x-auto leading-relaxed max-h-28">
+              {embedCode}
+            </pre>
+            <button
+              onClick={handleCopyHtml}
+              className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded-md bg-gray-700 px-2.5 py-1 text-[10px] font-medium text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+            >
+              {copiedHtml ? (
+                <><Check className="h-3 w-3 text-green-400" /> Copied!</>
+              ) : (
+                <><Copy className="h-3 w-3" /> Copy code</>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
-      <p className="text-[10px] text-primary-600/70 mt-3 font-medium text-center">
-        This badge is free forever as a thank you for choosing SiteSafe
+      <p className="text-[11px] text-primary-600/60 mt-4 text-center">
+        This badge is a free gift from SiteSafe as a thank you for choosing us. No expiration, no strings attached.
       </p>
     </div>
   )
