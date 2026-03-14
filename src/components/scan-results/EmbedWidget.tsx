@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Check, Shield, Award, ExternalLink } from 'lucide-react'
+import { Copy, Check, Shield, Gift, ExternalLink } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 interface EmbedWidgetProps {
@@ -39,15 +39,18 @@ export default function EmbedWidget({ domain, score }: EmbedWidgetProps) {
 
   return (
     <div className="rounded-xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 to-white p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
-          <Award className="h-4.5 w-4.5 text-white" />
+      <div className="flex items-center gap-2 mb-1">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700">
+          <Gift className="h-4.5 w-4.5 text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-900">Show Your Compliance</h3>
-          <p className="text-[10px] text-gray-500">Add a trust badge to your website</p>
+          <h3 className="text-sm font-bold text-gray-900">Your Free Compliance Badge</h3>
+          <p className="text-[10px] text-gray-500">A gift from SiteSafe — included with your plan</p>
         </div>
       </div>
+      <p className="text-xs text-gray-600 mb-3">
+        Show your customers you care about accessibility. Share your badge anywhere — your website, social media, or emails.
+      </p>
 
       {/* Badge preview — large and eye-catching */}
       <div className="flex items-center justify-center p-5 bg-white rounded-xl border border-gray-200 mb-4 shadow-inner">
@@ -108,7 +111,7 @@ export default function EmbedWidget({ domain, score }: EmbedWidgetProps) {
       </div>
 
       <p className="text-[10px] text-primary-600/70 mt-3 font-medium text-center">
-        Every click on your badge brings new visitors to SiteSafe
+        This badge is free forever as a thank you for choosing SiteSafe
       </p>
     </div>
   )
