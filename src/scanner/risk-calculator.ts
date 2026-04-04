@@ -41,7 +41,7 @@ export function calculateRisk(
   return {
     overallRisk,
     industryRisk: industryData.riskLevel,
-    stateRisk: stateData?.riskLevel || 'medium',
+    stateRisk: stateData?.riskLevel || 'unknown',
     estimatedLiability: {
       min: Math.round(baseMin * industryData.multiplier),
       max: Math.round(baseMax * industryData.multiplier),

@@ -41,11 +41,18 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
         return
       }
 
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      if (!supabaseUrl) {
+        setError('Payment service not configured. Please try again later.')
+        setLoading(false)
+        return
+      }
+
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        `${supabaseUrl}/functions/v1/create-checkout`,
         {
           method: 'POST',
           headers: {
