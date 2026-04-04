@@ -41,7 +41,7 @@ ada-accessibility-checker/
 │   ├── index.css                   # Tailwind v4 imports + @theme custom colors
 │   ├── vite-env.d.ts               # Vite type declarations
 │   ├── scanner/                    # WCAG scanning engine (runs client-side)
-│   │   ├── types.ts                # ScanIssue, ScanResult, RiskAssessment, CostEstimate
+│   │   ├── types.ts                # ScanIssue, ScanResult, RiskAssessment, CostEstimate, generateId()
 │   │   ├── engine.ts               # Orchestrator: runs all checks, aggregates results
 │   │   ├── parser.ts               # HTML string → DOM Document via DOMParser
 │   │   ├── scoring.ts              # Compliance score 0-100 (getScoreColor, getScoreLabel)
@@ -65,7 +65,8 @@ ada-accessibility-checker/
 │   │   ├── layout/
 │   │   │   ├── Header.tsx
 │   │   │   ├── Footer.tsx
-│   │   │   └── Layout.tsx          # Outlet wrapper with Header + Footer
+│   │   │   ├── Layout.tsx          # Outlet wrapper with Header + Footer
+│   │   │   └── UrgencyBanner.tsx   # Countdown banner for ADA deadline
 │   │   ├── landing/
 │   │   │   ├── HeroSection.tsx     # URL input + "Is your website lawsuit-proof?"
 │   │   │   ├── StatsSection.tsx    # 4,605 lawsuits stat cards
@@ -81,7 +82,9 @@ ada-accessibility-checker/
 │   │   │   ├── IssuesList.tsx      # Filter by severity + visible/blurred/hidden
 │   │   │   ├── PriorityPlan.tsx    # Top 3 issues with score projection
 │   │   │   ├── CostEstimateCard.tsx # Time/cost + lawsuit comparison + category bars
-│   │   │   └── UpgradePrompt.tsx   # $49 CTA with features list + price anchoring
+│   │   │   ├── UpgradePrompt.tsx   # $49 CTA with features list + price anchoring
+│   │   │   ├── EmailCapture.tsx    # Email capture form for lead generation
+│   │   │   └── EmbedWidget.tsx     # Embeddable compliance widget + embed code
 │   │   ├── checkout/
 │   │   │   ├── StripeCheckoutButton.tsx  # Calls create-checkout edge function → redirect to Stripe
 │   │   │   └── PayPalCheckoutButton.tsx  # PayPal SDK buttons → create + capture orders
@@ -95,6 +98,7 @@ ada-accessibility-checker/
 │   │       ├── Button.tsx          # variant: primary/outline/ghost, size: sm/md/lg
 │   │       ├── Card.tsx            # Card, CardHeader, CardContent
 │   │       ├── Badge.tsx           # variant: default/critical/serious/moderate/minor/success
+│   │       ├── Combobox.tsx        # Searchable combobox component
 │   │       └── Input.tsx
 │   ├── pages/
 │   │   ├── LandingPage.tsx         # Assembles all landing sections
@@ -103,7 +107,13 @@ ada-accessibility-checker/
 │   │   ├── CheckoutPage.tsx        # Protected: plan summary + Stripe/PayPal payment buttons
 │   │   ├── LoginPage.tsx
 │   │   ├── RegisterPage.tsx
-│   │   └── SharedReportPage.tsx    # Public read-only report (no auth required)
+│   │   ├── SharedReportPage.tsx    # Public read-only report (no auth required)
+│   │   ├── BadgeVerifyPage.tsx    # Public badge verification page
+│   │   ├── BlogPage.tsx           # Blog listing page
+│   │   ├── BlogPostPage.tsx       # Individual blog post page
+│   │   ├── IndustryLandingPage.tsx # Programmatic SEO: ADA compliance for [industry]
+│   │   ├── IndustryStateLandingPage.tsx # Programmatic SEO: [industry] + [state]
+│   │   └── StateLandingPage.tsx   # Programmatic SEO: ADA compliance in [state]
 │   ├── hooks/
 │   │   ├── useScan.ts              # Core: fetch HTML → run scanner → persist to sessionStorage + DB
 │   │   └── useSubscription.ts      # Returns { plan, isPaid, isLoading }
@@ -111,9 +121,12 @@ ada-accessibility-checker/
 │   │   └── AuthContext.tsx          # Supabase auth provider (LAZY imports only!) + refreshProfile()
 │   ├── config/
 │   │   ├── plans.ts                # Plan definitions: free / fix-my-site / compliance-shield
-│   │   └── constants.ts            # INDUSTRY_RISK, TOP_LAWSUIT_STATES, lawsuit data
+│   │   ├── constants.ts            # INDUSTRY_RISK, TOP_LAWSUIT_STATES, lawsuit data
+│   │   ├── blog-posts.ts           # Blog post content for SEO
+│   │   └── sitemap.ts              # Sitemap configuration for programmatic SEO pages
 │   └── lib/
 │       ├── supabase.ts             # Conditional client: Proxy stub when env vars missing
+│       ├── pdf-report.ts           # Generates print-friendly HTML audit report for paid users
 │       └── utils.ts                # cn() (clsx+twMerge), getDomain()
 ├── supabase/
 │   ├── schema.sql                  # DB schema (6 tables + triggers + functions, see DB Schema section)
@@ -149,9 +162,13 @@ ada-accessibility-checker/
 | `/checkout` | CheckoutPage | Protected | Standalone |
 | `/checkout?plan=fix-my-site` | CheckoutPage (plan from URL) | Protected | Standalone |
 | `/shared/:token` | SharedReportPage | Public | Standalone |
+| `/badge/:token` | BadgeVerifyPage | Public | Standalone |
+| `/blog` | BlogPage | Public | Header + Footer |
+| `/blog/:slug` | BlogPostPage | Public | Header + Footer |
+| `/ada-compliance/:industry` | IndustryLandingPage | Public | Header + Footer |
+| `/ada-compliance/:state` | StateLandingPage | Public | Header + Footer |
+| `/ada-compliance/:industry/:state` | IndustryStateLandingPage | Public | Header + Footer |
 | `*` | Redirect to `/` | — | — |
-
-Note: `BadgePreviewPage` does NOT have a route yet. `BadgePreview.tsx` exists as a component in `components/dashboard/` but is not integrated into any page. This is a pending task.
 
 ## Payment Flow
 ```
@@ -225,7 +242,10 @@ supabase functions deploy <name> --no-verify-jwt --project-ref mvzolbabbkedmlhqh
 ```
 
 ### 13. PayPal as alternative payment
-PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. PayPal orders use server-side price validation (PLAN_PRICES map). After capture, `paypal-capture-order` updates profiles.plan and inserts into purchases (with `paypal_` prefix on payment ID).
+PayPalCheckoutButton only renders when both `VITE_PAYPAL_CLIENT_ID` and `VITE_SUPABASE_URL` are configured. PayPal orders use server-side price validation (PLAN_PRICES map). After capture, `paypal-capture-order` updates profiles.plan and inserts into purchases (with `paypal_` prefix on payment ID).
+
+### 14. Scanner ID generation uses `generateId()` with fallback
+All 11 scanner checks use `generateId()` from `scanner/types.ts` instead of `crypto.randomUUID()` directly. This provides a fallback (`Date.now()` + counter) for environments where Web Crypto API is unavailable. **NEVER** use `crypto.randomUUID()` directly in scanner checks.
 
 ## DB Schema (supabase/schema.sql)
 
@@ -281,7 +301,7 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - Scanner fix quality: alt-text uses smart extraction (skips hashes), placeholders use [brackets] with warning banner
 - Scan results load instantly (DB save runs in background, never blocks UI)
 - Progress bar uses asymptotic curve (never stalls)
-- 55+ bug fixes applied (see Bugs Fixed section below)
+- 74 bug fixes applied (see Bugs Fixed section below)
 - Privacy Policy + Terms of Service pages created with routes
 - Scan history persists in Supabase DB
 - All navigation buttons/links audited and fixed
@@ -312,6 +332,13 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 - SEO: sitemap.xml (82 URLs), robots.txt, Open Graph, Twitter Cards, Schema.org JSON-LD
 - Footer updated with links to top 5 industries and states
 - Removed `netlify.toml` (no longer on Netlify)
+- **Session 10: Platform diagnosis + code quality fixes**
+- RegisterForm billing text fixed: shows "/year" for Compliance Shield instead of hardcoded "one-time"
+- CLAUDE.md Stripe Price IDs synced with live values in code
+- duplicate-ids scanner check now returns full truncated HTML (consistent with other checks)
+- PayPalCheckoutButton validates `VITE_SUPABASE_URL` before rendering
+- All 11 scanner checks migrated to centralized `generateId()` with browser fallback
+- CLAUDE.md project structure updated with 15+ missing files from sessions 9-10
 
 ### Pending (to launch)
 - **Stripe account review** (2-3 days, payments paused until approved)
@@ -413,6 +440,14 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 67. **Register/Login ignored pending plan** — After clicking "Upgrade $49" → Register → went to Dashboard instead of Checkout. Now detects `sitesafe_pending_plan` in sessionStorage → routes to `/checkout?plan=X`.
 68. **Failed Stripe webhooks (6 events)** — 2 users paid $49 but plans never activated (webhook was broken). Manually activated plans + recorded purchases via Supabase service role API.
 
+### Session 10 fixes (platform diagnosis + code quality)
+69. **RegisterForm showed "one-time" for all plans** — Compliance Shield ($199/year) displayed as "$199 one-time" during registration. Now shows "/year" for yearly billing, "one-time" for one-time.
+70. **CLAUDE.md had stale Stripe Price IDs** — Pricing table still had old test price IDs (`price_1T7MP...`, `price_1T7Mi...`). Updated to match live IDs in code (`price_1TAdnS...`, `price_1TAdnU...`).
+71. **duplicate-ids check returned tag name only** — `element` field was `firstElement.tagName` (e.g., "DIV") instead of truncated HTML like all other checks. Now uses `truncateHtml()`.
+72. **PayPalCheckoutButton didn't validate VITE_SUPABASE_URL** — If env var was missing, fetch calls to Supabase edge functions would fail silently with `undefined/functions/v1/...`. Now returns null if URL not configured.
+73. **crypto.randomUUID() had no fallback** — All 11 scanner checks used `crypto.randomUUID()` directly, which requires Web Crypto API. Created centralized `generateId()` in `scanner/types.ts` with `Date.now()` + counter fallback.
+74. **CLAUDE.md project structure outdated** — Missing 15+ files added in sessions 9-10 (UrgencyBanner, EmailCapture, EmbedWidget, Combobox, blog-posts.ts, sitemap.ts, pdf-report.ts, BadgeVerifyPage, BlogPage, BlogPostPage, IndustryLandingPage, StateLandingPage, IndustryStateLandingPage). Updated tree, routes table, and gotchas.
+
 ## Design System
 - **Font:** Inter (system-ui fallback), set in `index.css` body rule
 - **SEO:** Title "SiteSafe — ADA Website Accessibility Checker", meta description about scanning + $10K lawsuits
@@ -480,6 +515,11 @@ PayPalCheckoutButton only renders when `VITE_PAYPAL_CLIENT_ID` is configured. Pa
 | `supabase/functions/paypal-create-order/index.ts` | Creates PayPal order |
 | `supabase/functions/paypal-capture-order/index.ts` | Captures PayPal payment → updates DB |
 | `supabase/functions/_shared/paypal.ts` | PayPal access token helper |
+| `src/scanner/types.ts` | ScanIssue types + `generateId()` utility (used by all checks) |
+| `src/lib/pdf-report.ts` | Generates print-friendly HTML audit report |
+| `src/pages/BadgeVerifyPage.tsx` | Public badge verification page |
+| `src/config/blog-posts.ts` | Blog post content for SEO |
+| `src/config/sitemap.ts` | Sitemap config for programmatic SEO pages |
 
 ## App Architecture
 - **AuthContext exports `refreshProfile()`** — used by PayPalCheckoutButton after successful capture
