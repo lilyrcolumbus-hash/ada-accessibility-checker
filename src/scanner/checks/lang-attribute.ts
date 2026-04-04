@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -22,7 +22,7 @@ export function checkLangAttribute(doc: Document, url: string): ScanIssue[] {
   // Check if lang attribute is missing
   if (!langAttr) {
     issues.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       checkId: 'lang-attribute-missing',
       severity: 'critical',
       title: 'Missing lang attribute on html element',
@@ -44,7 +44,7 @@ export function checkLangAttribute(doc: Document, url: string): ScanIssue[] {
   // Check if lang attribute is empty
   if (langAttr.trim() === '') {
     issues.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       checkId: 'lang-attribute-empty',
       severity: 'critical',
       title: 'Empty lang attribute on html element',
@@ -67,7 +67,7 @@ export function checkLangAttribute(doc: Document, url: string): ScanIssue[] {
   const langRegex = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i
   if (!langRegex.test(langAttr)) {
     issues.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       checkId: 'lang-attribute-invalid',
       severity: 'serious',
       title: 'Invalid lang attribute value',

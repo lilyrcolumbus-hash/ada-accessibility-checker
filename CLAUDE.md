@@ -14,9 +14,9 @@ A self-service web tool that scans any website for ADA/WCAG 2.1 AA accessibility
 
 Old plan IDs (`full-report`, `agency`, `starter`, `pro`, `business`) no longer exist.
 
-Stripe Price IDs:
-- Fix My Site: `price_1T7MPaFfYL1pGw0ot4eQO3Bp`
-- Compliance Shield: `price_1T7MiPFfYL1pGw0ohwz2MHvV`
+Stripe Price IDs (LIVE):
+- Fix My Site: `price_1TAdnSFfYL1pGw0o7zQs4NdX`
+- Compliance Shield: `price_1TAdnUFfYL1pGw0oGAqWfMTa`
 
 ## Tech Stack
 - **Frontend:** React 19 + Vite 7 + TypeScript + Tailwind CSS v4 (uses `@theme` for custom colors)
