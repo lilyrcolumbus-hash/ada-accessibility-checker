@@ -1,5 +1,6 @@
 import type { ScanResult, ScanIssue, Severity } from '@/scanner/types'
 import { getScoreLabel } from '@/scanner/scoring'
+import { ALL_CHECKS } from '@/scanner/checks'
 
 const SEVERITY_COLORS: Record<Severity, string> = {
   critical: '#ef4444',
@@ -150,7 +151,7 @@ export function generatePdfReport(result: ScanResult, domain: string): void {
       <div><span style="font-size:11px;color:#6b7280;">Website:</span><br><strong>${escapeHtml(domain)}</strong></div>
       <div><span style="font-size:11px;color:#6b7280;">URL Scanned:</span><br><strong>${escapeHtml(result.url)}</strong></div>
       <div><span style="font-size:11px;color:#6b7280;">Total Issues:</span><br><strong>${result.totalIssues}</strong></div>
-      <div><span style="font-size:11px;color:#6b7280;">Checks Passed:</span><br><strong>${result.passedChecks.length} of 11</strong></div>
+      <div><span style="font-size:11px;color:#6b7280;">Checks Passed:</span><br><strong>${result.passedChecks.length} of ${ALL_CHECKS.length}</strong></div>
     </div>
   </div>
 
@@ -190,5 +191,7 @@ export function generatePdfReport(result: ScanResult, domain: string): void {
   if (printWindow) {
     printWindow.document.write(html)
     printWindow.document.close()
+  } else {
+    alert('Unable to open print dialog. Please allow pop-ups for this site and try again.')
   }
 }

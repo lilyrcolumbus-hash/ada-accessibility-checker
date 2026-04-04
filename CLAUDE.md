@@ -301,7 +301,7 @@ All 11 scanner checks use `generateId()` from `scanner/types.ts` instead of `cry
 - Scanner fix quality: alt-text uses smart extraction (skips hashes), placeholders use [brackets] with warning banner
 - Scan results load instantly (DB save runs in background, never blocks UI)
 - Progress bar uses asymptotic curve (never stalls)
-- 74 bug fixes applied (see Bugs Fixed section below)
+- 78 bug fixes applied (see Bugs Fixed section below)
 - Privacy Policy + Terms of Service pages created with routes
 - Scan history persists in Supabase DB
 - All navigation buttons/links audited and fixed
@@ -447,6 +447,10 @@ All 11 scanner checks use `generateId()` from `scanner/types.ts` instead of `cry
 72. **PayPalCheckoutButton didn't validate VITE_SUPABASE_URL** — If env var was missing, fetch calls to Supabase edge functions would fail silently with `undefined/functions/v1/...`. Now returns null if URL not configured.
 73. **crypto.randomUUID() had no fallback** — All 11 scanner checks used `crypto.randomUUID()` directly, which requires Web Crypto API. Created centralized `generateId()` in `scanner/types.ts` with `Date.now()` + counter fallback.
 74. **CLAUDE.md project structure outdated** — Missing 15+ files added in sessions 9-10 (UrgencyBanner, EmailCapture, EmbedWidget, Combobox, blog-posts.ts, sitemap.ts, pdf-report.ts, BadgeVerifyPage, BlogPage, BlogPostPage, IndustryLandingPage, StateLandingPage, IndustryStateLandingPage). Updated tree, routes table, and gotchas.
+75. **StripeCheckoutButton didn't validate VITE_SUPABASE_URL** — Same issue as PayPal: if env var missing, fetch URL becomes `undefined/functions/v1/create-checkout`. Now validates and shows user-facing error.
+76. **PDF report "of 11" hardcoded** — `Checks Passed: X of 11` wouldn't update if new checks are added. Now uses `ALL_CHECKS.length` dynamically.
+77. **PDF printWindow null with no feedback** — If pop-ups are blocked, `window.open` returns null and user sees nothing. Now shows alert asking to allow pop-ups.
+78. **risk-calculator stateRisk defaulted to "medium" without state** — When no state selected, `stateRisk` returned 'medium' instead of reflecting unknown status. Changed to 'unknown' which correctly falls through to gray styling in `getRiskColor()`.
 
 ## Design System
 - **Font:** Inter (system-ui fallback), set in `index.css` body rule
