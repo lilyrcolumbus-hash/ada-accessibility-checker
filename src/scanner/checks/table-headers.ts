@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -24,7 +24,7 @@ export function checkTableHeaders(doc: Document, url: string): ScanIssue[] {
     const thElements = table.querySelectorAll('th')
     if (thElements.length === 0) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'table-no-headers',
         severity: 'serious',
         title: 'Table has no header cells',
@@ -53,7 +53,7 @@ export function checkTableHeaders(doc: Document, url: string): ScanIssue[] {
 
       if (thWithoutScope.length > 0) {
         issues.push({
-          id: crypto.randomUUID(),
+          id: generateId(),
           checkId: 'table-missing-scope',
           severity: 'moderate',
           title: 'Table headers missing scope attribute',
@@ -76,7 +76,7 @@ export function checkTableHeaders(doc: Document, url: string): ScanIssue[] {
     const caption = table.querySelector('caption')
     if (!caption) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'table-missing-caption',
         severity: 'moderate',
         title: 'Table has no caption',

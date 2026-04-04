@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -67,7 +67,7 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
       const descriptiveAlt = extractDescriptiveAlt(src)
 
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'alt-text-missing',
         severity: 'critical',
         title: 'Missing alt text on image',
@@ -94,7 +94,7 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
       const descriptiveAlt = extractDescriptiveAlt(src)
 
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'alt-text-missing-input-image',
         severity: 'critical',
         title: 'Missing alt text on image input',
@@ -118,7 +118,7 @@ export function checkAltText(doc: Document, url: string): ScanIssue[] {
     const alt = area.getAttribute('alt')
     if (alt === null || alt?.trim() === '') {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'alt-text-missing-area',
         severity: 'critical',
         title: 'Missing alt text on image map area',

@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -65,12 +65,12 @@ export function checkFormLabels(doc: Document, url: string): ScanIssue[] {
 
     // Skip if element has no id and check for other label associations
     if (!hasLabel(input)) {
-      const inputId = input.getAttribute('id') || 'input-' + crypto.randomUUID().substring(0, 8)
+      const inputId = input.getAttribute('id') || 'input-' + generateId().substring(0, 8)
       const inputName = input.getAttribute('name') || 'field'
       const tagName = input.tagName.toLowerCase()
 
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'form-label-missing',
         severity: 'critical',
         title: 'Form input missing associated label',

@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -31,7 +31,7 @@ export function checkHeadingHierarchy(doc: Document, url: string): ScanIssue[] {
 
   if (h1Count === 0) {
     issues.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       checkId: 'no-h1',
       severity: 'serious',
       title: 'Page missing h1 heading',
@@ -48,7 +48,7 @@ export function checkHeadingHierarchy(doc: Document, url: string): ScanIssue[] {
     })
   } else if (h1Count > 1) {
     issues.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       checkId: 'multiple-h1',
       severity: 'moderate',
       title: 'Page contains multiple h1 headings',
@@ -78,7 +78,7 @@ export function checkHeadingHierarchy(doc: Document, url: string): ScanIssue[] {
       const expectedTag = `h${prevLevel + 1}`
 
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'heading-level-skip',
         severity: 'serious',
         title: `Heading level skipped from ${prevTag} to ${currentTag}`,

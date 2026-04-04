@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 const VALID_ARIA_ROLES = new Set([
   'alert', 'alertdialog', 'application', 'article', 'banner', 'button', 'cell',
@@ -44,7 +44,7 @@ export function checkAriaRoles(doc: Document, url: string): ScanIssue[] {
     const role = el.getAttribute('role')
     if (role && !VALID_ARIA_ROLES.has(role)) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'aria-roles-invalid',
         severity: 'serious',
         title: 'Invalid ARIA role',
@@ -72,7 +72,7 @@ export function checkAriaRoles(doc: Document, url: string): ScanIssue[] {
         ids.forEach(id => {
           if (!elementIds.has(id)) {
             issues.push({
-              id: crypto.randomUUID(),
+              id: generateId(),
               checkId: 'aria-refs-missing-id',
               severity: 'serious',
               title: `ARIA attribute references non-existent ID`,

@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -27,7 +27,7 @@ export function checkAutoPlayMedia(doc: Document, url: string): ScanIssue[] {
     // Check for autoplay attribute
     if (hasAutoplay) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'autoplay-media',
         severity: 'serious',
         title: `${elementType} element autoplays`,
@@ -47,7 +47,7 @@ export function checkAutoPlayMedia(doc: Document, url: string): ScanIssue[] {
     // Check for missing controls attribute
     if (!hasControls) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'media-missing-controls',
         severity: 'serious',
         title: `${elementType} element lacks controls`,
