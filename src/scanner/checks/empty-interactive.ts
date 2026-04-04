@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -53,7 +53,7 @@ export function checkEmptyInteractive(doc: Document, url: string): ScanIssue[] {
   buttons.forEach((button) => {
     if (!hasAccessibleLabel(button)) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'empty-button',
         severity: 'critical',
         title: 'Button has no accessible label',
@@ -78,7 +78,7 @@ export function checkEmptyInteractive(doc: Document, url: string): ScanIssue[] {
   links.forEach((link) => {
     if (!hasAccessibleLabel(link)) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'empty-link',
         severity: 'serious',
         title: 'Link has no accessible label',

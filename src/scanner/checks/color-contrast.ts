@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 import { parseColor, calculateContrastRatio, suggestCompliantColor } from '../color-utils'
 
 function truncateHtml(el: Element): string {
@@ -125,7 +125,7 @@ export function checkColorContrast(doc: Document, url: string): ScanIssue[] {
           const suggestedColor = suggestion?.suggested || (contrastRatio < 3 ? '#000000' : fg)
 
           issues.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             checkId: 'color-contrast-insufficient',
             severity,
             title: `Insufficient color contrast`,

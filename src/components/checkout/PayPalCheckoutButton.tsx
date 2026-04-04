@@ -15,11 +15,11 @@ export default function PayPalCheckoutButton({ planId, price }: PayPalCheckoutBu
 
   const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID
 
-  if (!clientId || clientId === 'your_paypal_client_id_here') {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+
+  if (!clientId || clientId === 'your_paypal_client_id_here' || !supabaseUrl) {
     return null
   }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
   return (
     <div>

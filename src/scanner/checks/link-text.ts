@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -48,7 +48,7 @@ export function checkLinkText(doc: Document, url: string): ScanIssue[] {
     // Check for empty link text
     if (linkText === '' && !hasLabel) {
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'empty-link-text',
         severity: 'serious',
         title: 'Link has no descriptive text',
@@ -66,7 +66,7 @@ export function checkLinkText(doc: Document, url: string): ScanIssue[] {
     } else if (isNonDescriptive(linkText) && !hasLabel) {
       // Check for non-descriptive link text
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'non-descriptive-link-text',
         severity: 'moderate',
         title: 'Link text is not descriptive',

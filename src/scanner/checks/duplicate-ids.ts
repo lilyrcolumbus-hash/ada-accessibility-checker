@@ -1,4 +1,4 @@
-import { ScanIssue } from '../types'
+import { ScanIssue, generateId } from '../types'
 
 function truncateHtml(el: Element): string {
   const html = el.outerHTML
@@ -37,12 +37,12 @@ export function checkDuplicateIds(doc: Document, url: string): ScanIssue[] {
       const firstElement = elements[0]
 
       issues.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         checkId: 'duplicate-ids',
         severity: 'serious',
         title: `Duplicate ID: "${idValue}"`,
         description: `The ID "${idValue}" is used ${elements.length} times on this page. IDs must be unique. Duplicate IDs can break functionality for screen readers, link anchors, form labels, and JavaScript selectors.`,
-        element: firstElement.tagName,
+        element: truncateHtml(firstElement),
         selector: selectors,
         wcagCriteria: '4.1.1',
         wcagLevel: 'A',

@@ -93,7 +93,7 @@ export function RegisterForm() {
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {hasPlanParam && (
             <div className="rounded-lg border border-primary-200 bg-primary-50 px-4 py-2.5 text-sm text-primary-800">
-              Selected plan: <strong>{selectedPlan.name}</strong> — ${selectedPlan.price} one-time
+              Selected plan: <strong>{selectedPlan.name}</strong> — ${selectedPlan.price}{selectedPlan.billing === 'yearly' ? '/year' : ' one-time'}
             </div>
           )}
 
