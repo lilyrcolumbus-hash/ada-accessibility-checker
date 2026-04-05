@@ -165,9 +165,9 @@ ada-accessibility-checker/
 | `/badge/:token` | BadgeVerifyPage | Public | Standalone |
 | `/blog` | BlogPage | Public | Header + Footer |
 | `/blog/:slug` | BlogPostPage | Public | Header + Footer |
-| `/ada-compliance/:industry` | IndustryLandingPage | Public | Header + Footer |
-| `/ada-compliance/:state` | StateLandingPage | Public | Header + Footer |
-| `/ada-compliance/:industry/:state` | IndustryStateLandingPage | Public | Header + Footer |
+| `/industry/:slug` | IndustryLandingPage | Public | Header + Footer |
+| `/industry/:industrySlug/:stateSlug` | IndustryStateLandingPage | Public | Header + Footer |
+| `/state/:slug` | StateLandingPage | Public | Header + Footer |
 | `*` | Redirect to `/` | — | — |
 
 ## Payment Flow
