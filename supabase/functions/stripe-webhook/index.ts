@@ -111,7 +111,8 @@ Deno.serve(async (req) => {
         }
 
         // Re-activate plan on renewal
-        await activatePlan(userId, planId, invoice.payment_intent as string, invoice.amount_paid)
+        const paymentIntent = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent?.id || `invoice_${invoice.id}`
+        await activatePlan(userId, planId, paymentIntent, invoice.amount_paid)
         break
       }
 
