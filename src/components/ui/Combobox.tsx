@@ -20,6 +20,7 @@ interface ComboboxProps {
 export default function Combobox({ options, value, onChange, placeholder = 'Search...', icon, label, id }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [activeIndex, setActiveIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const listboxId = `${id}-listbox`
@@ -73,6 +74,27 @@ export default function Combobox({ options, value, onChange, placeholder = 'Sear
             if (!open) setOpen(true)
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              if (!open) setOpen(true)
+              setActiveIndex(prev => Math.min(prev + 1, filtered.length - 1))
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              setActiveIndex(prev => Math.max(prev - 1, 0))
+            } else if (e.key === 'Enter' && open && activeIndex >= 0 && filtered[activeIndex]) {
+              e.preventDefault()
+              onChange(filtered[activeIndex].value)
+              setOpen(false)
+              setQuery('')
+              setActiveIndex(-1)
+            } else if (e.key === 'Escape') {
+              setOpen(false)
+              setQuery('')
+              setActiveIndex(-1)
+            }
+          }}
+          aria-activedescendant={activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
         />
         <ChevronDown className={cn('w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform', open && 'rotate-180')} />
       </div>
@@ -82,15 +104,17 @@ export default function Combobox({ options, value, onChange, placeholder = 'Sear
           {filtered.length === 0 ? (
             <div className="px-3 py-2 text-sm text-gray-400">No results</div>
           ) : (
-            filtered.map(opt => (
+            filtered.map((opt, idx) => (
               <button
                 key={opt.value}
                 type="button"
                 role="option"
+                id={`${id}-option-${idx}`}
                 aria-selected={opt.value === value}
                 className={cn(
                   'w-full text-left px-3 py-2 text-sm hover:bg-primary-50 transition-colors',
-                  opt.value === value && 'bg-primary-50 text-primary-700 font-medium'
+                  opt.value === value && 'bg-primary-50 text-primary-700 font-medium',
+                  idx === activeIndex && 'bg-primary-100'
                 )}
                 onClick={() => {
                   onChange(opt.value)

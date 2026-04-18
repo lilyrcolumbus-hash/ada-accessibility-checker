@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ListChecks, ChevronDown, ChevronRight, Lock, FileText, ShieldCheck, RotateCcw, ChevronRight as ArrowRight } from 'lucide-react'
+import { ListChecks, ChevronDown, ChevronRight, Lock, FileText, ShieldCheck, RotateCcw, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import IssueCard from './IssueCard'

@@ -192,6 +192,15 @@ export function generatePdfReport(result: ScanResult, domain: string): void {
     printWindow.document.write(html)
     printWindow.document.close()
   } else {
-    alert('Unable to open print dialog. Please allow pop-ups for this site and try again.')
+    // Fallback: download as HTML file if popup is blocked
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ada-audit-report-${domain}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 }
