@@ -215,4 +215,4 @@ create trigger update_profiles_updated_at
   before update on public.profiles
   for each row execute function public.update_updated_at();
 
--- No subscription triggers needed — one-time payment model
+-- Subscription lifecycle handled by Stripe webhook (checkout.session.completed, invoice.paid, customer.subscription.deleted)

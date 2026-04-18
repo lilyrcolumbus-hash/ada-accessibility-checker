@@ -81,6 +81,7 @@ export const PLANS: Plan[] = [
     price: 199,
     priceId: 'price_1TAdnUFfYL1pGw0oGAqWfMTa',
     billing: 'yearly',
+    comingSoon: true,
     features: [
       'Everything in Fix My Site',
       'Up to 5 websites',
