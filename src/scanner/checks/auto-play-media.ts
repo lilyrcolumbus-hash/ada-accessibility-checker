@@ -13,7 +13,7 @@ function getSelector(el: Element): string {
   return tag
 }
 
-export function checkAutoPlayMedia(doc: Document, url: string): ScanIssue[] {
+export function checkAutoPlayMedia(doc: Document, _url: string): ScanIssue[] {
   const issues: ScanIssue[] = []
 
   // Check all video and audio elements
@@ -24,39 +24,37 @@ export function checkAutoPlayMedia(doc: Document, url: string): ScanIssue[] {
     const hasAutoplay = el.hasAttribute('autoplay')
     const hasControls = el.hasAttribute('controls')
 
-    // Check for autoplay attribute
-    if (hasAutoplay) {
+    if (hasAutoplay && !hasControls) {
+      // Autoplay without controls — most severe: user can't stop it
       issues.push({
         id: generateId(),
-        checkId: 'autoplay-media',
+        checkId: 'autoplay-media-no-controls',
         severity: 'serious',
-        title: `${elementType} element autoplays`,
-        description: `The ${elementType} element has an autoplay attribute, which can be disorienting or startling for users. Media should only play when the user explicitly chooses to play it.`,
+        title: `${elementType} autoplays without controls`,
+        description: `The ${elementType} element autoplays and has no controls. Users cannot pause, stop, or adjust volume. This violates WCAG 1.4.2 (Audio Control).`,
         element: elementType,
         selector: getSelector(el),
         wcagCriteria: '1.4.2',
         wcagLevel: 'A',
-        fixDescription: `Remove the autoplay attribute and let users control playback.`,
+        fixDescription: `Remove the autoplay attribute and add the controls attribute so users can control playback.`,
         codeBefore: truncateHtml(el),
         codeAfter: `<${elementType} controls><source src="..." type="..."></source></${elementType}>`,
         estimatedFixMinutes: 2,
         category: 'Media'
       })
-    }
-
-    // Check for missing controls attribute (only if autoplay is set)
-    if (hasAutoplay && !hasControls) {
+    } else if (hasAutoplay) {
+      // Autoplay with controls — less severe
       issues.push({
         id: generateId(),
-        checkId: 'media-missing-controls',
-        severity: 'serious',
-        title: `${elementType} element lacks controls`,
-        description: `The ${elementType} element does not have a controls attribute. Users need a way to control media playback, pause, and volume.`,
+        checkId: 'autoplay-media',
+        severity: 'moderate',
+        title: `${elementType} element autoplays`,
+        description: `The ${elementType} element has an autoplay attribute, which can be disorienting for users. Controls are present, but media should require user interaction to start.`,
         element: elementType,
         selector: getSelector(el),
         wcagCriteria: '1.4.2',
         wcagLevel: 'A',
-        fixDescription: `Add the controls attribute to allow users to play, pause, and adjust volume.`,
+        fixDescription: `Remove the autoplay attribute and let users choose when to play.`,
         codeBefore: truncateHtml(el),
         codeAfter: `<${elementType} controls><source src="..." type="..."></source></${elementType}>`,
         estimatedFixMinutes: 2,

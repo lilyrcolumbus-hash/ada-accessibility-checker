@@ -23,8 +23,6 @@ async function activatePlan(userId: string, planId: string, paymentId: string, a
     return
   }
 
-  console.log(`Activating plan: user=${userId}, plan=${planId}, payment=${paymentId}`)
-
   const { error: profileError } = await supabase
     .from('profiles')
     .update({ plan: planId })
@@ -45,7 +43,6 @@ async function activatePlan(userId: string, planId: string, paymentId: string, a
     console.error('Failed to record purchase:', purchaseError)
   }
 
-  console.log(`Plan activated successfully: user=${userId}, plan=${planId}`)
 }
 
 Deno.serve(async (req) => {
@@ -79,7 +76,6 @@ Deno.serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session
 
         if (session.payment_status !== 'paid') {
-          console.log('Session not paid, skipping:', session.id)
           break
         }
 
@@ -125,8 +121,6 @@ Deno.serve(async (req) => {
         const userId = sub.metadata?.supabase_user_id
 
         if (!userId) break
-
-        console.log(`Subscription cancelled: user=${userId}, sub=${sub.id}`)
 
         const { error } = await supabase
           .from('profiles')

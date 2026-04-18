@@ -133,8 +133,6 @@ Deno.serve(async (req) => {
       console.error('Failed to record purchase:', purchaseError)
     }
 
-    console.log(`PayPal purchase recorded: user=${user.id}, plan=${planId}, capture=${paypalCaptureId}`)
-
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

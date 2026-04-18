@@ -122,7 +122,7 @@ export function HeroSection() {
   );
 }
 
-const BASE_SCAN_COUNT = 2847;
+const BASE_SCAN_COUNT = 0;
 
 function ScanCounter() {
   const [targetCount, setTargetCount] = useState(BASE_SCAN_COUNT);
