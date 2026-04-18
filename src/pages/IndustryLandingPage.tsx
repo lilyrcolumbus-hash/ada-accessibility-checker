@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { Shield, AlertTriangle, Scale, ArrowRight, FileWarning, Clock, DollarSign, Users } from 'lucide-react'
 import { INDUSTRY_RISK, LAWSUIT_STATS } from '@/config/constants'
 import Button from '@/components/ui/Button'
@@ -39,7 +39,6 @@ const INDUSTRY_DESCRIPTIONS: Record<string, string> = {
 
 export default function IndustryLandingPage() {
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
 
   const industry = slug ? INDUSTRY_RISK[slug] : undefined
   const label = slug ? INDUSTRY_LABELS[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''
@@ -62,8 +61,7 @@ export default function IndustryLandingPage() {
   }, [slug, industry, label])
 
   if (!slug || !industry) {
-    navigate('/', { replace: true })
-    return null
+    return <Navigate to="/" replace />
   }
 
   const riskColors = getRiskColor(industry.riskLevel)

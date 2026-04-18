@@ -52,9 +52,9 @@ export default function EmailCapture() {
             <Mail className="h-5 w-5 text-primary-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">Get your full report by email</p>
+            <p className="text-sm font-semibold text-gray-900">Save your results</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Save a copy of your accessibility audit before you leave.
+              Enter your email to get notified about compliance updates.
             </p>
           </div>
         </div>

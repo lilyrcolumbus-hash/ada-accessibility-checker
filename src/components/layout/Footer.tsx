@@ -42,7 +42,7 @@ export function Footer() {
             <Link to="/terms" className="text-sm text-gray-600 hover:text-primary-700">
               Terms of Service
             </Link>
-            <a href="mailto:hello@sitesafe.com" className="text-sm text-gray-600 hover:text-primary-700">
+            <a href="mailto:codebake.saas@outlook.com" className="text-sm text-gray-600 hover:text-primary-700">
               Contact
             </a>
           </div>

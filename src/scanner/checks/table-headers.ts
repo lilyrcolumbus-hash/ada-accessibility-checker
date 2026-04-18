@@ -78,10 +78,10 @@ export function checkTableHeaders(doc: Document, url: string): ScanIssue[] {
       issues.push({
         id: generateId(),
         checkId: 'table-missing-caption',
-        severity: 'moderate',
+        severity: 'minor',
         title: 'Table has no caption',
         description:
-          'The table does not have a <caption> element. A caption helps users understand the purpose and content of the table.',
+          'The table does not have a <caption> element. Adding a caption is recommended to help users understand the purpose of the table.',
         element: 'table',
         selector: tableSelector,
         wcagCriteria: '1.3.1',

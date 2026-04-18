@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { Shield, AlertTriangle, Scale, ArrowRight, Clock, MapPin, Building2 } from 'lucide-react'
 import { INDUSTRY_RISK, TOP_LAWSUIT_STATES, LAWSUIT_STATS } from '@/config/constants'
 import Button from '@/components/ui/Button'
@@ -24,7 +24,6 @@ function getSettlementRange(industryMultiplier: number, stateRisk: string): stri
 
 export default function IndustryStateLandingPage() {
   const { industrySlug, stateSlug } = useParams<{ industrySlug: string; stateSlug: string }>()
-  const navigate = useNavigate()
 
   const industry = industrySlug ? INDUSTRY_RISK[industrySlug] : undefined
   const industryLabel = industrySlug
@@ -61,8 +60,7 @@ export default function IndustryStateLandingPage() {
   }, [industrySlug, industry, stateName, stateData, industryLabel, combinedRisk])
 
   if (!industrySlug || !industry || !stateName || !stateData) {
-    navigate('/', { replace: true })
-    return null
+    return <Navigate to="/" replace />
   }
 
   const faqs = [
