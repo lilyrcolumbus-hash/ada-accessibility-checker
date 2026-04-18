@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -13,9 +13,11 @@ export function LoginForm() {
   const [searchParams] = useSearchParams()
   // Plan can come from: URL param, sessionStorage (set by ProtectedRoute), or registration flow
   const urlPlan = searchParams.get('plan')
-  if (urlPlan && urlPlan !== 'free') {
-    sessionStorage.setItem('sitesafe_pending_plan', urlPlan)
-  }
+  useEffect(() => {
+    if (urlPlan && urlPlan !== 'free') {
+      sessionStorage.setItem('sitesafe_pending_plan', urlPlan)
+    }
+  }, [urlPlan])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

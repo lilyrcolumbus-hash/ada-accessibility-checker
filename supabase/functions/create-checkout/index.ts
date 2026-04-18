@@ -36,9 +36,10 @@ Deno.serve(async (req) => {
     }
 
     const { priceId, planId } = await req.json()
-    if (!priceId) {
+    const VALID_PLANS = ['fix-my-site', 'compliance-shield']
+    if (!priceId || !planId || !VALID_PLANS.includes(planId)) {
       return new Response(
-        JSON.stringify({ error: 'Price ID is required' }),
+        JSON.stringify({ error: 'Valid price ID and plan ID are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

@@ -71,6 +71,7 @@ export default function Combobox({ options, value, onChange, placeholder = 'Sear
           value={open ? query : selectedLabel}
           onChange={e => {
             setQuery(e.target.value)
+            setActiveIndex(-1)
             if (!open) setOpen(true)
           }}
           onFocus={() => setOpen(true)}
