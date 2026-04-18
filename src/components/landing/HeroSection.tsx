@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -127,7 +127,7 @@ const BASE_SCAN_COUNT = 2847;
 function ScanCounter() {
   const [targetCount, setTargetCount] = useState(BASE_SCAN_COUNT);
   const [displayCount, setDisplayCount] = useState(0);
-  const animatedRef = useRef(false);
+
 
   useEffect(() => {
     // Try to fetch real scan count from Supabase
@@ -147,23 +147,23 @@ function ScanCounter() {
   }, []);
 
   useEffect(() => {
-    if (animatedRef.current) return;
-    animatedRef.current = true;
-
     const duration = 1500;
+    const startValue = displayCount;
     const start = performance.now();
+    let rafId: number;
 
     function tick(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       // Ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayCount(Math.round(eased * targetCount));
-      if (progress < 1) requestAnimationFrame(tick);
+      setDisplayCount(Math.round(startValue + (targetCount - startValue) * eased));
+      if (progress < 1) rafId = requestAnimationFrame(tick);
     }
 
-    requestAnimationFrame(tick);
-  }, [targetCount]);
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [targetCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-400">

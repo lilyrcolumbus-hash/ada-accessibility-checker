@@ -44,8 +44,8 @@ export function checkAutoPlayMedia(doc: Document, url: string): ScanIssue[] {
       })
     }
 
-    // Check for missing controls attribute
-    if (!hasControls) {
+    // Check for missing controls attribute (only if autoplay is set)
+    if (hasAutoplay && !hasControls) {
       issues.push({
         id: generateId(),
         checkId: 'media-missing-controls',

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { Shield, AlertTriangle, Scale, ArrowRight, MapPin, Clock, DollarSign, FileWarning } from 'lucide-react'
 import { TOP_LAWSUIT_STATES, LAWSUIT_STATS } from '@/config/constants'
 import Button from '@/components/ui/Button'
@@ -14,8 +14,6 @@ function getStateRanking(stateName: string): number {
 
 export default function StateLandingPage() {
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
-
   const stateName = slug ? slugToStateName(slug) : undefined
   const stateData = stateName ? TOP_LAWSUIT_STATES[stateName] : undefined
 
@@ -36,8 +34,7 @@ export default function StateLandingPage() {
   }, [stateName, stateData])
 
   if (!slug || !stateName || !stateData) {
-    navigate('/', { replace: true })
-    return null
+    return <Navigate to="/" replace />
   }
 
   const riskColors = getRiskColor(stateData.riskLevel)

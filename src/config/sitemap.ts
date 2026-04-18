@@ -1,4 +1,5 @@
 import { INDUSTRY_RISK, TOP_LAWSUIT_STATES } from '@/config/constants'
+import { blogPosts } from '@/config/blog-posts'
 
 const BASE_URL = 'https://ada-accessibility-checker.pages.dev'
 
@@ -20,6 +21,12 @@ export function getAllSitemapUrls(): SitemapEntry[] {
   urls.push({ url: `${BASE_URL}/scan`, priority: 0.9, changefreq: 'weekly' })
   urls.push({ url: `${BASE_URL}/privacy`, priority: 0.3, changefreq: 'monthly' })
   urls.push({ url: `${BASE_URL}/terms`, priority: 0.3, changefreq: 'monthly' })
+
+  // Blog pages
+  urls.push({ url: `${BASE_URL}/blog`, priority: 0.7, changefreq: 'weekly' })
+  for (const post of blogPosts) {
+    urls.push({ url: `${BASE_URL}/blog/${post.slug}`, priority: 0.6, changefreq: 'monthly' })
+  }
 
   // Industry pages
   const industrySlugs = Object.keys(INDUSTRY_RISK).filter(s => s !== 'other')

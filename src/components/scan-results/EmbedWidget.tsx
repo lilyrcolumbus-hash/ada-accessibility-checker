@@ -25,16 +25,20 @@ export default function EmbedWidget({ domain, score }: EmbedWidgetProps) {
   </span>
 </a>`
 
-  const handleCopyHtml = () => {
-    navigator.clipboard.writeText(embedCode)
-    setCopiedHtml(true)
-    setTimeout(() => setCopiedHtml(false), 2000)
+  const handleCopyHtml = async () => {
+    try {
+      await navigator.clipboard.writeText(embedCode)
+      setCopiedHtml(true)
+      setTimeout(() => setCopiedHtml(false), 2000)
+    } catch { /* clipboard not available */ }
   }
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(scanUrl)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(scanUrl)
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    } catch { /* clipboard not available */ }
   }
 
   return (

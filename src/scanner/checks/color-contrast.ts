@@ -111,10 +111,7 @@ export function checkColorContrast(doc: Document, url: string): ScanIssue[] {
 
     // Only check if we can determine both colors from inline styles
     if (fg && bg) {
-      const fgParsed = parseColor(fg)
-      const bgParsed = parseColor(bg)
-
-      if (fgParsed && bgParsed) {
+      if (parseColor(fg) && parseColor(bg)) {
         const contrastRatio = calculateContrastRatio(fg, bg)
         const isLarge = isLargeText(el)
         const requiredRatio = isLarge ? 3 : 4.5
