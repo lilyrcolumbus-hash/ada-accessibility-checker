@@ -88,8 +88,8 @@ export function checkHeadingHierarchy(doc: Document, url: string): ScanIssue[] {
         wcagCriteria: '1.3.1',
         wcagLevel: 'A',
         fixDescription: `Change this ${currentTag} to ${expectedTag} to maintain proper heading hierarchy.`,
-        codeBefore: `<${prevTag}>Section</>\n<${currentTag}>Subsection</>`,
-        codeAfter: `<${prevTag}>Section</>\n<${expectedTag}>Subsection</>`,
+        codeBefore: `<${prevTag}>Section</${prevTag}>\n<${currentTag}>Subsection</${currentTag}>`,
+        codeAfter: `<${prevTag}>Section</${prevTag}>\n<${expectedTag}>Subsection</${expectedTag}>`,
         estimatedFixMinutes: 5,
         category: 'Structure',
       })

@@ -59,7 +59,7 @@ export function checkFormLabels(doc: Document, url: string): ScanIssue[] {
     const type = input.getAttribute('type')?.toLowerCase() || ''
 
     // Skip hidden inputs and buttons (radio and checkbox DO need labels)
-    if (type === 'hidden' || type === 'submit' || type === 'reset' || type === 'button' || type === 'image' || type === 'file') {
+    if (type === 'hidden' || type === 'submit' || type === 'reset' || type === 'button' || type === 'image') {
       return
     }
 

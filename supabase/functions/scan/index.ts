@@ -1,4 +1,30 @@
 import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const MAX_SCANS_PER_HOUR = 20
+
+async function checkRateLimit(ip: string): Promise<boolean> {
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count } = await supabase
+      .from('scan_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('ip_address', ip)
+      .gte('period_start', oneHourAgo)
+
+    if ((count ?? 0) >= MAX_SCANS_PER_HOUR) return false
+
+    await supabase.from('scan_usage').insert({ ip_address: ip, scan_count: 1, period_start: new Date().toISOString() })
+    return true
+  } catch {
+    // If rate limiting fails, allow the request
+    return true
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -6,6 +32,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Rate limiting by IP
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('cf-connecting-ip') || 'unknown'
+    const allowed = await checkRateLimit(ip)
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { url } = await req.json()
 
     if (!url) {

@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/ui/Button'
@@ -10,9 +10,7 @@ import { cn } from '@/lib/utils'
 export function LoginForm() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [searchParams] = useSearchParams()
-  const stateFrom = (location.state as { from?: string })?.from || '/dashboard'
   // Plan can come from: URL param, sessionStorage (set by ProtectedRoute), or registration flow
   const urlPlan = searchParams.get('plan')
   if (urlPlan && urlPlan !== 'free') {

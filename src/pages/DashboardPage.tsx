@@ -58,14 +58,18 @@ function getPlanBadgeVariant(plan: string): 'default' | 'success' | 'critical' {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return 'text-success-600'
+  if (score >= 90) return 'text-success-600'
+  if (score >= 70) return 'text-success-500'
   if (score >= 50) return 'text-warning-600'
+  if (score >= 30) return 'text-orange-600'
   return 'text-danger-600'
 }
 
 function getScoreBg(score: number): string {
-  if (score >= 80) return 'bg-success-50'
+  if (score >= 90) return 'bg-success-50'
+  if (score >= 70) return 'bg-success-50'
   if (score >= 50) return 'bg-warning-50'
+  if (score >= 30) return 'bg-orange-50'
   return 'bg-danger-50'
 }
 

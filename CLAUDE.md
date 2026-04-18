@@ -629,12 +629,12 @@ BrowserRouter
   - Compliance Shield: $199/year recurring, price ID `price_1TAdnUFfYL1pGw0oGAqWfMTa`
 - **Webhook (LIVE):** `we_1TAdnrFfYL1pGw0oncRY4Cgt` at `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
   - Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
-  - Signing secret: `whsec_zBWUU48zFcFTOcILdY19gQmc1WrqKJdF`
+  - Signing secret: stored in Supabase secrets (STRIPE_WEBHOOK_SECRET)
 
 ### PayPal
 - **Account:** SiteSafe Business (codebake.saas@outlook.com)
 - **Status:** LIVE credentials configured
-- **Client ID:** `AS1BWXkIsiqpaAfwqcYoobVPS9DXhjaPc7cF0nb2siW5-BSWX7Vb3eQlsGTUJL37oiegMjrNaDI-Q7KL`
+- **Client ID:** stored in Supabase secrets (PAYPAL_CLIENT_ID)
 - **API URL:** `https://api-m.paypal.com` (live, NOT sandbox)
 
 ### Cloudflare Pages

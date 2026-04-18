@@ -14,7 +14,7 @@ async function fetchHtml(url: string): Promise<string> {
     const timer = setTimeout(() => controller.abort(), 20000)
 
     try {
-      console.log('[SiteSafe] Fetching via Supabase edge function:', url)
+      // Fetch via Supabase edge function
       const response = await fetch(`${SUPABASE_URL}/functions/v1/scan`, {
         method: 'POST',
         headers: {
@@ -32,7 +32,7 @@ async function fetchHtml(url: string): Promise<string> {
       }
       if (!data.html) throw new Error('No HTML returned')
 
-      console.log('[SiteSafe] Got HTML via Supabase, length:', data.html.length)
+      // Got HTML via Supabase
       return data.html
     } catch (err) {
       clearTimeout(timer)
@@ -113,21 +113,19 @@ export function useScan(url?: string): UseScanReturn {
       const html = await fetchHtml(normalised)
 
       // 2. Run the scanner
-      console.log('[SiteSafe] Running scanner on HTML...')
       const scanResult = await runScan(html, normalised)
-      console.log('[SiteSafe] Scan complete. Score:', scanResult.score, 'Issues:', scanResult.totalIssues)
 
-      // 4. Persist to sessionStorage
+      // 3. Persist to sessionStorage
       try {
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(scanResult))
       } catch {
         // quota exceeded — skip
       }
 
-      // 5. Show results IMMEDIATELY — don't wait for DB
+      // 4. Show results IMMEDIATELY — don't wait for DB
       setResult(scanResult)
 
-      // 6. Save to DB in background (fire and forget — never blocks UI)
+      // 5. Save to DB in background (fire and forget — never blocks UI)
       if (isSupabaseConfigured) {
         (async () => {
           try {

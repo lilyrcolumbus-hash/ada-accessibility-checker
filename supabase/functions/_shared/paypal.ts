@@ -1,4 +1,7 @@
-const PAYPAL_API_URL = Deno.env.get('PAYPAL_API_URL') || 'https://api-m.sandbox.paypal.com'
+const PAYPAL_API_URL = Deno.env.get('PAYPAL_API_URL')
+if (!PAYPAL_API_URL) {
+  throw new Error('PAYPAL_API_URL environment variable is required')
+}
 
 export async function getPayPalAccessToken(): Promise<string> {
   const clientId = Deno.env.get('PAYPAL_CLIENT_ID')
