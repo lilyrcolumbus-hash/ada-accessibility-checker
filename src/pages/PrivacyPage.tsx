@@ -61,7 +61,7 @@ export function PrivacyPage() {
           <h2 className="text-lg font-bold text-gray-900 mb-2">6. Your Rights</h2>
           <p className="text-gray-600 leading-relaxed">
             You can: access, update, or delete your account and data at any time; request a copy of
-            your data; and opt out of non-essential communications. Contact us at hello@sitesafe.com
+            your data; and opt out of non-essential communications. Contact us at codebake.saas@outlook.com
             for any privacy-related requests.
           </p>
         </section>
@@ -70,8 +70,8 @@ export function PrivacyPage() {
           <h2 className="text-lg font-bold text-gray-900 mb-2">7. Contact</h2>
           <p className="text-gray-600 leading-relaxed">
             For privacy questions or concerns, contact us at{' '}
-            <a href="mailto:hello@sitesafe.com" className="text-primary-600 hover:text-primary-700">
-              hello@sitesafe.com
+            <a href="mailto:codebake.saas@outlook.com" className="text-primary-600 hover:text-primary-700">
+              codebake.saas@outlook.com
             </a>.
           </p>
         </section>

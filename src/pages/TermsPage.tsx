@@ -89,8 +89,8 @@ export function TermsPage() {
           <h2 className="text-lg font-bold text-gray-900 mb-2">8. Contact</h2>
           <p className="text-gray-600 leading-relaxed">
             For questions about these terms, contact us at{' '}
-            <a href="mailto:hello@sitesafe.com" className="text-primary-600 hover:text-primary-700">
-              hello@sitesafe.com
+            <a href="mailto:codebake.saas@outlook.com" className="text-primary-600 hover:text-primary-700">
+              codebake.saas@outlook.com
             </a>.
           </p>
         </section>

@@ -1,6 +1,9 @@
-const PAYPAL_API_URL = Deno.env.get('PAYPAL_API_URL')
-if (!PAYPAL_API_URL) {
-  throw new Error('PAYPAL_API_URL environment variable is required')
+function getApiUrl(): string {
+  const url = Deno.env.get('PAYPAL_API_URL')
+  if (!url) {
+    throw new Error('PAYPAL_API_URL environment variable is required')
+  }
+  return url
 }
 
 export async function getPayPalAccessToken(): Promise<string> {
@@ -11,7 +14,7 @@ export async function getPayPalAccessToken(): Promise<string> {
     throw new Error('PayPal credentials not configured')
   }
 
-  const res = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
+  const res = await fetch(`${getApiUrl()}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${btoa(`${clientId}:${secret}`)}`,
@@ -30,5 +33,5 @@ export async function getPayPalAccessToken(): Promise<string> {
 }
 
 export function getPayPalApiUrl(): string {
-  return PAYPAL_API_URL
+  return getApiUrl()
 }
