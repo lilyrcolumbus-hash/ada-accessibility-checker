@@ -64,7 +64,7 @@ export const blogPosts: BlogPost[] = [
     tags: ['Legal', 'Deadline', 'Small Business'],
     image: '/blog-deadline.jpg',
     content: `
-<img src="/blog-deadline.jpg" alt="Calendar showing April 26, 2026 deadline circled in red next to SiteSafe scanner showing 43 days left" style="width:100%;border-radius:12px;margin-bottom:24px;" />
+<img src="/blog-deadline.jpg" alt="Calendar showing April 26, 2026 ADA compliance deadline circled in red next to SiteSafe accessibility scanner" style="width:100%;border-radius:12px;margin-bottom:24px;" />
 
 <h2>The Clock Is Ticking</h2>
 <p>On April 24, 2024, the U.S. Department of Justice published a final rule under Title II of the ADA requiring state and local government websites to meet WCAG 2.1 Level AA standards. While Title II applies directly to government entities, the rule has accelerated enforcement expectations for <strong>all</strong> businesses with public-facing websites — especially those operating in states with aggressive ADA litigation like New York, Florida, and California.</p>
