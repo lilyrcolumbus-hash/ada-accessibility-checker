@@ -1,7 +1,13 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 export function PrivacyPage() {
+  useEffect(() => {
+    document.title = 'Privacy Policy — SiteSafe'
+    return () => { document.title = 'SiteSafe — ADA Website Accessibility Checker' }
+  }, [])
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
       <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 mb-8">

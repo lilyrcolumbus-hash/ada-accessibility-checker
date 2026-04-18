@@ -56,7 +56,11 @@ export default function IndustryStateLandingPage() {
       newMeta.content = desc
       document.head.appendChild(newMeta)
     }
-    return () => { document.title = 'SiteSafe — ADA Website Accessibility Checker' }
+    return () => {
+      document.title = 'SiteSafe — ADA Website Accessibility Checker'
+      const meta = document.querySelector('meta[name="description"]')
+      if (meta) meta.setAttribute('content', 'Scan your website for ADA/WCAG 2.1 AA violations. Get plain English results with copy-paste fixes. Avoid $10,000+ lawsuits.')
+    }
   }, [industrySlug, industry, stateName, stateData, industryLabel, combinedRisk])
 
   if (!industrySlug || !industry || !stateName || !stateData) {
