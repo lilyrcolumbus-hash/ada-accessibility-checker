@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, FormEvent } from 'react'
+import { useEffect, useRef, useState, useCallback, FormEvent } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { RefreshCw, AlertCircle, Shield, ArrowLeft, Search, LayoutDashboard, FileDown } from 'lucide-react'
 import { cn, getDomain } from '@/lib/utils'
@@ -141,20 +141,26 @@ export function ScanPage() {
   const { loading, result, error, startScan } = useScan(rawUrl)
   const { isPaid } = useSubscription()
   const { user } = useAuth()
+  const startScanRef = useRef(startScan)
+  startScanRef.current = startScan
+  const scanStateRef = useRef({ loading, result, error })
+  scanStateRef.current = { loading, result, error }
 
   // Auto-start scan when URL param is present and no result yet
   useEffect(() => {
-    if (rawUrl && !result && !loading && !error) {
-      startScan(rawUrl)
+    const { loading: l, result: r, error: e } = scanStateRef.current
+    if (rawUrl && !r && !l && !e) {
+      startScanRef.current(rawUrl)
     }
-  }, [rawUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rawUrl])
 
   // Force rescan when rescan=1 param is present
   useEffect(() => {
-    if (forceRescan && rawUrl && !loading) {
-      startScan(rawUrl)
+    const { loading: l } = scanStateRef.current
+    if (forceRescan && rawUrl && !l) {
+      startScanRef.current(rawUrl)
     }
-  }, [forceRescan]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [forceRescan, rawUrl])
 
   const handleRescan = useCallback(() => {
     if (rawUrl) startScan(rawUrl)
@@ -368,7 +374,7 @@ export function ScanPage() {
 
       {/* Embed widget — for paid users, right after score */}
       {isPaid && (
-        <EmbedWidget domain={domain} score={result.score} />
+        <EmbedWidget domain={domain} score={result.score} scannedUrl={result.url} />
       )}
 
       {/* Email capture for non-logged-in users */}
