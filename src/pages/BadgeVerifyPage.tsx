@@ -23,7 +23,7 @@ export default function BadgeVerifyPage() {
       try {
         const { supabase } = await import('@/lib/supabase')
         const { data, error: rpcError } = await supabase.rpc('verify_badge', {
-          badge_token: token,
+          badge_token_param: token,
         })
 
         if (rpcError || !data) {

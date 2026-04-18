@@ -88,8 +88,8 @@ ada-accessibility-checker/
 │   │   ├── checkout/
 │   │   │   ├── StripeCheckoutButton.tsx  # Calls create-checkout edge function → redirect to Stripe
 │   │   │   └── PayPalCheckoutButton.tsx  # PayPal SDK buttons → create + capture orders
-│   │   ├── dashboard/
-│   │   │   └── BadgePreview.tsx    # Embeddable compliance badge + embed code
+│   │   ├── seo/
+│   │   │   └── shared.tsx          # Shared SEO utils (getRiskColor, FAQItem, INDUSTRY_LABELS, slugToStateName)
 │   │   ├── auth/
 │   │   │   ├── LoginForm.tsx       # Detects sitesafe_pending_plan → redirect to /checkout
 │   │   │   ├── RegisterForm.tsx    # Auto-redirects after signup (no email confirmation)
