@@ -11,7 +11,10 @@ export function UrgencyBanner() {
 
   const now = new Date();
   const diffMs = DEADLINE.getTime() - now.getTime();
-  const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  // Hide banner after deadline has passed
+  if (daysLeft <= 0) return null;
 
   function handleDismiss() {
     sessionStorage.setItem(DISMISS_KEY, '1');
@@ -23,7 +26,7 @@ export function UrgencyBanner() {
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-4 py-1.5 text-xs font-medium sm:text-sm">
         <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
         <span>
-          Federal ADA deadline: April 26, 2026 — <strong>{daysLeft} days left</strong>
+          Federal ADA deadline: April 26, 2026 — <strong>{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</strong>
         </span>
         <button
           onClick={handleDismiss}
