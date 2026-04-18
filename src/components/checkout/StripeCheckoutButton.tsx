@@ -49,7 +49,7 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
       }
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       const res = await fetch(
         `${supabaseUrl}/functions/v1/create-checkout`,

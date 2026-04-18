@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('paypal-capture-order error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Failed to capture PayPal payment. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

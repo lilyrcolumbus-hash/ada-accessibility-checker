@@ -105,7 +105,7 @@ export function LoginForm() {
 
           <p className="text-center text-sm text-gray-500">
             Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-primary-600 hover:text-primary-700">
+            <Link to={urlPlan && urlPlan !== 'free' ? `/register?plan=${urlPlan}` : '/register'} className="font-medium text-primary-600 hover:text-primary-700">
               Sign up
             </Link>
           </p>

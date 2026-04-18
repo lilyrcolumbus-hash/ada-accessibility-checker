@@ -32,8 +32,8 @@ export function CheckoutPage() {
     }
   }, [isPaidPlan, plan.comingSoon, navigate])
 
-  if (!isPaidPlan) return null
   if (isLoading) return null
+  if (!isPaidPlan) return null
 
   // User already has this plan or a higher plan
   const alreadyHasPlan = currentPlan.id === plan.id
