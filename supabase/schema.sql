@@ -216,3 +216,15 @@ create trigger update_profiles_updated_at
   for each row execute function public.update_updated_at();
 
 -- Subscription lifecycle handled by Stripe webhook (checkout.session.completed, invoice.paid, customer.subscription.deleted)
+
+-- Leads (email capture for marketing)
+create table if not exists public.leads (
+  id uuid default gen_random_uuid() primary key,
+  email text not null,
+  created_at timestamptz default now()
+);
+
+-- Allow anonymous inserts for lead capture (no auth required)
+alter table public.leads enable row level security;
+create policy "Anyone can submit a lead" on public.leads for insert with check (true);
+create policy "Only service role can read leads" on public.leads for select using (false);

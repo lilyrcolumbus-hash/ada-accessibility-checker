@@ -9,32 +9,43 @@ export default function EmailCapture() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(() => !!localStorage.getItem(STORAGE_KEY));
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setError('Please enter a valid email address.');
       return;
     }
+
+    setSaving(true);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      await supabase.from('leads').insert({ email: trimmed });
+    } catch {
+      // DB save failed — still save locally as fallback
+    }
+
     localStorage.setItem(STORAGE_KEY, trimmed);
     setSubmitted(true);
     setError('');
+    setSaving(false);
   }
 
   if (submitted) {
     return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-5">
+      <div className="rounded-xl border border-success-200 bg-success-50 p-5">
         <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 flex-shrink-0 text-green-600" />
+          <CheckCircle className="h-5 w-5 flex-shrink-0 text-success-600" />
           <div>
-            <p className="text-sm font-semibold text-green-800">Report saved!</p>
-            <p className="text-xs text-green-700 mt-0.5">
+            <p className="text-sm font-semibold text-success-800">You're on the list!</p>
+            <p className="text-xs text-success-700 mt-0.5">
               Create a free account to access your results anytime.
             </p>
           </div>
           <Link to="/register" className="ml-auto">
-            <Button size="sm" variant="outline" className="gap-1.5 whitespace-nowrap border-green-300 text-green-700 hover:bg-green-100">
+            <Button size="sm" variant="outline" className="gap-1.5 whitespace-nowrap border-success-300 text-success-700 hover:bg-success-100">
               <UserPlus className="h-3.5 w-3.5" />
               Sign Up Free
             </Button>
@@ -52,9 +63,9 @@ export default function EmailCapture() {
             <Mail className="h-5 w-5 text-primary-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">Save your results</p>
+            <p className="text-sm font-semibold text-gray-900">Stay updated</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Enter your email to get notified about compliance updates.
+              Get notified when new compliance tools launch.
             </p>
           </div>
         </div>
@@ -70,8 +81,8 @@ export default function EmailCapture() {
             aria-label="Email address"
             className="flex-1 sm:w-56 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
           />
-          <Button type="submit" size="sm">
-            Send
+          <Button type="submit" size="sm" loading={saving} disabled={saving}>
+            {saving ? 'Saving...' : 'Subscribe'}
           </Button>
         </form>
       </div>

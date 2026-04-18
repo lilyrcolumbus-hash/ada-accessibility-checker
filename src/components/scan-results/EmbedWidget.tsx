@@ -5,14 +5,16 @@ import Button from '@/components/ui/Button'
 interface EmbedWidgetProps {
   domain: string
   score: number
+  scannedUrl?: string
 }
 
-export default function EmbedWidget({ domain, score }: EmbedWidgetProps) {
+export default function EmbedWidget({ domain, score, scannedUrl }: EmbedWidgetProps) {
   const [copiedHtml, setCopiedHtml] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [showHtml, setShowHtml] = useState(false)
 
-  const scanUrl = `${window.location.origin}/scan?url=https://${domain}`
+  const targetUrl = scannedUrl || `https://${domain}`
+  const scanUrl = `${window.location.origin}/scan?url=${encodeURIComponent(targetUrl)}`
   const scoreLabel = score >= 80 ? 'Excellent' : score >= 50 ? 'Needs Work' : 'At Risk'
   const scoreBgClass = score >= 80 ? 'from-success-500 to-success-600' : score >= 50 ? 'from-warning-400 to-warning-500' : 'from-danger-500 to-danger-600'
 
