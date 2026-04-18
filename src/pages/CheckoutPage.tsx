@@ -28,7 +28,7 @@ export function CheckoutPage() {
   // No valid paid plan or coming soon → redirect to pricing
   useEffect(() => {
     if (!isPaidPlan || plan.comingSoon) {
-      navigate('/#pricing', { replace: true })
+      navigate('/', { replace: true })
     }
   }, [isPaidPlan, plan.comingSoon, navigate])
 

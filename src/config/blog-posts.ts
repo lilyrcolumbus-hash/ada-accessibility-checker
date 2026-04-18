@@ -109,7 +109,7 @@ export const blogPosts: BlogPost[] = [
 <li><strong>Plan for ongoing monitoring</strong> — accessibility isn't a one-time fix; new content can introduce new violations</li>
 </ol>
 
-<p>The April 2026 deadline is 43 days away. Whether it applies to you directly or not, it signals where enforcement is headed. Every day you wait is a day you remain exposed to a lawsuit that could cost your business thousands.</p>
+<p>The April 2026 deadline is approaching fast. Whether it applies to you directly or not, it signals where enforcement is headed. Every day you wait is a day you remain exposed to a lawsuit that could cost your business thousands.</p>
 `,
   },
   {

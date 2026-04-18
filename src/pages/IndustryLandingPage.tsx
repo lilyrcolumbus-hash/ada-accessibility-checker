@@ -1,40 +1,10 @@
 import { useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Shield, AlertTriangle, Scale, ArrowRight, FileWarning, Clock, DollarSign, Users, ChevronDown } from 'lucide-react'
+import { Shield, AlertTriangle, Scale, ArrowRight, FileWarning, Clock, DollarSign, Users } from 'lucide-react'
 import { INDUSTRY_RISK, LAWSUIT_STATS } from '@/config/constants'
 import Button from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
-
-const INDUSTRY_LABELS: Record<string, string> = {
-  'ecommerce': 'E-Commerce',
-  'retail': 'Retail',
-  'restaurant': 'Restaurant',
-  'food-delivery': 'Food Delivery',
-  'hotel': 'Hotel & Hospitality',
-  'travel': 'Travel',
-  'healthcare': 'Healthcare',
-  'dental': 'Dental',
-  'pharmacy': 'Pharmacy',
-  'finance': 'Finance',
-  'banking': 'Banking',
-  'insurance': 'Insurance',
-  'real-estate': 'Real Estate',
-  'automotive': 'Automotive',
-  'fitness': 'Fitness',
-  'salon-spa': 'Salon & Spa',
-  'education': 'Education',
-  'entertainment': 'Entertainment',
-  'media': 'Media',
-  'government': 'Government',
-  'nonprofit': 'Nonprofit',
-  'legal': 'Legal',
-  'accounting': 'Accounting',
-  'construction': 'Construction',
-  'manufacturing': 'Manufacturing',
-  'technology': 'Technology',
-  'consulting': 'Consulting',
-  'agriculture': 'Agriculture',
-}
+import { INDUSTRY_LABELS, getRiskColor, FAQItem } from '@/components/seo/shared'
 
 const INDUSTRY_DESCRIPTIONS: Record<string, string> = {
   'ecommerce': 'Online stores are the #1 target for ADA lawsuits. Every product page, checkout flow, and image needs to be accessible.',
@@ -65,29 +35,6 @@ const INDUSTRY_DESCRIPTIONS: Record<string, string> = {
   'technology': 'Technology company websites should lead by example in accessibility, covering documentation, demos, and support portals.',
   'consulting': 'Consulting firm websites with case studies, contact forms, and team bios should demonstrate accessible design practices.',
   'agriculture': 'Agricultural business websites with product listings, ordering, and resource pages benefit from accessibility compliance.',
-}
-
-function getRiskColor(riskLevel: string) {
-  switch (riskLevel) {
-    case 'extreme': return { bg: 'bg-danger-50', border: 'border-danger-200', text: 'text-danger-700', badge: 'bg-danger-100 text-danger-700', dot: 'bg-danger-500' }
-    case 'high': return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' }
-    case 'medium': return { bg: 'bg-warning-50', border: 'border-warning-200', text: 'text-warning-700', badge: 'bg-warning-100 text-warning-700', dot: 'bg-warning-500' }
-    default: return { bg: 'bg-success-50', border: 'border-success-200', text: 'text-success-700', badge: 'bg-success-100 text-success-700', dot: 'bg-success-500' }
-  }
-}
-
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  return (
-    <details className="group rounded-xl border border-gray-200 bg-white">
-      <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-4 text-left text-base font-semibold text-gray-900">
-        {question}
-        <ChevronDown className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="px-6 pb-4 text-sm leading-relaxed text-gray-600">
-        {answer}
-      </div>
-    </details>
-  )
 }
 
 export default function IndustryLandingPage() {
