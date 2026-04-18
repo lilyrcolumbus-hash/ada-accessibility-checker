@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,9 +18,11 @@ export function RegisterForm() {
   const hasPlanParam = searchParams.has('plan') && planId !== 'free'
 
   // Persist plan so LoginForm can pick it up if user switches to "Already have an account?"
-  if (hasPlanParam) {
-    sessionStorage.setItem('sitesafe_pending_plan', planId)
-  }
+  useEffect(() => {
+    if (hasPlanParam) {
+      sessionStorage.setItem('sitesafe_pending_plan', planId)
+    }
+  }, [hasPlanParam, planId])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
