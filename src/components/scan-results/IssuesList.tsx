@@ -69,6 +69,8 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
   const checkoutPath = user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site'
 
   const freeIds = isPaid ? null : getFreeIssueIds(issues, FREE_ISSUES_VISIBLE)
+  // Only the very first visible issue gets a free code fix
+  const firstFreeFixId = !isPaid && freeIds && freeIds.size > 0 ? [...freeIds][0] : null
   const hiddenCount = isPaid ? 0 : Math.max(0, issues.length - FREE_ISSUES_VISIBLE)
 
   // Critical starts expanded, rest collapsed
@@ -183,8 +185,8 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
               {/* Issues within group */}
               {isExpanded && (
                 <div className="p-3 space-y-3 bg-white">
-                  {visibleIssues.map((issue, idx) => (
-                    <IssueCard key={issue.id} issue={issue} showFix={isPaid || idx === 0} />
+                  {visibleIssues.map((issue) => (
+                    <IssueCard key={issue.id} issue={issue} showFix={isPaid || issue.id === firstFreeFixId} />
                   ))}
                   {lockedInGroup > 0 && (
                     <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-500">

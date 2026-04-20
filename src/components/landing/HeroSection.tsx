@@ -122,10 +122,10 @@ export function HeroSection() {
   );
 }
 
-const BASE_SCAN_COUNT = 0;
+const INITIAL_COUNT = 0;
 
 function ScanCounter() {
-  const [targetCount, setTargetCount] = useState(BASE_SCAN_COUNT);
+  const [targetCount, setTargetCount] = useState(INITIAL_COUNT);
   const [displayCount, setDisplayCount] = useState(0);
 
 
@@ -138,7 +138,7 @@ function ScanCounter() {
           .from('scans')
           .select('*', { count: 'exact', head: true });
         if (typeof count === 'number') {
-          setTargetCount(BASE_SCAN_COUNT + count);
+          setTargetCount(INITIAL_COUNT + count);
         }
       } catch {
         // Supabase unavailable — keep base count
