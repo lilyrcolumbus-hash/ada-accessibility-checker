@@ -104,4 +104,4 @@ export const SEVERITY_WEIGHTS = {
   minor: 1,
 } as const
 
-export type Severity = keyof typeof SEVERITY_WEIGHTS
+// Severity type is defined in scanner/types.ts — use that as single source of truth
