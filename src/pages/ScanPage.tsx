@@ -146,21 +146,15 @@ export function ScanPage() {
   const scanStateRef = useRef({ loading, result, error })
   scanStateRef.current = { loading, result, error }
 
-  // Auto-start scan when URL param is present and no result yet
+  // Auto-start scan when URL param is present
   useEffect(() => {
     const { loading: l, result: r, error: e } = scanStateRef.current
-    if (rawUrl && !r && !l && !e) {
+    if (!rawUrl || l) return
+    // Force rescan takes priority; otherwise only scan if no result yet
+    if (forceRescan || (!r && !e)) {
       startScanRef.current(rawUrl)
     }
-  }, [rawUrl])
-
-  // Force rescan when rescan=1 param is present
-  useEffect(() => {
-    const { loading: l } = scanStateRef.current
-    if (forceRescan && rawUrl && !l) {
-      startScanRef.current(rawUrl)
-    }
-  }, [forceRescan, rawUrl])
+  }, [rawUrl, forceRescan])
 
   const handleRescan = useCallback(() => {
     if (rawUrl) startScan(rawUrl)
