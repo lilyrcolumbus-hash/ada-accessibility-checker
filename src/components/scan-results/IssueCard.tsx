@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Copy, Check, AlertTriangle, AlertCircle, Info, AlertOctagon, Gift, Monitor } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronUp, Copy, Check, AlertTriangle, AlertCircle, Info, AlertOctagon, Gift, Monitor, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { formatTime } from '@/scanner/cost-estimator'
@@ -218,7 +220,41 @@ function SeverityIcon({ severity }: { severity: string }) {
   }
 }
 
-export default function IssueCard({ issue }: { issue: ScanIssue }) {
+function LockedFixOverlay() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const checkoutPath = user ? '/checkout?plan=fix-my-site' : '/register?plan=fix-my-site'
+
+  return (
+    <div className="border-t border-gray-100 px-4 py-6 bg-gray-50 text-center space-y-3">
+      <div className="flex items-center justify-center gap-2 text-gray-500">
+        <Lock className="w-4 h-4" />
+        <p className="text-sm font-semibold">Code fix locked</p>
+      </div>
+      <p className="text-xs text-gray-500 max-w-sm mx-auto">
+        Upgrade to Fix My Site ($49 one-time) to see the exact code fix for this issue.
+      </p>
+      <Button
+        size="sm"
+        variant="primary"
+        onClick={(e) => {
+          e.stopPropagation()
+          sessionStorage.setItem('sitesafe_pending_plan', 'fix-my-site')
+          navigate(checkoutPath)
+        }}
+      >
+        Unlock All Fixes — $49
+      </Button>
+    </div>
+  )
+}
+
+interface IssueCardProps {
+  issue: ScanIssue
+  showFix?: boolean
+}
+
+export default function IssueCard({ issue, showFix = true }: IssueCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const isImageIssue = IMAGE_CHECKS.includes(issue.checkId)
@@ -277,7 +313,10 @@ export default function IssueCard({ issue }: { issue: ScanIssue }) {
       </button>
 
       {/* Expandable code section */}
-      {expanded && (
+      {expanded && !showFix && (
+        <LockedFixOverlay />
+      )}
+      {expanded && showFix && (
         <div className="border-t border-gray-100 px-4 pb-4 space-y-3 bg-white">
             <>
               {/* Fix description */}

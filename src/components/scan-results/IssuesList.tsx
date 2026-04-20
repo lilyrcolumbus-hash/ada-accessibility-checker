@@ -183,8 +183,8 @@ export default function IssuesList({ issues, isPaid }: IssuesListProps) {
               {/* Issues within group */}
               {isExpanded && (
                 <div className="p-3 space-y-3 bg-white">
-                  {visibleIssues.map(issue => (
-                    <IssueCard key={issue.id} issue={issue} />
+                  {visibleIssues.map((issue, idx) => (
+                    <IssueCard key={issue.id} issue={issue} showFix={isPaid || idx === 0} />
                   ))}
                   {lockedInGroup > 0 && (
                     <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-500">

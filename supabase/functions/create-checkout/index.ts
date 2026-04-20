@@ -72,7 +72,6 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: isSubscription ? 'subscription' : 'payment',
-      payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/dashboard?payment=success&plan=${planId}`,
       cancel_url: `${origin}/#pricing`,
