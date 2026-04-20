@@ -81,8 +81,9 @@ export function useScan(url?: string): UseScanReturn {
         const parsed: ScanResult = JSON.parse(stored)
         // Only restore if it matches the requested url (or no url specified)
         // Normalise for comparison: raw url may lack protocol
-        const normalisedUrl = url && !url.startsWith('http') ? `https://${url}` : url
-        if (!normalisedUrl || parsed.url === normalisedUrl) {
+        if (!url) return // Don't restore stale results when no URL is specified
+        const normalisedUrl = url.startsWith('http') ? url : `https://${url}`
+        if (parsed.url === normalisedUrl) {
           setResult(parsed)
         }
       }
