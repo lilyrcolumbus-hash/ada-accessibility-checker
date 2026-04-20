@@ -238,7 +238,7 @@ Checks that need human-written content (alt-text, link-text, empty-interactive) 
 Supabase edge function gateway ONLY accepts anon key or service role key as JWT. User access tokens (from `supabase.auth.signInWithPassword`) are REJECTED by the gateway with `{"code":401,"message":"Invalid JWT"}` before the function code even runs. Solution: deploy all functions with `--no-verify-jwt` and validate auth inside the function via `supabase.auth.getUser()`.
 
 ```bash
-supabase functions deploy <name> --no-verify-jwt --project-ref mvzolbabbkedmlhqhiwi
+supabase functions deploy <name> --no-verify-jwt --project-ref rgmzczxlgniwdxzdeakq
 ```
 
 ### 13. PayPal as alternative payment
@@ -611,8 +611,8 @@ BrowserRouter
 ## Infrastructure
 
 ### Supabase
-- **Project ref:** `mvzolbabbkedmlhqhiwi`
-- **Project URL:** `https://mvzolbabbkedmlhqhiwi.supabase.co`
+- **Project ref:** `rgmzczxlgniwdxzdeakq`
+- **Project URL:** `https://rgmzczxlgniwdxzdeakq.supabase.co`
 - **Data API:** Enabled (RESTful API for public schema)
 - **Automatic RLS:** Enabled
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
@@ -627,7 +627,7 @@ BrowserRouter
 - **Products (LIVE):**
   - Fix My Site: $49 one-time, price ID `price_1TAdnSFfYL1pGw0o7zQs4NdX`
   - Compliance Shield: $199/year recurring, price ID `price_1TAdnUFfYL1pGw0oGAqWfMTa`
-- **Webhook (LIVE):** `we_1TAdnrFfYL1pGw0oncRY4Cgt` at `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
+- **Webhook (LIVE):** `we_1TAdnrFfYL1pGw0oncRY4Cgt` at `https://rgmzczxlgniwdxzdeakq.supabase.co/functions/v1/stripe-webhook`
   - Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
   - Signing secret: stored in Supabase secrets (STRIPE_WEBHOOK_SECRET)
 
