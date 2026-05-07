@@ -111,6 +111,9 @@ ada-accessibility-checker/
 │   │   ├── BadgeVerifyPage.tsx    # Public badge verification page
 │   │   ├── BlogPage.tsx           # Blog listing page
 │   │   ├── BlogPostPage.tsx       # Individual blog post page
+│   │   ├── ContactPage.tsx        # /contact — visible email + Copy button + mailto fallback
+│   │   ├── PrivacyPage.tsx        # Privacy policy
+│   │   ├── TermsPage.tsx          # Terms of service
 │   │   ├── IndustryLandingPage.tsx # Programmatic SEO: ADA compliance for [industry]
 │   │   ├── IndustryStateLandingPage.tsx # Programmatic SEO: [industry] + [state]
 │   │   └── StateLandingPage.tsx   # Programmatic SEO: ADA compliance in [state]
@@ -165,6 +168,9 @@ ada-accessibility-checker/
 | `/badge/:token` | BadgeVerifyPage | Public | Standalone |
 | `/blog` | BlogPage | Public | Header + Footer |
 | `/blog/:slug` | BlogPostPage | Public | Header + Footer |
+| `/contact` | ContactPage | Public | Header + Footer |
+| `/privacy` | PrivacyPage | Public | Header + Footer |
+| `/terms` | TermsPage | Public | Header + Footer |
 | `/industry/:slug` | IndustryLandingPage | Public | Header + Footer |
 | `/industry/:industrySlug/:stateSlug` | IndustryStateLandingPage | Public | Header + Footer |
 | `/state/:slug` | StateLandingPage | Public | Header + Footer |
@@ -349,13 +355,31 @@ WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. Th
 - Vite manualChunks: main bundle 573 kB → 490 kB (no chunk size warning)
 - Scan edge function rewritten with real Chrome 131 UA + 14 browser headers + per-status error messages (deployed v14 to mvzolbabbkedmlhqhiwi)
 - Migrated Supabase project ref from `rgmzczxlgniwdxzdeakq` to `mvzolbabbkedmlhqhiwi` (user's actual project — old ref belonged to someone else)
+- **Session 12: Infra cleanup + Contact page**
+- Cloudflare Pages env vars verified + corrected to point to `mvzolbabbkedmlhqhiwi` + manual redeploy successful
+- `.env.local` had `VITE_SUPABASE_ANON_KEY=PEGA_TU_ANON_KEY_AQUI` literal placeholder + wrong URL — fixed
+- Stripe webhook URL verified pointing to correct project, 0% error rate, 3 events configured
+- Created `/contact` page (visible email + Copy button + mailto fallback) — replaced dead footer mailto link
+- Discovered SPA scanning limitation (see Known Limitations below)
 
 ### Pending (to launch)
-- **Stripe account review** (payments paused until approved)
-- **Update Cloudflare env vars** to point to `mvzolbabbkedmlhqhiwi.supabase.co` if currently pointing elsewhere
-- **Verify Stripe webhook URL** points to `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
+- **Stripe payouts paused** — "required task is past due" banner in Stripe dashboard. User must complete KYC/identity/banking task before payouts resume. Account also still under review. Until both resolved, even successful payments won't transfer to bank
 - Buy custom domain + configure in Cloudflare
 - Submit sitemap to Google Search Console
+
+## Known Limitations
+
+### Scanner doesn't execute JavaScript (SPA limitation)
+The `scan` edge function fetches **raw HTML only** — no JS execution. This means:
+- ✅ Server-rendered sites (Shopify, WordPress, Wix, Squarespace, plain HTML) scan correctly — these are the target market
+- ❌ Client-rendered SPAs (React/Vue/Angular without SSR) appear empty to the scanner — only `<div id="root"></div>` is visible. Results show false negatives or bogus issues like "missing h1"
+
+**Discovered when:** scanning SiteSafe's own production URL (which IS a React SPA) returned a fake "missing h1" issue, even though `HeroSection.tsx:61` clearly has an `<h1>`.
+
+**Future fix options (in order of effort):**
+1. Pre-render content into `index.html` for SiteSafe specifically (cosmetic only)
+2. Detect SPA pattern and warn user with a banner (honest, no fake fixes)
+3. Use Playwright/headless Chrome in scanner (real fix, requires non-Edge infra + costs $)
 
 ### Future (post-launch)
 - Monthly automated re-scans (cron job for Compliance Shield)
@@ -456,6 +480,12 @@ WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. Th
 79. **Vite chunk size warning** — Main bundle was 573 kB (over 500 kB warning threshold). Added `manualChunks` to `vite.config.ts` splitting react/paypal/query into vendor chunks. Main bundle now 490 kB, no warning. Better caching since vendor chunks change rarely.
 80. **CRITICAL: Scan failed on real sites with WAF protection** — Edge function used `User-Agent: SiteSafe Accessibility Scanner/1.0` which Cloudflare/Imperva/Akamai block with 403. ALL scans of protected sites failed showing "Could not fetch this website" error. Fix: real Chrome 131 UA + 14 browser headers (`Accept-Language`, `sec-ch-ua-*`, `Sec-Fetch-*`, `Upgrade-Insecure-Requests`, etc.) + 15s timeout (was 10s) + specific error messages per HTTP status (403/401/429/404/5xx). **Awaiting deploy** to `mvzolbabbkedmlhqhiwi`.
 81. **CLAUDE.md pointed to wrong Supabase project** — Doc + `.env.local` referenced `rgmzczxlgniwdxzdeakq` (someone else's project, no CLI access for deploys). User confirmed `mvzolbabbkedmlhqhiwi` (SiteSafe-ada_checker) is the correct project. Updated all references — both project ref and webhook URL.
+
+### Session 12 fixes (infra cleanup + Contact page)
+82. **Scan edge function v14 deployed** — The WAF browser-headers fix from session 11 was sitting uncommitted/undeployed. Deployed via `supabase functions deploy scan --no-verify-jwt --project-ref mvzolbabbkedmlhqhiwi`. Verified working with example.com + cloudflare.com + shopify.com (all return real HTML now). The earlier "INACTIVE" deploy error was transient — project was actually active.
+83. **`.env.local` had wrong project ref AND placeholder anon key** — `VITE_SUPABASE_URL=https://rgmzczxlgniwdxzdeakq.supabase.co` (wrong project from someone else's account) and `VITE_SUPABASE_ANON_KEY=PEGA_TU_ANON_KEY_AQUI` (literal placeholder string, never filled in). Local dev would have been completely broken. Fixed both.
+84. **Cloudflare Pages env vars pointed to wrong Supabase project** — Same issue as `.env.local` — production was hitting `rgmzczxlgniwdxzdeakq.supabase.co`. User updated via Cloudflare dashboard + manual redeploy. Production now correctly hits `mvzolbabbkedmlhqhiwi`.
+85. **Footer "Contact" link was dead `mailto:`** — `<a href="mailto:codebake.saas@outlook.com">` does nothing for users without a configured email client (most users on web today). Created `/contact` page with visible email + Copy button + mailto fallback. Footer now uses `<Link to="/contact">`.
 
 ### Session 10 fixes (platform diagnosis + code quality)
 69. **RegisterForm showed "one-time" for all plans** — Compliance Shield ($199/year) displayed as "$199 one-time" during registration. Now shows "/year" for yearly billing, "one-time" for one-time.
