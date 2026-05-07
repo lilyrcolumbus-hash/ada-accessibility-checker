@@ -88,17 +88,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Fetch the page HTML (10s timeout)
+    // Fetch the page HTML (15s timeout) — present as a real browser to avoid WAF blocks
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    const browserHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'sec-ch-ua': '"Chromium";v="131", "Not_A Brand";v="24"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"macOS"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+    }
 
     let response: Response
     try {
       response = await fetch(parsedUrl.toString(), {
-        headers: {
-          'User-Agent': 'SiteSafe Accessibility Scanner/1.0',
-          'Accept': 'text/html,application/xhtml+xml',
-        },
+        headers: browserHeaders,
         redirect: 'follow',
         signal: controller.signal,
       })
@@ -106,7 +120,7 @@ Deno.serve(async (req) => {
       clearTimeout(timeoutId)
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
         return new Response(
-          JSON.stringify({ error: 'Timeout: page took too long to load (>10s)' }),
+          JSON.stringify({ error: 'Timeout: page took too long to load (>15s)' }),
           { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -115,8 +129,21 @@ Deno.serve(async (req) => {
     clearTimeout(timeoutId)
 
     if (!response.ok) {
+      // More specific errors for common WAF/auth blocks
+      let errorMessage = `Failed to fetch page: HTTP ${response.status}`
+      if (response.status === 403) {
+        errorMessage = 'This site is blocking automated scans (403 Forbidden). Try a different page or contact the site owner.'
+      } else if (response.status === 401) {
+        errorMessage = 'This page requires authentication and cannot be scanned publicly.'
+      } else if (response.status === 429) {
+        errorMessage = 'The target site is rate-limiting us. Try again in a few minutes.'
+      } else if (response.status === 404) {
+        errorMessage = 'Page not found (404). Check the URL and try again.'
+      } else if (response.status >= 500) {
+        errorMessage = `The site is returning a server error (${response.status}). Try again later.`
+      }
       return new Response(
-        JSON.stringify({ error: `Failed to fetch page: HTTP ${response.status}` }),
+        JSON.stringify({ error: errorMessage }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
