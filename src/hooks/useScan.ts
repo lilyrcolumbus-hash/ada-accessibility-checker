@@ -14,7 +14,6 @@ async function fetchHtml(url: string): Promise<string> {
     const timer = setTimeout(() => controller.abort(), 20000)
 
     try {
-      // Fetch via Supabase edge function
       const response = await fetch(`${SUPABASE_URL}/functions/v1/scan`, {
         method: 'POST',
         headers: {
@@ -26,17 +25,24 @@ async function fetchHtml(url: string): Promise<string> {
       })
       clearTimeout(timer)
 
-      const data = await response.json()
-      if (!response.ok || data.error) {
-        throw new Error(data.error || `Scan returned ${response.status}`)
-      }
-      if (!data.html) throw new Error('No HTML returned')
-
-      // Got HTML via Supabase
-      return data.html
+      // If we got a structured response (JSON), trust the server's error message —
+      // it knows whether it was DNS, 403, timeout, etc. Don't fall through.
+      const data = await response.json().catch(() => null)
+      if (data && data.html) return data.html
+      if (data && data.error) throw new Error(data.error)
+      throw new Error(`Scanner returned ${response.status} with no details`)
     } catch (err) {
       clearTimeout(timer)
-      console.warn('[SiteSafe] Supabase edge function failed:', err)
+      // Only fall through to dev proxy for network-level failures (no response).
+      // If the edge function gave us a real error message, propagate it as-is.
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      const isNetworkLevel =
+        err instanceof TypeError ||
+        (err instanceof Error && err.name === 'AbortError')
+      if (!isNetworkLevel) {
+        throw new Error(errorMessage)
+      }
+      console.warn('[SiteSafe] Edge function unreachable, trying dev proxy:', err)
     }
   }
 
@@ -57,7 +63,7 @@ async function fetchHtml(url: string): Promise<string> {
   }
 
   throw new Error(
-    'Could not fetch this website. It may be blocking automated requests, or our scanner is temporarily unavailable. Please try again.'
+    'Could not reach our scanner. Check your internet connection and try again.'
   )
 }
 
