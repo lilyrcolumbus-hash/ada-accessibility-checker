@@ -9,6 +9,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { TermsPage } from '@/pages/TermsPage'
+import { ContactPage } from '@/pages/ContactPage'
 import SharedReportPage from '@/pages/SharedReportPage'
 import BadgeVerifyPage from '@/pages/BadgeVerifyPage'
 import IndustryLandingPage from '@/pages/IndustryLandingPage'
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/industry/:slug" element={<IndustryLandingPage />} />
         <Route path="/industry/:industrySlug/:stateSlug" element={<IndustryStateLandingPage />} />
         <Route path="/state/:slug" element={<StateLandingPage />} />
