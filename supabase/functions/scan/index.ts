@@ -120,11 +120,34 @@ Deno.serve(async (req) => {
       clearTimeout(timeoutId)
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
         return new Response(
-          JSON.stringify({ error: 'Timeout: page took too long to load (>15s)' }),
+          JSON.stringify({ error: 'Timeout: this website took too long to respond (>15s). It may be slow or temporarily down.' }),
           { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      throw fetchError
+      // Categorize network-level failures by error message so users see why
+      const msg = fetchError instanceof Error ? fetchError.message.toLowerCase() : ''
+      let userMessage = 'Could not reach this website. It may be temporarily down.'
+      let status = 502
+      if (msg.includes('dns') || msg.includes('lookup address') || msg.includes('name resolution')) {
+        userMessage = `This website does not exist or the domain "${parsedUrl.hostname}" cannot be found. Check the URL for typos and confirm the site is still online.`
+        status = 404
+      } else if (msg.includes('connection refused') || msg.includes('tcp connect')) {
+        userMessage = `The server for "${parsedUrl.hostname}" is refusing connections. The website may be down or the server is offline.`
+        status = 502
+      } else if (msg.includes('connection reset') || msg.includes('connection closed')) {
+        userMessage = `The server for "${parsedUrl.hostname}" closed the connection unexpectedly. The site may be unstable or blocking automated traffic.`
+        status = 502
+      } else if (msg.includes('certificate') || msg.includes('tls') || msg.includes('ssl')) {
+        userMessage = `This website has an invalid or expired SSL certificate, so we cannot connect securely.`
+        status = 502
+      } else if (msg.includes('unreachable') || msg.includes('no route')) {
+        userMessage = `This website's server is unreachable from our network.`
+        status = 502
+      }
+      return new Response(
+        JSON.stringify({ error: userMessage }),
+        { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
     clearTimeout(timeoutId)
 
