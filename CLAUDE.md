@@ -238,7 +238,7 @@ Checks that need human-written content (alt-text, link-text, empty-interactive) 
 Supabase edge function gateway ONLY accepts anon key or service role key as JWT. User access tokens (from `supabase.auth.signInWithPassword`) are REJECTED by the gateway with `{"code":401,"message":"Invalid JWT"}` before the function code even runs. Solution: deploy all functions with `--no-verify-jwt` and validate auth inside the function via `supabase.auth.getUser()`.
 
 ```bash
-supabase functions deploy <name> --no-verify-jwt --project-ref rgmzczxlgniwdxzdeakq
+supabase functions deploy <name> --no-verify-jwt --project-ref mvzolbabbkedmlhqhiwi
 ```
 
 ### 13. PayPal as alternative payment
@@ -246,6 +246,12 @@ PayPalCheckoutButton only renders when both `VITE_PAYPAL_CLIENT_ID` and `VITE_SU
 
 ### 14. Scanner ID generation uses `generateId()` with fallback
 All 11 scanner checks use `generateId()` from `scanner/types.ts` instead of `crypto.randomUUID()` directly. This provides a fallback (`Date.now()` + counter) for environments where Web Crypto API is unavailable. **NEVER** use `crypto.randomUUID()` directly in scanner checks.
+
+### 15. Scan edge function MUST use browser-like User-Agent
+WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. The `scan` edge function uses a real Chrome UA + 14 standard browser headers (`Accept-Language`, `sec-ch-ua-*`, `Sec-Fetch-*`, etc.) to look like a real browser. **NEVER** revert to a custom UA like `SiteSafe Accessibility Scanner/1.0` — it will break scanning on most real-world sites.
+
+### 16. Vite manualChunks splits vendor bundles
+`vite.config.ts` declares `build.rollupOptions.output.manualChunks` to split `react`, `paypal`, and `query` into separate chunks. This keeps the main bundle under 500 kB (was 573 kB) and improves caching. Supabase is loaded via dynamic import so Rollup auto-splits it; do not add it to manualChunks.
 
 ## DB Schema (supabase/schema.sql)
 
@@ -339,9 +345,15 @@ All 11 scanner checks use `generateId()` from `scanner/types.ts` instead of `cry
 - PayPalCheckoutButton validates `VITE_SUPABASE_URL` before rendering
 - All 11 scanner checks migrated to centralized `generateId()` with browser fallback
 - CLAUDE.md project structure updated with 15+ missing files from sessions 9-10
+- **Session 11: Build optimization + WAF bypass + project migration**
+- Vite manualChunks: main bundle 573 kB → 490 kB (no chunk size warning)
+- Scan edge function rewritten with real Chrome 131 UA + 14 browser headers + per-status error messages (deployed v14 to mvzolbabbkedmlhqhiwi)
+- Migrated Supabase project ref from `rgmzczxlgniwdxzdeakq` to `mvzolbabbkedmlhqhiwi` (user's actual project — old ref belonged to someone else)
 
 ### Pending (to launch)
-- **Stripe account review** (2-3 days, payments paused until approved)
+- **Stripe account review** (payments paused until approved)
+- **Update Cloudflare env vars** to point to `mvzolbabbkedmlhqhiwi.supabase.co` if currently pointing elsewhere
+- **Verify Stripe webhook URL** points to `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
 - Buy custom domain + configure in Cloudflare
 - Submit sitemap to Google Search Console
 
@@ -439,6 +451,11 @@ All 11 scanner checks use `generateId()` from `scanner/types.ts` instead of `cry
 66. **SignOut left stale session** — `signOut()` only cleared state after successful API call. If API failed, user stuck as "logged in" forever. Now clears state + localStorage first, then tries API.
 67. **Register/Login ignored pending plan** — After clicking "Upgrade $49" → Register → went to Dashboard instead of Checkout. Now detects `sitesafe_pending_plan` in sessionStorage → routes to `/checkout?plan=X`.
 68. **Failed Stripe webhooks (6 events)** — 2 users paid $49 but plans never activated (webhook was broken). Manually activated plans + recorded purchases via Supabase service role API.
+
+### Session 11 fixes (build optimization + scan WAF block)
+79. **Vite chunk size warning** — Main bundle was 573 kB (over 500 kB warning threshold). Added `manualChunks` to `vite.config.ts` splitting react/paypal/query into vendor chunks. Main bundle now 490 kB, no warning. Better caching since vendor chunks change rarely.
+80. **CRITICAL: Scan failed on real sites with WAF protection** — Edge function used `User-Agent: SiteSafe Accessibility Scanner/1.0` which Cloudflare/Imperva/Akamai block with 403. ALL scans of protected sites failed showing "Could not fetch this website" error. Fix: real Chrome 131 UA + 14 browser headers (`Accept-Language`, `sec-ch-ua-*`, `Sec-Fetch-*`, `Upgrade-Insecure-Requests`, etc.) + 15s timeout (was 10s) + specific error messages per HTTP status (403/401/429/404/5xx). **Awaiting deploy** to `mvzolbabbkedmlhqhiwi`.
+81. **CLAUDE.md pointed to wrong Supabase project** — Doc + `.env.local` referenced `rgmzczxlgniwdxzdeakq` (someone else's project, no CLI access for deploys). User confirmed `mvzolbabbkedmlhqhiwi` (SiteSafe-ada_checker) is the correct project. Updated all references — both project ref and webhook URL.
 
 ### Session 10 fixes (platform diagnosis + code quality)
 69. **RegisterForm showed "one-time" for all plans** — Compliance Shield ($199/year) displayed as "$199 one-time" during registration. Now shows "/year" for yearly billing, "one-time" for one-time.
@@ -611,8 +628,8 @@ BrowserRouter
 ## Infrastructure
 
 ### Supabase
-- **Project ref:** `rgmzczxlgniwdxzdeakq`
-- **Project URL:** `https://rgmzczxlgniwdxzdeakq.supabase.co`
+- **Project ref:** `mvzolbabbkedmlhqhiwi`
+- **Project URL:** `https://mvzolbabbkedmlhqhiwi.supabase.co`
 - **Data API:** Enabled (RESTful API for public schema)
 - **Automatic RLS:** Enabled
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
@@ -627,7 +644,7 @@ BrowserRouter
 - **Products (LIVE):**
   - Fix My Site: $49 one-time, price ID `price_1TAdnSFfYL1pGw0o7zQs4NdX`
   - Compliance Shield: $199/year recurring, price ID `price_1TAdnUFfYL1pGw0oGAqWfMTa`
-- **Webhook (LIVE):** `we_1TAdnrFfYL1pGw0oncRY4Cgt` at `https://rgmzczxlgniwdxzdeakq.supabase.co/functions/v1/stripe-webhook`
+- **Webhook (LIVE):** `we_1TAdnrFfYL1pGw0oncRY4Cgt` at `https://mvzolbabbkedmlhqhiwi.supabase.co/functions/v1/stripe-webhook`
   - Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
   - Signing secret: stored in Supabase secrets (STRIPE_WEBHOOK_SECRET)
 
