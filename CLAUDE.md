@@ -360,12 +360,19 @@ WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. Th
 - `.env.local` had `VITE_SUPABASE_ANON_KEY=PEGA_TU_ANON_KEY_AQUI` literal placeholder + wrong URL — fixed
 - Stripe webhook URL verified pointing to correct project, 0% error rate, 3 events configured
 - Created `/contact` page (visible email + Copy button + mailto fallback) — replaced dead footer mailto link
+- Scan edge function v15: categorizes network failures (DNS / connection refused / SSL invalid / connection reset / unreachable) and returns specific user messages instead of generic "Internal server error"
+- `useScan.ts` propagates server error verbatim instead of falling through to dev-proxy fallback (which only exists in Vite dev mode and was masking real reasons in production)
 - Discovered SPA scanning limitation (see Known Limitations below)
+- Discovered "Your Current Plan" UX confusion: Supabase Auth restores session from localStorage on revisit, so users who paid don't realize they're still logged in. Pricing UI correctly shows their plan as current — but they think it's a bug. Header shows "My Dashboard" (auth indicator) but no email displayed (see Future improvements)
 
 ### Pending (to launch)
 - **Stripe payouts paused** — "required task is past due" banner in Stripe dashboard. User must complete KYC/identity/banking task before payouts resume. Account also still under review. Until both resolved, even successful payments won't transfer to bank
 - Buy custom domain + configure in Cloudflare
 - Submit sitemap to Google Search Console
+
+### Future improvements (UX nice-to-haves)
+- Show logged-in user's email in header next to "My Dashboard" — currently only the button is visible, so users with persistent sessions don't realize they're still authenticated
+- Auto-downgrade plan when Stripe `charge.refunded` webhook fires (currently profile keeps paid plan after refund — webhook only handles `customer.subscription.deleted` for Compliance Shield, not one-time refunds for Fix My Site)
 
 ## Known Limitations
 
@@ -486,6 +493,7 @@ The `scan` edge function fetches **raw HTML only** — no JS execution. This mea
 83. **`.env.local` had wrong project ref AND placeholder anon key** — `VITE_SUPABASE_URL=https://rgmzczxlgniwdxzdeakq.supabase.co` (wrong project from someone else's account) and `VITE_SUPABASE_ANON_KEY=PEGA_TU_ANON_KEY_AQUI` (literal placeholder string, never filled in). Local dev would have been completely broken. Fixed both.
 84. **Cloudflare Pages env vars pointed to wrong Supabase project** — Same issue as `.env.local` — production was hitting `rgmzczxlgniwdxzdeakq.supabase.co`. User updated via Cloudflare dashboard + manual redeploy. Production now correctly hits `mvzolbabbkedmlhqhiwi`.
 85. **Footer "Contact" link was dead `mailto:`** — `<a href="mailto:codebake.saas@outlook.com">` does nothing for users without a configured email client (most users on web today). Created `/contact` page with visible email + Copy button + mailto fallback. Footer now uses `<Link to="/contact">`.
+86. **Scan errors all looked the same to users** — DNS failures, connection refused, SSL errors, dead servers, and WAF blocks all showed the generic "Could not fetch this website. It may be blocking automated requests, or our scanner is temporarily unavailable." Edge function `scan/index.ts` now pattern-matches `fetchError.message` to detect: DNS resolution failure, connection refused, connection reset, TLS/SSL errors, network unreachable. Returns specific message + appropriate HTTP status (404 for DNS, 502 for the rest). Frontend `useScan.ts` had a second bug: when edge function returned a structured error, the catch block fell through to the dev-proxy fallback (which only exists in Vite dev), then threw the generic message. Now propagates server error verbatim unless the edge function itself was unreachable.
 
 ### Session 10 fixes (platform diagnosis + code quality)
 69. **RegisterForm showed "one-time" for all plans** — Compliance Shield ($199/year) displayed as "$199 one-time" during registration. Now shows "/year" for yearly billing, "one-time" for one-time.
