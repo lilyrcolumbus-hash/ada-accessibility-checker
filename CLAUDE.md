@@ -364,11 +364,14 @@ WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. Th
 - `useScan.ts` propagates server error verbatim instead of falling through to dev-proxy fallback (which only exists in Vite dev mode and was masking real reasons in production)
 - Discovered SPA scanning limitation (see Known Limitations below)
 - Discovered "Your Current Plan" UX confusion: Supabase Auth restores session from localStorage on revisit, so users who paid don't realize they're still logged in. Pricing UI correctly shows their plan as current — but they think it's a bug. Header shows "My Dashboard" (auth indicator) but no email displayed (see Future improvements)
+- **Payment flow verified end-to-end via DB query (2026-05-10):** `purchases` table has 2 real successful transactions — Fix My Site $49 one-time (`pi_3TDCgoFfYL1pGw0o1JQVN1YK`) + Compliance Shield $199 subscription (`sub_1TDChaFfYL1pGw0odsh76ABY`), both from 2026-03-20. Confirms Stripe Checkout → webhook signature → plan activation → purchase recording all work for both `mode: 'payment'` and `mode: 'subscription'`
+- **Stripe payouts unblocked (2026-05-10):** "required task" banner gone from dashboard. User completed KYC/banking task. Payouts to bank can now flow when sales come in. USD balance still -$9.28 from earlier refund — self-resolves with first new sale (the deficit gets covered before any net payout)
 
 ### Pending (to launch)
-- **Stripe payouts paused** — "required task is past due" banner in Stripe dashboard. User must complete KYC/identity/banking task before payouts resume. Account also still under review. Until both resolved, even successful payments won't transfer to bank
-- Buy custom domain + configure in Cloudflare
-- Submit sitemap to Google Search Console
+- Buy custom domain + configure in Cloudflare — `pages.dev` URL likely kills conversion for $49 paid product
+- Submit sitemap to Google Search Console — 78 programmatic SEO pages currently invisible to Google
+- (Optional) Verify Stripe account moved out of "Under Review" state in Settings → Account
+- **Real bottleneck is distribution, not engineering** — see "Distribution playbook" section below. Without traffic, no sales no matter how polished the app is
 
 ### Future improvements (UX nice-to-haves)
 - Show logged-in user's email in header next to "My Dashboard" — currently only the button is visible, so users with persistent sessions don't realize they're still authenticated
@@ -635,6 +638,16 @@ BrowserRouter
 - **Product Hunt:** Free launch, one-time traffic spike
 - **Communities:** Business owner groups (value sharing, not spam)
 - **Building in public:** Twitter/X
+
+## Distribution playbook (priority order — what to do this week)
+With infra/payments/scan all working, the real bottleneck is traffic. Order by ROI:
+
+1. **Custom domain ($10-15/yr)** — Highest ROI single fix. `ada-accessibility-checker.pages.dev` looks like a dev project; nobody pays $49 to that. Buy `sitesafe.io` / `sitesafe.app` / `adasafe.com` and configure DNS in Cloudflare (free). Realistic 2-5x conversion lift.
+2. **Submit sitemap to Google Search Console (free, 5 min)** — 78 programmatic SEO pages already exist (`sitemap.xml` includes them) but Google can't find them without explicit submission. URL: https://search.google.com/search-console
+3. **Reddit posts** — `r/smallbusiness`, `r/entrepreneur`, `r/Shopify`, `r/wordpress`. Format: value-first ("4,605 ADA lawsuits in 2023, here's what your site is missing") not promotional
+4. **Indie Hackers + Twitter "build in public"** — target audience overlap
+5. **Bootstrap testimonials** — give Fix My Site free to 5-10 small business owners in exchange for video/text testimonial. Display on landing. Without social proof nobody is the first to pay
+6. **Product Hunt launch** — schedule for Tue/Wed when ready
 
 ## Unit Economics
 - **CAC:** ~$0 (organic SEO)
