@@ -301,6 +301,21 @@ export default function IssueCard({ issue, showFix = true }: IssueCardProps) {
           </div>
           <p className="text-sm font-semibold text-gray-900 leading-snug">{issue.title}</p>
           <p className="text-sm text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{issue.description}</p>
+          {issue.pageUrl && (
+            <p className="text-xs text-gray-400 mt-1 font-mono truncate">
+              Found on:{' '}
+              <span className="text-gray-500">
+                {(() => {
+                  try {
+                    const u = new URL(issue.pageUrl)
+                    return u.pathname === '/' ? u.hostname : u.pathname
+                  } catch {
+                    return issue.pageUrl
+                  }
+                })()}
+              </span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3 flex-shrink-0 pt-0.5">
           <span className="text-xs text-gray-400 whitespace-nowrap hidden sm:flex items-center gap-1">

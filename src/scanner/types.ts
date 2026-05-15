@@ -23,6 +23,13 @@ export interface ScanIssue {
   codeAfter: string
   estimatedFixMinutes: number
   category: string
+  // Multi-page scan: the page where this issue was found. Absent for legacy single-page scans.
+  pageUrl?: string
+}
+
+export interface PageScanError {
+  url: string
+  error: string
 }
 
 export interface ScanResult {
@@ -37,6 +44,10 @@ export interface ScanResult {
   issues: ScanIssue[]
   passedChecks: string[]
   scanDurationMs: number
+  // Multi-page scan metadata. Undefined or 1 means legacy single-page result.
+  pagesScanned?: number
+  pagesAttempted?: number
+  pageErrors?: PageScanError[]
 }
 
 export interface RiskAssessment {

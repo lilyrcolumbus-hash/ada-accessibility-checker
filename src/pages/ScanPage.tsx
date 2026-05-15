@@ -296,6 +296,14 @@ export function ScanPage() {
             Scanned {new Date(result.scannedAt).toLocaleString()} ·{' '}
             {result.totalIssues} issue{result.totalIssues !== 1 ? 's' : ''} found ·{' '}
             {result.passedChecks.length} checks passed
+            {result.pagesScanned && result.pagesScanned > 1 && (
+              <>
+                {' · '}
+                <span className="font-medium text-gray-700">
+                  {result.pagesScanned} page{result.pagesScanned !== 1 ? 's' : ''} scanned
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
