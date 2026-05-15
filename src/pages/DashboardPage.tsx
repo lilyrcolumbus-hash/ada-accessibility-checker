@@ -41,7 +41,7 @@ const ALL_FEATURES = [
   { label: 'Top 3 critical issues with fixes', plans: ['free', 'fix-my-site', 'compliance-shield'] },
   { label: 'Lawsuit risk by industry & state', plans: ['free', 'fix-my-site', 'compliance-shield'] },
   { label: 'All issues with copy-paste fixes', plans: ['fix-my-site', 'compliance-shield'] },
-  { label: 'Scan up to 50 pages', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: 'Scan up to 25 pages', plans: ['fix-my-site', 'compliance-shield'] },
   { label: 'Accessibility Audit Report (PDF)', plans: ['fix-my-site', 'compliance-shield'] },
   { label: '"ADA Tested" badge for your site', plans: ['fix-my-site', 'compliance-shield'] },
   { label: 'Shareable report link', plans: ['fix-my-site', 'compliance-shield'] },
