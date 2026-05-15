@@ -259,6 +259,16 @@ WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. Th
 ### 16. Vite manualChunks splits vendor bundles
 `vite.config.ts` declares `build.rollupOptions.output.manualChunks` to split `react`, `paypal`, and `query` into separate chunks. This keeps the main bundle under 500 kB (was 573 kB) and improves caching. Supabase is loaded via dynamic import so Rollup auto-splits it; do not add it to manualChunks.
 
+### 17. Multi-page scan aggregation rules
+For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the per-page `ScanResult`s into one. Non-obvious rules:
+- **Score is an AVERAGE of per-page scores**, NOT a recalc on the aggregated issue list. Reason: the single-page scoring caps penalty at 100, so dumping 25 pages of minor issues into one bucket would score 0 unfairly. Averaging keeps a clean site at ~97 even if one page is bad.
+- **`passedChecks` is the INTERSECTION**, not the union. A WCAG check only counts as "passed" for the site if it passed on every scanned page. Conservative — accurate for legal display.
+- **Counts (`criticalCount` etc) are SUMS** across all pages.
+- **Issues are annotated with `pageUrl`** (the page they were found on). Useful for the "Found on: /path" hint in IssueCard.
+- **No issue dedupe yet** — if a logo with missing alt appears on 25 pages, the user sees 25 cards. v2 should collapse identical signatures into one card with a "Found on N pages" badge.
+- **Edge function response shape:** `{ pages: [{url, html, error?}], finalUrl, html }`. Top-level `html` is kept for backwards compat with old frontend builds during the deploy window — DO NOT remove until you're sure no cached SPA bundles still expect it.
+- **Rate limit (`scan_usage` table) records ONE entry per request**, not per page. A 25-page crawl counts as 1 of the 20 scans/hour quota.
+
 ## DB Schema (supabase/schema.sql)
 
 ### Tables (6)
@@ -366,6 +376,30 @@ WAFs (Cloudflare, Imperva, Akamai) block any non-browser User-Agent with 403. Th
 - Discovered "Your Current Plan" UX confusion: Supabase Auth restores session from localStorage on revisit, so users who paid don't realize they're still logged in. Pricing UI correctly shows their plan as current — but they think it's a bug. Header shows "My Dashboard" (auth indicator) but no email displayed (see Future improvements)
 - **Payment flow verified end-to-end via DB query (2026-05-10):** `purchases` table has 2 real successful transactions — Fix My Site $49 one-time (`pi_3TDCgoFfYL1pGw0o1JQVN1YK`) + Compliance Shield $199 subscription (`sub_1TDChaFfYL1pGw0odsh76ABY`), both from 2026-03-20. Confirms Stripe Checkout → webhook signature → plan activation → purchase recording all work for both `mode: 'payment'` and `mode: 'subscription'`
 - **Stripe payouts unblocked (2026-05-10):** "required task" banner gone from dashboard. User completed KYC/banking task. Payouts to bank can now flow when sales come in. USD balance still -$9.28 from earlier refund — self-resolves with first new sale (the deficit gets covered before any net payout)
+- **Session 13: Multi-page crawl shipped (2026-05-15)**
+- **Discovery:** "Up to 50 pages" was advertised in 4 marketing files (DashboardPage, IndustryLandingPage, StateLandingPage, IndustryStateLandingPage) + CLAUDE.md but **the backend never implemented crawl** — only single-page fetch. Pure marketing claim with no code behind it. Risk: chargeback / false-advertising / 1-star reviews
+- **Decision:** lowered promise to "Up to 25 pages" AND built the real crawl. Chose 25 because it (a) fits comfortably in Supabase Edge 150s timeout, (b) covers 95%+ of small-biz sites entirely, (c) matches SortSite's per-page price rate (~$2/page), (d) leaves room above competitors-with-no-code-fixes
+- **Backend (`scan` edge function v16):**
+  - Accepts `maxPages` param (1-25, default 1). Free users send 1, paid users send 25
+  - After fetching seed, extracts same-origin `<a href>` links via regex
+  - Filters: dedupes (normalized URLs), skips assets (pdf/jpg/css/js/etc), anchors, mailto/tel/javascript/data, cross-origin
+  - Fetches additional pages in parallel batches of 5 with 8s timeout each
+  - Returns `{ pages: [{url, html, error?}], finalUrl, html }` — keeps top-level `html` field for backwards compat with old frontend bundles during deploy window
+  - Verified live: 25 pages on stripe.com complete in ~5s (well under 150s edge limit)
+- **Frontend (`useScan.ts`):**
+  - Imports `useSubscription`. Sends `maxPages: isPaid ? 25 : 1`
+  - Loops returned pages through `runScan`, aggregates issues annotated with `pageUrl`
+  - **Score = average of per-page scores** (each page graded independently — a single bad page doesn't tank a clean site; a homepage with 60 + 24 perfect pages averages ~97, which is the right signal)
+  - **passedChecks = intersection** (a WCAG check only counts as "passed" if it passes on every scanned page — conservative for legal display since a single failing page means the site has the issue)
+  - Global timeout raised to 90s (multi-page can legitimately take longer than the old 30s)
+- **Types (`scanner/types.ts`):**
+  - `ScanIssue` gained optional `pageUrl?: string`
+  - `ScanResult` gained optional `pagesScanned?`, `pagesAttempted?`, `pageErrors?: PageScanError[]`
+  - All fields optional — legacy single-page results stay shape-compatible
+- **UI:**
+  - `IssueCard` shows "Found on: /path" hint when `issue.pageUrl` is set (small gray font-mono)
+  - `ScanPage` header shows "· N pages scanned" when `pagesScanned > 1`
+- **Copy honestized:** "Up to 50 pages" → "Up to 25 pages" in 4 UI files + CLAUDE.md pricing table. Number now matches reality
 
 ### Pending (to launch)
 - Buy custom domain + configure in Cloudflare — `pages.dev` URL likely kills conversion for $49 paid product
@@ -395,8 +429,8 @@ The `scan` edge function fetches **raw HTML only** — no JS execution. This mea
 - Monthly automated re-scans (cron job for Compliance Shield)
 - Email alerts when compliance score drops
 - Compliance certificate PDF generation
-- Multi-page scanning (crawl entire site)
 - WordPress/Shopify plugins
+- Issue deduplication across pages: when 25 pages share the same template, the same "missing alt text on logo" appears 25 times. v2 could collapse identical signatures into one card with "Found on N pages" badge
 
 ## Bugs Fixed
 
