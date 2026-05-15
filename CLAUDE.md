@@ -9,7 +9,7 @@ A self-service web tool that scans any website for ADA/WCAG 2.1 AA accessibility
 | Plan | ID | Price | Model | Key Features |
 |---|---|---|---|---|
 | **Free Scan** | `free` | $0 | Free | 1 page, score, risk, all issues visible, 1 code fix free |
-| **Fix My Site** | `fix-my-site` | $49 one-time | One-time payment | Up to 50 pages, all code fixes, action plan, shareable report, 1 re-scan |
+| **Fix My Site** | `fix-my-site` | $49 one-time | One-time payment | Up to 25 pages, all code fixes, action plan, shareable report, 1 re-scan |
 | **Compliance Shield** | `compliance-shield` | $199/year | Annual subscription | Everything in Fix My Site + up to 5 sites, unlimited re-scans, monthly auto-scans, email alerts, compliance badge |
 
 Old plan IDs (`full-report`, `agency`, `starter`, `pro`, `business`) no longer exist.

@@ -292,7 +292,7 @@ export default function StateLandingPage() {
                 <Button size="md" className="w-full">Fix My Site</Button>
               </Link>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2"><Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" /> Up to 50 pages</li>
+                <li className="flex items-start gap-2"><Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" /> Up to 25 pages</li>
                 <li className="flex items-start gap-2"><Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" /> All code fixes included</li>
                 <li className="flex items-start gap-2"><Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" /> Priority action plan</li>
                 <li className="flex items-start gap-2"><Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" /> Shareable report</li>
