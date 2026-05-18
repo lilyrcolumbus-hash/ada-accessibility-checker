@@ -41,7 +41,7 @@ ada-accessibility-checker/
 │   ├── index.css                   # Tailwind v4 imports + @theme custom colors
 │   ├── vite-env.d.ts               # Vite type declarations
 │   ├── scanner/                    # WCAG scanning engine (runs client-side)
-│   │   ├── types.ts                # ScanIssue, ScanResult, RiskAssessment, CostEstimate, generateId()
+│   │   ├── types.ts                # ScanIssue (+ pageUrl), ScanResult (+ pagesScanned/pagesAttempted/pageErrors), RiskAssessment, CostEstimate, generateId()
 │   │   ├── engine.ts               # Orchestrator: runs all checks, aggregates results
 │   │   ├── parser.ts               # HTML string → DOM Document via DOMParser
 │   │   ├── scoring.ts              # Compliance score 0-100 (getScoreColor, getScoreLabel)
@@ -118,8 +118,8 @@ ada-accessibility-checker/
 │   │   ├── IndustryStateLandingPage.tsx # Programmatic SEO: [industry] + [state]
 │   │   └── StateLandingPage.tsx   # Programmatic SEO: ADA compliance in [state]
 │   ├── hooks/
-│   │   ├── useScan.ts              # Core: fetch HTML → run scanner → persist to sessionStorage + DB
-│   │   └── useSubscription.ts      # Returns { plan, isPaid, isLoading }
+│   │   ├── useScan.ts              # Core: fetch up to N pages (paid=25, free=1) → run scanner on each → aggregate (avg score, intersection passedChecks, sum counts, issues annotated with pageUrl) → persist
+│   │   └── useSubscription.ts      # Returns { plan, isPaid, isLoading } — used by useScan to decide maxPages
 │   ├── contexts/
 │   │   └── AuthContext.tsx          # Supabase auth provider (LAZY imports only!) + refreshProfile()
 │   ├── config/
@@ -137,7 +137,7 @@ ada-accessibility-checker/
 │       ├── _shared/
 │       │   ├── cors.ts             # CORS headers helper for all edge functions
 │       │   └── paypal.ts           # getPayPalAccessToken() helper
-│       ├── scan/index.ts           # Fetch URL HTML (CORS proxy)
+│       ├── scan/index.ts           # Fetch seed URL + crawl up to N same-origin pages (maxPages param 1-25) → returns { pages: [{url, html, error?}], finalUrl, html }
 │       ├── create-checkout/index.ts # Stripe Checkout Session (payment or subscription mode)
 │       ├── stripe-webhook/index.ts  # Handles checkout.session.completed, invoice.paid, customer.subscription.deleted
 │       ├── create-portal/index.ts   # Stripe Customer Portal link
@@ -402,10 +402,28 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - **Copy honestized:** "Up to 50 pages" → "Up to 25 pages" in 4 UI files + CLAUDE.md pricing table. Number now matches reality
 
 ### Pending (to launch)
+
+**Resume here — last touched 2026-05-15, Session 13 (verified live 2026-05-18):**
+
+🟡 **Manual QA pending from user (Session 13):**
+- Test multi-page scan live with paid account (`lilyrcolumbus@gmail.com` has `fix-my-site`). Go to https://ada-accessibility-checker.pages.dev, scan a multipage site (shopify.com / stripe.com), verify:
+  - Header shows "· N pages scanned"
+  - Issue cards show "Found on: /path" hints
+  - Total issue count is higher than a single-page scan would give
+- Refund the $49 test payment in https://dashboard.stripe.com/payments (Session 13 test charge)
+
+🔴 **Distribution (real bottleneck — no engineering needed):**
 - Buy custom domain + configure in Cloudflare — `pages.dev` URL likely kills conversion for $49 paid product
 - Submit sitemap to Google Search Console — 78 programmatic SEO pages currently invisible to Google
-- (Optional) Verify Stripe account moved out of "Under Review" state in Settings → Account
-- **Real bottleneck is distribution, not engineering** — see "Distribution playbook" section below. Without traffic, no sales no matter how polished the app is
+- Reddit value-first posts in `r/smallbusiness`, `r/entrepreneur`, `r/Shopify`
+- Bootstrap testimonials: give Fix My Site free to 5-10 owners in exchange for testimonial
+- Product Hunt launch Tue/Wed
+- (See "Distribution playbook" section below for full priority order)
+
+🟢 **Optional infra:**
+- Verify Stripe account moved out of "Under Review" state in Settings → Account
+
+**Engineering is essentially done. Real bottleneck is distribution — without traffic, no sales no matter how polished the app is.**
 
 ### Future improvements (UX nice-to-haves)
 - Show logged-in user's email in header next to "My Dashboard" — currently only the button is visible, so users with persistent sessions don't realize they're still authenticated
