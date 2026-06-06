@@ -6,6 +6,7 @@ interface Profile {
   email: string
   plan: string
   stripe_customer_id: string | null
+  rescans_used: number
 }
 
 interface AuthContextType {
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { supabase } = await import('@/lib/supabase')
       const { data } = await supabase
         .from('profiles')
-        .select('id, email, plan, stripe_customer_id')
+        .select('id, email, plan, stripe_customer_id, rescans_used')
         .eq('id', userId)
         .single()
       if (data) setProfile(data as Profile)

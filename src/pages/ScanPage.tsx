@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, FormEvent } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { RefreshCw, AlertCircle, Shield, ArrowLeft, Search, LayoutDashboard, FileDown } from 'lucide-react'
 import { cn, getDomain } from '@/lib/utils'
 import Button from '@/components/ui/Button'
@@ -133,32 +134,69 @@ export function ScanPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const rawUrl = searchParams.get('url') || ''
-  const forceRescan = searchParams.get('rescan') === '1'
   const [industry, setIndustry] = useState('other')
   const [state, setState] = useState('')
   const [newUrl, setNewUrl] = useState('')
 
-  const { loading, result, error, startScan } = useScan(rawUrl)
-  const { isPaid } = useSubscription()
-  const { user } = useAuth()
+  const { loading, result, error, scanId, badgeToken, startScan } = useScan(rawUrl)
+  const { isPaid, plan } = useSubscription()
+  const { user, profile, refreshProfile } = useAuth()
+  const rescansUsed = profile?.rescans_used ?? 0
+  const rescansAllowed = plan.limits.rescansAllowed
+  const rescanLimitReached =
+    rescansAllowed !== 'unlimited' && rescansUsed >= rescansAllowed
   const startScanRef = useRef(startScan)
   startScanRef.current = startScan
   const scanStateRef = useRef({ loading, result, error })
   scanStateRef.current = { loading, result, error }
 
-  // Auto-start scan when URL param is present
+  // Auto-start the FIRST scan for a URL. Re-scans go through handleRescan, which
+  // enforces the per-plan limit server-side before scanning.
   useEffect(() => {
     const { loading: l, result: r, error: e } = scanStateRef.current
     if (!rawUrl || l) return
-    // Force rescan takes priority; otherwise only scan if no result yet
-    if (forceRescan || (!r && !e)) {
+    if (!r && !e) {
       startScanRef.current(rawUrl)
     }
-  }, [rawUrl, forceRescan])
+  }, [rawUrl])
 
-  const handleRescan = useCallback(() => {
-    if (rawUrl) startScan(rawUrl)
-  }, [rawUrl, startScan])
+  // Re-scan is gated server-side: increment_rescan() atomically checks the caller's
+  // plan limit in the DB and throws when it is exhausted. We only start the scan if
+  // the gate passes, so the limit can't be bypassed by editing client state.
+  const rescanningRef = useRef(false)
+  const handleRescan = useCallback(async () => {
+    if (!rawUrl || rescanningRef.current) return
+    // Fast client-side guard for UX; the DB RPC below is the real enforcement.
+    if (rescanLimitReached) {
+      toast.error(`Re-scan limit reached on ${plan.name}. Upgrade for unlimited re-scans.`)
+      return
+    }
+    rescanningRef.current = true
+    try {
+      if (user) {
+        const { supabase } = await import('@/lib/supabase')
+        const { error: rpcError } = await supabase.rpc('increment_rescan')
+        if (rpcError) {
+          toast.error(`Re-scan limit reached on ${plan.name}. Upgrade for unlimited re-scans.`)
+          await refreshProfile()
+          return
+        }
+        await refreshProfile()
+      }
+      startScanRef.current(rawUrl)
+    } catch (err) {
+      console.error('[ScanPage] re-scan failed to start:', err)
+      toast.error('Could not start the re-scan. Please try again.')
+    } finally {
+      rescanningRef.current = false
+    }
+  }, [rawUrl, rescanLimitReached, user, plan.name, refreshProfile])
+
+  // Retrying a FAILED scan just completes the original scan — it must NOT consume
+  // a re-scan (no result was ever produced), so it bypasses the gate intentionally.
+  const handleRetry = useCallback(() => {
+    if (rawUrl) startScanRef.current(rawUrl)
+  }, [rawUrl])
 
   const handleNewScan = (e: FormEvent) => {
     e.preventDefault()
@@ -183,7 +221,7 @@ export function ScanPage() {
   if (loading) return <ScanningProgress />
 
   if (error) {
-    return <ErrorState message={error} onRetry={handleRescan} />
+    return <ErrorState message={error} onRetry={handleRetry} />
   }
 
   if (!result && !rawUrl) {
@@ -230,7 +268,7 @@ export function ScanPage() {
 
   if (!result) {
     if (rawUrl && !loading) {
-      return <ErrorState message="Scan completed but no results were returned. Please try again." onRetry={handleRescan} />
+      return <ErrorState message="Scan completed but no results were returned. Please try again." onRetry={handleRetry} />
     }
     return <ScanningProgress />
   }
@@ -322,10 +360,16 @@ export function ScanPage() {
             variant="outline"
             size="sm"
             onClick={handleRescan}
+            disabled={rescanLimitReached}
+            title={
+              rescanLimitReached
+                ? `Re-scan limit reached (${rescansAllowed} on ${plan.name}). Upgrade for unlimited re-scans.`
+                : undefined
+            }
             className="gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Re-scan
+            {rescanLimitReached ? 'Re-scan used' : 'Re-scan'}
           </Button>
         </div>
       </div>
@@ -376,7 +420,13 @@ export function ScanPage() {
 
       {/* Embed widget — for paid users, right after score */}
       {isPaid && (
-        <EmbedWidget domain={domain} score={result.score} scannedUrl={result.url} />
+        <EmbedWidget
+          domain={domain}
+          score={result.score}
+          scannedUrl={result.url}
+          badgeToken={badgeToken}
+          scanId={scanId}
+        />
       )}
 
       {/* Email capture for non-logged-in users */}
