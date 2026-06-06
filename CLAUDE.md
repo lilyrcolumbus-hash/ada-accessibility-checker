@@ -403,7 +403,17 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**Resume here — last touched 2026-05-15, Session 13 (verified live 2026-05-18):**
+**Resume here — Session 14 (2026-06-06): share/badge/rescan feature + server-side re-scan limit**
+
+Work is committed on branch `feature/share-badge-rescan` (NOT merged, NOT deployed — `main` untouched). Files: EmbedWidget, plans.ts, AuthContext, useScan, ScanPage, schema.sql + new `supabase/migration-014-share-badge-rescan.sql`.
+- ✅ Built the feature: real shareable reports (`create_shared_report` RPC), real badges (`upsert_badge` RPC), and a **server-enforced** re-scan limit. `increment_rescan()` now atomically checks the caller's plan (FOR UPDATE lock) and raises `rescan_limit_reached` when spent — the limit is no longer a client-only gate. ScanPage gates the re-scan on the RPC before scanning; `handleRetry` retries failed scans without consuming a re-scan.
+- ✅ Reviewer + qa run: typecheck + build clean. Reviewer findings #4–#11 (infinite spinners on RPC failure, swallowed errors, dead `scannedUrl` prop, global-vs-per-site counter, missing DB indexes, no tests) deferred — see memory `sitesafe_session14_share_badge_rescan.md`.
+- 🔴 **TO LAUNCH (in order):**
+  1. Run `supabase/migration-014-share-badge-rescan.sql` in Supabase **`mvzolbabbkedmlhqhiwi`** SQL Editor (the REAL prod project — re-confirmed 2026-06-06 via Cloudflare `VITE_SUPABASE_URL` + anon-key JWT ref. NOT `rgmzczxlgniwdxzdeakq`, which is an old unused project sitting Healthy in the user's "SiteSafe" org — the user keeps mistaking it for prod). Code already depends on these RPCs + `profiles.rescans_used`.
+  2. Merge `feature/share-badge-rescan` → `main` + push → Cloudflare auto-deploys.
+- ⚠️ If `rescansAllowed` changes in `src/config/plans.ts`, update the hardcoded allowance in `increment_rescan()` (both `schema.sql` and `migration-014`) to match.
+
+**Previously — last touched 2026-05-15, Session 13 (verified live 2026-05-18):**
 
 🟡 **Manual QA pending from user (Session 13):**
 - Test multi-page scan live with paid account (`lilyrcolumbus@gmail.com` has `fix-my-site`). Go to https://ada-accessibility-checker.pages.dev, scan a multipage site (shopify.com / stripe.com), verify:
