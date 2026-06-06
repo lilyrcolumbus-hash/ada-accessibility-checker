@@ -153,6 +153,8 @@ interface UseScanReturn {
   loading: boolean
   result: ScanResult | null
   error: string | null
+  scanId: string | null
+  badgeToken: string | null
   startScan: (url: string) => Promise<void>
 }
 
@@ -160,6 +162,8 @@ export function useScan(url?: string): UseScanReturn {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ScanResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [scanId, setScanId] = useState<string | null>(null)
+  const [badgeToken, setBadgeToken] = useState<string | null>(null)
   const { isPaid } = useSubscription()
 
   useEffect(() => {
@@ -182,6 +186,8 @@ export function useScan(url?: string): UseScanReturn {
     setLoading(true)
     setError(null)
     setResult(null)
+    setScanId(null)
+    setBadgeToken(null)
 
     const normalised = targetUrl.startsWith('http://') || targetUrl.startsWith('https://')
       ? targetUrl
@@ -235,11 +241,15 @@ export function useScan(url?: string): UseScanReturn {
           try {
             const { supabase } = await import('@/lib/supabase')
             const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-              await supabase.from('scans').insert({
+            if (!user) return
+
+            const domain = new URL(aggregated.url).hostname
+            const { data: inserted } = await supabase
+              .from('scans')
+              .insert({
                 user_id: user.id,
                 url: aggregated.url,
-                domain: new URL(aggregated.url).hostname,
+                domain,
                 score: aggregated.score,
                 total_issues: aggregated.totalIssues,
                 critical_count: aggregated.criticalCount,
@@ -249,6 +259,17 @@ export function useScan(url?: string): UseScanReturn {
                 results: aggregated,
                 scan_duration_ms: aggregated.scanDurationMs,
               })
+              .select('id')
+              .single()
+
+            if (inserted?.id) setScanId(inserted.id as string)
+
+            if (isPaid) {
+              const { data: token } = await supabase.rpc('upsert_badge', {
+                domain_param: domain,
+                score_param: aggregated.score,
+              })
+              if (typeof token === 'string') setBadgeToken(token)
             }
           } catch {
             // DB save failed — not critical
@@ -267,5 +288,5 @@ export function useScan(url?: string): UseScanReturn {
     }
   }, [isPaid])
 
-  return { loading, result, error, startScan }
+  return { loading, result, error, scanId, badgeToken, startScan }
 }
