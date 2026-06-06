@@ -11,7 +11,7 @@ export interface Plan {
     codeFixesVisible: number | 'unlimited'
     shareableReports: boolean
     complianceBadge: boolean
-    rescanIncluded: boolean | 'unlimited'
+    rescansAllowed: number | 'unlimited'
     monthlyAutoScan: boolean
     emailAlerts: boolean
     multiSite: number
@@ -41,7 +41,7 @@ export const PLANS: Plan[] = [
       codeFixesVisible: FREE_ISSUES_VISIBLE,
       shareableReports: false,
       complianceBadge: false,
-      rescanIncluded: false,
+      rescansAllowed: 'unlimited',
       monthlyAutoScan: false,
       emailAlerts: false,
       multiSite: 1,
@@ -64,11 +64,11 @@ export const PLANS: Plan[] = [
       '1 re-scan to verify fixes',
     ],
     limits: {
-      pagesPerScan: 50,
+      pagesPerScan: 25,
       codeFixesVisible: 'unlimited',
       shareableReports: true,
       complianceBadge: true,
-      rescanIncluded: true,
+      rescansAllowed: 1,
       monthlyAutoScan: false,
       emailAlerts: false,
       multiSite: 1,
@@ -91,11 +91,11 @@ export const PLANS: Plan[] = [
       'Verified compliance badge',
     ],
     limits: {
-      pagesPerScan: 50,
+      pagesPerScan: 25,
       codeFixesVisible: 'unlimited',
       shareableReports: true,
       complianceBadge: true,
-      rescanIncluded: 'unlimited',
+      rescansAllowed: 'unlimited',
       monthlyAutoScan: true,
       emailAlerts: true,
       multiSite: 5,

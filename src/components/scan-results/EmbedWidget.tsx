@@ -1,33 +1,42 @@
 import { useState } from 'react'
-import { Copy, Check, Shield, Gift, ExternalLink, Code, Share2, Globe, Sparkles } from 'lucide-react'
+import { Copy, Check, Shield, Gift, Code, Share2, Globe, Sparkles, Loader2 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 interface EmbedWidgetProps {
   domain: string
   score: number
   scannedUrl?: string
+  badgeToken: string | null
+  scanId: string | null
 }
 
-export default function EmbedWidget({ domain, score, scannedUrl }: EmbedWidgetProps) {
+export default function EmbedWidget({ domain, score, scannedUrl, badgeToken, scanId }: EmbedWidgetProps) {
   const [copiedHtml, setCopiedHtml] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [showHtml, setShowHtml] = useState(false)
+  const [shareToken, setShareToken] = useState<string | null>(null)
+  const [creatingShare, setCreatingShare] = useState(false)
+  const [shareError, setShareError] = useState<string | null>(null)
 
-  const targetUrl = scannedUrl || `https://${domain}`
-  const scanUrl = `${window.location.origin}/scan?url=${encodeURIComponent(targetUrl)}`
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const verifyUrl = badgeToken ? `${origin}/badge/${badgeToken}` : ''
+  const shareUrl = shareToken ? `${origin}/shared/${shareToken}` : ''
   const scoreLabel = score >= 80 ? 'Excellent' : score >= 50 ? 'Needs Work' : 'At Risk'
   const scoreBgClass = score >= 80 ? 'from-success-500 to-success-600' : score >= 50 ? 'from-warning-400 to-warning-500' : 'from-danger-500 to-danger-600'
 
-  const embedCode = `<!-- SiteSafe ADA Compliance Badge -->
-<a href="${scanUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:10px;padding:10px 16px;text-decoration:none;font-family:system-ui,sans-serif;box-shadow:0 2px 8px rgba(37,99,235,.3);">
+  const embedCode = badgeToken
+    ? `<!-- SiteSafe ADA Compliance Badge -->
+<a href="${verifyUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1e40af,#2563eb);border-radius:10px;padding:10px 16px;text-decoration:none;font-family:system-ui,sans-serif;box-shadow:0 2px 8px rgba(37,99,235,.3);">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   <span style="display:flex;flex-direction:column;">
     <span style="font-size:12px;font-weight:700;color:#fff;">ADA Tested by SiteSafe</span>
     <span style="font-size:11px;color:rgba(255,255,255,.85);font-weight:500;">Score: ${score}/100 · ${scoreLabel}</span>
   </span>
 </a>`
+    : ''
 
   const handleCopyHtml = async () => {
+    if (!embedCode) return
     try {
       await navigator.clipboard.writeText(embedCode)
       setCopiedHtml(true)
@@ -35,13 +44,43 @@ export default function EmbedWidget({ domain, score, scannedUrl }: EmbedWidgetPr
     } catch { /* clipboard not available */ }
   }
 
-  const handleCopyLink = async () => {
+  const handleCreateShareLink = async () => {
+    if (!scanId) {
+      setShareError('Share link will be available once your scan is saved. Please retry in a moment.')
+      return
+    }
+    setCreatingShare(true)
+    setShareError(null)
     try {
-      await navigator.clipboard.writeText(scanUrl)
+      const { supabase } = await import('@/lib/supabase')
+      const { data, error } = await supabase.rpc('create_shared_report', { scan_id_param: scanId })
+      if (error || typeof data !== 'string') {
+        throw new Error(error?.message || 'Could not create share link')
+      }
+      setShareToken(data)
+      try {
+        await navigator.clipboard.writeText(`${origin}/shared/${data}`)
+        setCopiedLink(true)
+        setTimeout(() => setCopiedLink(false), 2000)
+      } catch { /* clipboard not available */ }
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : 'Could not create share link')
+    } finally {
+      setCreatingShare(false)
+    }
+  }
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
       setCopiedLink(true)
       setTimeout(() => setCopiedLink(false), 2000)
     } catch { /* clipboard not available */ }
   }
+
+  // scannedUrl is intentionally kept in props but no longer used for the share link.
+  void scannedUrl
 
   return (
     <div className="rounded-2xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 via-white to-primary-50/50 p-6 shadow-sm">
@@ -96,31 +135,54 @@ export default function EmbedWidget({ domain, score, scannedUrl }: EmbedWidgetPr
         </div>
       </div>
 
-      {/* Option 1: Share link */}
+      {/* Option 1: Share link (lazy-generated) */}
       <div className="rounded-xl bg-white border border-gray-200 p-4 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Share2 className="h-4 w-4 text-primary-600" />
           <p className="text-sm font-semibold text-gray-800">Share your results</p>
         </div>
         <p className="text-xs text-gray-500 mb-2">
-          Copy this link and share it anywhere — social media, email, or messaging apps. Anyone who clicks it will see your accessibility score.
+          Create a public, read-only link to your accessibility report. Share it with clients,
+          your team, or post it anywhere — viewers see your score and issues without needing
+          to re-scan {domain}.
         </p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            readOnly
-            value={scanUrl}
-            className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-600 truncate"
-          />
+
+        {!shareToken ? (
           <Button
             size="sm"
-            variant={copiedLink ? 'primary' : 'outline'}
-            onClick={handleCopyLink}
-            className="flex-shrink-0 gap-1.5"
+            variant="primary"
+            onClick={handleCreateShareLink}
+            disabled={creatingShare || !scanId}
+            className="gap-1.5"
           >
-            {copiedLink ? <><Check className="h-3.5 w-3.5" /> Copied!</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+            {creatingShare ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Creating link...</>
+            ) : (
+              <><Share2 className="h-3.5 w-3.5" /> Create share link</>
+            )}
           </Button>
-        </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={shareUrl}
+              className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-600 truncate"
+            />
+            <Button
+              size="sm"
+              variant={copiedLink ? 'primary' : 'outline'}
+              onClick={handleCopyShareLink}
+              className="flex-shrink-0 gap-1.5"
+            >
+              {copiedLink ? <><Check className="h-3.5 w-3.5" /> Copied!</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+            </Button>
+          </div>
+        )}
+        {shareError && <p className="mt-2 text-xs text-danger-600">{shareError}</p>}
+        {!scanId && !shareError && (
+          <p className="mt-2 text-[11px] text-gray-400">Saving your scan… the share button will activate in a moment.</p>
+        )}
       </div>
 
       {/* Option 2: Embed on website */}
@@ -130,17 +192,23 @@ export default function EmbedWidget({ domain, score, scannedUrl }: EmbedWidgetPr
             <Code className="h-4 w-4 text-primary-600" />
             <p className="text-sm font-semibold text-gray-800">Add badge to your website</p>
           </div>
-          <button
-            onClick={() => setShowHtml(!showHtml)}
-            className="text-[11px] font-medium text-primary-600 hover:text-primary-700"
-          >
-            {showHtml ? 'Hide code' : 'Show code'}
-          </button>
+          {badgeToken && (
+            <button
+              onClick={() => setShowHtml(!showHtml)}
+              className="text-[11px] font-medium text-primary-600 hover:text-primary-700"
+            >
+              {showHtml ? 'Hide code' : 'Show code'}
+            </button>
+          )}
         </div>
         <p className="text-xs text-gray-500 mb-2">
-          Paste this code in your website's footer or sidebar. It creates a badge that links back to your accessibility report — showing visitors you take compliance seriously.
+          Paste this code in your website's footer or sidebar. Visitors who click the badge
+          land on a SiteSafe verification page proving the score is real — not a self-made image.
         </p>
-        {showHtml && (
+        {!badgeToken && (
+          <p className="text-[11px] text-gray-400">Generating your badge… it will appear here in a moment.</p>
+        )}
+        {showHtml && badgeToken && (
           <div className="relative mt-2">
             <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-[10px] overflow-x-auto leading-relaxed max-h-28">
               {embedCode}
