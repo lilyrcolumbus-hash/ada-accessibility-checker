@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { runScan } from '@/scanner/engine'
 import type { ScanResult, ScanIssue, PageScanError } from '@/scanner/types'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -12,6 +12,21 @@ const PAID_MAX_PAGES = 25
 const FREE_MAX_PAGES = 1
 // Total budget for the entire crawl + scan. Crawl alone has its own server-side budget.
 const GLOBAL_TIMEOUT_MS = 90_000
+// Hard cap for each post-scan DB write so the badge/share UI can never hang forever.
+const PERSIST_TIMEOUT_MS = 15_000
+
+// Reject if a thenable (e.g. a Supabase query builder) does not settle in time.
+// Without this a stalled connection would leave the badge/share states pending
+// indefinitely, showing a misleading "Generating…" spinner to paying users.
+function withTimeout<T>(operation: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms)
+  })
+  return Promise.race([Promise.resolve(operation), timeout]).finally(() =>
+    clearTimeout(timer)
+  )
+}
 
 interface ScannedPagePayload {
   url: string
@@ -155,6 +170,10 @@ interface UseScanReturn {
   error: string | null
   scanId: string | null
   badgeToken: string | null
+  // True once the post-scan persistence failed, so the UI can show a real error
+  // (with a retry hint) instead of a spinner that never resolves.
+  scanSaveError: boolean
+  badgeError: boolean
   startScan: (url: string) => Promise<void>
 }
 
@@ -164,7 +183,20 @@ export function useScan(url?: string): UseScanReturn {
   const [error, setError] = useState<string | null>(null)
   const [scanId, setScanId] = useState<string | null>(null)
   const [badgeToken, setBadgeToken] = useState<string | null>(null)
+  const [scanSaveError, setScanSaveError] = useState(false)
+  const [badgeError, setBadgeError] = useState(false)
   const { isPaid } = useSubscription()
+
+  // The post-scan persistence is fire-and-forget and can settle up to
+  // PERSIST_TIMEOUT_MS after the user navigates away. Guard state writes so we
+  // never call setState on an unmounted hook.
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     try {
@@ -188,6 +220,8 @@ export function useScan(url?: string): UseScanReturn {
     setResult(null)
     setScanId(null)
     setBadgeToken(null)
+    setScanSaveError(false)
+    setBadgeError(false)
 
     const normalised = targetUrl.startsWith('http://') || targetUrl.startsWith('https://')
       ? targetUrl
@@ -237,44 +271,84 @@ export function useScan(url?: string): UseScanReturn {
       setResult(aggregated)
 
       if (isSupabaseConfigured) {
+        // Persist the scan + (for paid users) generate the badge in the background.
+        // The scan result is already shown; these power history, sharing and the badge.
+        // Scan-save and badge-generation are handled independently so one failing
+        // doesn't mask the other, and BOTH flip a visible error flag on failure so
+        // the UI never shows a perpetual "Saving…" / "Generating…" spinner.
         (async () => {
-          try {
-            const { supabase } = await import('@/lib/supabase')
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
-
-            const domain = new URL(aggregated.url).hostname
-            const { data: inserted } = await supabase
-              .from('scans')
-              .insert({
-                user_id: user.id,
-                url: aggregated.url,
-                domain,
-                score: aggregated.score,
-                total_issues: aggregated.totalIssues,
-                critical_count: aggregated.criticalCount,
-                serious_count: aggregated.seriousCount,
-                moderate_count: aggregated.moderateCount,
-                minor_count: aggregated.minorCount,
-                results: aggregated,
-                scan_duration_ms: aggregated.scanDurationMs,
-              })
-              .select('id')
-              .single()
-
-            if (inserted?.id) setScanId(inserted.id as string)
-
-            if (isPaid) {
-              const { data: token } = await supabase.rpc('upsert_badge', {
-                domain_param: domain,
-                score_param: aggregated.score,
-              })
-              if (typeof token === 'string') setBadgeToken(token)
+          const { supabase } = await import('@/lib/supabase')
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) {
+            // Paid UI is showing (isPaid from a cached profile) but the session is
+            // gone — expired token, or the project auto-paused. Without this, the
+            // badge/share spinners would hang forever: the exact bug we're fixing.
+            if (isPaid && mountedRef.current) {
+              setScanSaveError(true)
+              setBadgeError(true)
             }
-          } catch {
-            // DB save failed — not critical
+            return
           }
-        })()
+
+          const domain = new URL(aggregated.url).hostname
+
+          try {
+            const { data: inserted, error: insertError } = await withTimeout(
+              supabase
+                .from('scans')
+                .insert({
+                  user_id: user.id,
+                  url: aggregated.url,
+                  domain,
+                  score: aggregated.score,
+                  total_issues: aggregated.totalIssues,
+                  critical_count: aggregated.criticalCount,
+                  serious_count: aggregated.seriousCount,
+                  moderate_count: aggregated.moderateCount,
+                  minor_count: aggregated.minorCount,
+                  results: aggregated,
+                  scan_duration_ms: aggregated.scanDurationMs,
+                })
+                .select('id')
+                .single(),
+              PERSIST_TIMEOUT_MS,
+              'Saving scan'
+            )
+            if (insertError || !inserted?.id) {
+              throw new Error(insertError?.message || 'Scan row was not created')
+            }
+            if (mountedRef.current) setScanId(inserted.id as string)
+          } catch (e) {
+            console.error('[SiteSafe] Failed to save scan:', e)
+            if (mountedRef.current) setScanSaveError(true)
+          }
+
+          if (isPaid) {
+            try {
+              const { data: token, error: badgeErr } = await withTimeout(
+                supabase.rpc('upsert_badge', {
+                  domain_param: domain,
+                  score_param: aggregated.score,
+                }),
+                PERSIST_TIMEOUT_MS,
+                'Generating badge'
+              )
+              if (badgeErr || typeof token !== 'string') {
+                throw new Error(badgeErr?.message || 'Badge token was not returned')
+              }
+              if (mountedRef.current) setBadgeToken(token)
+            } catch (e) {
+              console.error('[SiteSafe] Failed to generate badge:', e)
+              if (mountedRef.current) setBadgeError(true)
+            }
+          }
+        })().catch((e) => {
+          // auth/import failed before we even got to the writes — surface, don't hang.
+          console.error('[SiteSafe] Post-scan persistence failed to start:', e)
+          if (!mountedRef.current) return
+          setScanSaveError(true)
+          if (isPaid) setBadgeError(true)
+        })
       }
     } catch (err) {
       console.error('[SiteSafe] Scan failed with error:', err)
@@ -288,5 +362,5 @@ export function useScan(url?: string): UseScanReturn {
     }
   }, [isPaid])
 
-  return { loading, result, error, scanId, badgeToken, startScan }
+  return { loading, result, error, scanId, badgeToken, scanSaveError, badgeError, startScan }
 }
