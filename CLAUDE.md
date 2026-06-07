@@ -403,13 +403,15 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-06-06 end of Session 14**
+**▶ RESUME HERE (next session) — updated 2026-06-07 (Session 15)**
 
-Estado al reabrir: Session 14 (share/badge/rescan) está **SHIPPED y desplegado**, nada en progreso. El repo está limpio en una sola carpeta `/Users/ld/ada-accessibility-checker` (se borró la copia anidada duplicada). `main` = `819be9e`, pusheado a GitHub. La app en vivo responde 200.
+Estado al reabrir: Session 14 (share/badge/rescan) **SHIPPED y desplegado**. En Session 15 (2026-06-07) se arreglaron los spinners infinitos de badge/share (commits `e034e77`+`6d564c6`) y se aclaró DEFINITIVAMENTE el lío de cuentas de Supabase. `main` = `669b0fc` (+ los commits de esta sesión), todo pusheado a GitHub. App en vivo responde 200.
 
-**Lo ÚNICO que falta es QA manual en navegador** (requiere tu login, no lo puede hacer Claude): entrar a https://ada-accessibility-checker.pages.dev con `lilyrcolumbus@gmail.com` (plan `fix-my-site`) y probar (1) botón Share genera link, (2) badge se genera, (3) re-scan respeta el límite de 1.
+**⚠️ MAPA DE CUENTAS (lo que más confunde a la usuaria — leer "ACCOUNT OWNERSHIP" en la sección Supabase abajo):** prod = `mvzolbabbkedmlhqhiwi`, en la cuenta **`lyhoffllc.info@gmail.com`**, org **"NEXUS Voice"**. El proyecto `rgmzczxlgniwdxzdeakq` ("lilyrcolumbus-hash's Project", en la cuenta `lilyrcolumbus@gmail.com`) es un **cascarón vacío viejo** que la usuaria iba a BORRAR — no afecta nada. **NUNCA** confundirlos; **NUNCA** sugerir borrar el repo de GitHub.
 
-**⚠️ PRIMERO de todo al reabrir:** si la app "no carga" / login o scans fallan → casi seguro el Supabase de prod se **auto-pausó otra vez** (free tier). NO debuggear código: reactivar con el endpoint `/restore` (ver memoria `sitesafe-supabase-autopause` + `sitesafe-supabase-mgmt-api`). Tarda ~2-3 min.
+**Lo que falta para lanzar (QA manual en navegador — requiere su login):** ver `LAUNCH-CHECKLIST.md`. Resumen: (1) probar que un pago real entra (Stripe LIVE) + refundearlo, (2) las 3 features nuevas con `lilyrcolumbus@gmail.com`/plan fix-my-site (Share, badge, límite re-scan), (3) precisión del scanner en 2-3 sitios reales server-rendered, (4) móvil. Lo anónimo ya lo verificó Claude con Playwright (sin regresión).
+
+**⚠️ PRIMERO al reabrir:** si la app "no carga" / login/scans fallan → casi seguro el Supabase de prod se **auto-pausó** (free tier). NO debuggear código: reactivar con `/restore` (ver memoria `sitesafe-supabase-autopause` + `sitesafe-supabase-mgmt-api`). ~2-3 min.
 
 **Siguiente prioridad de negocio (no ingeniería):** distribución — ver "Distribution playbook" abajo. Custom domain es lo #1.
 
@@ -753,6 +755,9 @@ With infra/payments/scan all working, the real bottleneck is traffic. Order by R
 ### Supabase
 - **Project ref:** `mvzolbabbkedmlhqhiwi`
 - **Project URL:** `https://mvzolbabbkedmlhqhiwi.supabase.co`
+- **⚠️ ACCOUNT OWNERSHIP (confirmed 2026-06-07 — this is the #1 recurring confusion):** prod `mvzolbabbkedmlhqhiwi` is owned by the account **`lyhoffllc.info@gmail.com`** (the user's PRIMARY email), inside the org **"NEXUS Voice"** (slug `evgalwplubpdtyjwgqtp`) — NOT an org called "SiteSafe". To open it in the dashboard: log into Supabase as `lyhoffllc.info@gmail.com` → org switcher ⇅ → "NEXUS Voice". The machine's `supabase` CLI is logged into this account (Management API works).
+- **`rgmzczxlgniwdxzdeakq` ("lilyrcolumbus-hash's Project") is a DEAD, EMPTY shell — was the pre-Session-11 backend** before the migration to `mvzolbabbkedmlhqhiwi`. It lives in a DIFFERENT account (`lilyrcolumbus@gmail.com`), has the SiteSafe schema but **0 rows** (profiles/purchases/scans all empty, verified 2026-06-07). The live app references it **0 times** (proven: grep of the deployed JS bundle → `mvzolbabbkedmlhqhiwi` ×4, `rgmzczxlgniwdxzdeakq` ×0). The user is deleting it to end the confusion. **Deleting it does NOT affect anything.** NEVER confuse it for prod; NEVER run SQL / deploy there. (Verify any "which project?" doubt by grepp_ing the live bundle or decoding the anon-key JWT `ref`.)
+- **🚫 Do NOT delete the GitHub repo `lilyrcolumbus-hash/ada-accessibility-checker`** — that is the live source code, a separate platform from Supabase. GitHub-account ≠ Supabase-account is fine; they don't need to match.
 - **Data API:** Enabled (RESTful API for public schema)
 - **Automatic RLS:** Enabled
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
