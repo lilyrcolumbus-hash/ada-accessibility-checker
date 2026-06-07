@@ -5,12 +5,15 @@ import Button from '@/components/ui/Button'
 interface EmbedWidgetProps {
   domain: string
   score: number
-  scannedUrl?: string
   badgeToken: string | null
   scanId: string | null
+  // Set when background persistence failed, so we show an actionable error
+  // instead of a spinner that never resolves.
+  scanSaveError?: boolean
+  badgeError?: boolean
 }
 
-export default function EmbedWidget({ domain, score, scannedUrl, badgeToken, scanId }: EmbedWidgetProps) {
+export default function EmbedWidget({ domain, score, badgeToken, scanId, scanSaveError, badgeError }: EmbedWidgetProps) {
   const [copiedHtml, setCopiedHtml] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [showHtml, setShowHtml] = useState(false)
@@ -78,9 +81,6 @@ export default function EmbedWidget({ domain, score, scannedUrl, badgeToken, sca
       setTimeout(() => setCopiedLink(false), 2000)
     } catch { /* clipboard not available */ }
   }
-
-  // scannedUrl is intentionally kept in props but no longer used for the share link.
-  void scannedUrl
 
   return (
     <div className="rounded-2xl border-2 border-primary-200 bg-gradient-to-br from-primary-50 via-white to-primary-50/50 p-6 shadow-sm">
@@ -152,7 +152,7 @@ export default function EmbedWidget({ domain, score, scannedUrl, badgeToken, sca
             size="sm"
             variant="primary"
             onClick={handleCreateShareLink}
-            disabled={creatingShare || !scanId}
+            disabled={creatingShare || !scanId || scanSaveError}
             className="gap-1.5"
           >
             {creatingShare ? (
@@ -181,7 +181,13 @@ export default function EmbedWidget({ domain, score, scannedUrl, badgeToken, sca
         )}
         {shareError && <p className="mt-2 text-xs text-danger-600">{shareError}</p>}
         {!scanId && !shareError && (
-          <p className="mt-2 text-[11px] text-gray-400">Saving your scan… the share button will activate in a moment.</p>
+          scanSaveError ? (
+            <p className="mt-2 text-[11px] text-danger-600">
+              We couldn't save this scan, so the share link isn't available. Use the Re-scan button above to try again.
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] text-gray-400">Saving your scan… the share button will activate in a moment.</p>
+          )
         )}
       </div>
 
@@ -206,7 +212,13 @@ export default function EmbedWidget({ domain, score, scannedUrl, badgeToken, sca
           land on a SiteSafe verification page proving the score is real — not a self-made image.
         </p>
         {!badgeToken && (
-          <p className="text-[11px] text-gray-400">Generating your badge… it will appear here in a moment.</p>
+          badgeError ? (
+            <p className="text-[11px] text-danger-600">
+              We couldn't generate your badge automatically. Use the Re-scan button above to try again — if it keeps failing, contact support.
+            </p>
+          ) : (
+            <p className="text-[11px] text-gray-400">Generating your badge… it will appear here in a moment.</p>
+          )
         )}
         {showHtml && badgeToken && (
           <div className="relative mt-2">
