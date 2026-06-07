@@ -138,7 +138,7 @@ export function ScanPage() {
   const [state, setState] = useState('')
   const [newUrl, setNewUrl] = useState('')
 
-  const { loading, result, error, scanId, badgeToken, startScan } = useScan(rawUrl)
+  const { loading, result, error, scanId, badgeToken, scanSaveError, badgeError, startScan } = useScan(rawUrl)
   const { isPaid, plan } = useSubscription()
   const { user, profile, refreshProfile } = useAuth()
   const rescansUsed = profile?.rescans_used ?? 0
@@ -423,9 +423,10 @@ export function ScanPage() {
         <EmbedWidget
           domain={domain}
           score={result.score}
-          scannedUrl={result.url}
           badgeToken={badgeToken}
           scanId={scanId}
+          scanSaveError={scanSaveError}
+          badgeError={badgeError}
         />
       )}
 
