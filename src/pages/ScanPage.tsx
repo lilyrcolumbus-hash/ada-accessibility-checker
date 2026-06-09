@@ -149,15 +149,32 @@ export function ScanPage() {
   startScanRef.current = startScan
   const scanStateRef = useRef({ loading, result, error })
   scanStateRef.current = { loading, result, error }
+  // The exact ?url= param we've already kicked off (or adopted from sessionStorage).
+  // Lets a change to a DIFFERENT site trigger a fresh scan, while a redirect that
+  // rewrites result.url to a different value doesn't loop us back into re-scanning.
+  const handledUrlRef = useRef<string | null>(null)
 
-  // Auto-start the FIRST scan for a URL. Re-scans go through handleRescan, which
-  // enforces the per-plan limit server-side before scanning.
+  // Auto-start a scan whenever ?url= points at a site we haven't handled yet. This
+  // covers the first scan AND scanning a different site via the inline "Scan another
+  // site" form (which only changes the query param — the page never remounts, so
+  // without this the header would update but the stale result would stay on screen).
+  // Re-scanning the SAME url goes through handleRescan, which enforces the per-plan
+  // re-scan limit server-side.
   useEffect(() => {
-    const { loading: l, result: r, error: e } = scanStateRef.current
-    if (!rawUrl || l) return
-    if (!r && !e) {
-      startScanRef.current(rawUrl)
+    if (!rawUrl || scanStateRef.current.loading) return
+    if (handledUrlRef.current === rawUrl) return
+
+    // Already showing a result for this exact url (e.g. restored from sessionStorage
+    // on mount) — adopt it instead of re-scanning.
+    const normalised = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
+    const existing = scanStateRef.current.result
+    if (existing && existing.url === normalised) {
+      handledUrlRef.current = rawUrl
+      return
     }
+
+    handledUrlRef.current = rawUrl
+    startScanRef.current(rawUrl)
   }, [rawUrl])
 
   // Re-scan is gated server-side: increment_rescan() atomically checks the caller's
