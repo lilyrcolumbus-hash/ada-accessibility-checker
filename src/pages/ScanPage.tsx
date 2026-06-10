@@ -143,8 +143,15 @@ export function ScanPage() {
   const { user, profile, refreshProfile } = useAuth()
   const rescansUsed = profile?.rescans_used ?? 0
   const rescansAllowed = plan.limits.rescansAllowed
+  // `rescanConsumed` is an OPTIMISTIC local latch: once a re-scan succeeds we disable
+  // the button immediately instead of waiting for refreshProfile() to round-trip the
+  // new rescans_used — that refresh lag was what briefly left the button clickable for
+  // a confusing second click. `isRescanning` disables it while the RPC is in flight.
+  const [rescanConsumed, setRescanConsumed] = useState(false)
+  const [isRescanning, setIsRescanning] = useState(false)
   const rescanLimitReached =
-    rescansAllowed !== 'unlimited' && rescansUsed >= rescansAllowed
+    rescansAllowed !== 'unlimited' && (rescansUsed >= rescansAllowed || rescanConsumed)
+  const rescanButtonDisabled = rescanLimitReached || isRescanning
   const startScanRef = useRef(startScan)
   startScanRef.current = startScan
   const scanStateRef = useRef({ loading, result, error })
@@ -189,15 +196,21 @@ export function ScanPage() {
       return
     }
     rescanningRef.current = true
+    setIsRescanning(true)
     try {
       if (user) {
         const { supabase } = await import('@/lib/supabase')
         const { error: rpcError } = await supabase.rpc('increment_rescan')
         if (rpcError) {
+          // Server says the allowance is spent — latch the button off and stop.
+          setRescanConsumed(true)
           toast.error(`Re-scan limit reached on ${plan.name}. Upgrade for unlimited re-scans.`)
           await refreshProfile()
           return
         }
+        // Gate passed: this re-scan is now spent. Latch the button off right away so
+        // a second click is impossible even before refreshProfile() catches up.
+        setRescanConsumed(true)
         await refreshProfile()
       }
       startScanRef.current(rawUrl)
@@ -206,6 +219,7 @@ export function ScanPage() {
       toast.error('Could not start the re-scan. Please try again.')
     } finally {
       rescanningRef.current = false
+      setIsRescanning(false)
     }
   }, [rawUrl, rescanLimitReached, user, plan.name, refreshProfile])
 
@@ -377,7 +391,7 @@ export function ScanPage() {
             variant="outline"
             size="sm"
             onClick={handleRescan}
-            disabled={rescanLimitReached}
+            disabled={rescanButtonDisabled}
             title={
               rescanLimitReached
                 ? `Re-scan limit reached (${rescansAllowed} on ${plan.name}). Upgrade for unlimited re-scans.`
@@ -385,8 +399,8 @@ export function ScanPage() {
             }
             className="gap-1.5"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {rescanLimitReached ? 'Re-scan used' : 'Re-scan'}
+            <RefreshCw className={cn('w-3.5 h-3.5', isRescanning && 'animate-spin')} />
+            {isRescanning ? 'Re-scanning…' : rescanLimitReached ? 'Re-scan used' : 'Re-scan'}
           </Button>
         </div>
       </div>
