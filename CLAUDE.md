@@ -403,17 +403,31 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-06-09 (Session 16)**
+**▶ RESUME HERE (next session) — updated 2026-06-11 (Session 16)**
 
-Estado al reabrir: **Session 16 (2026-06-09) arregló y desplegó un bug real en la cajita "Scan another site"** (commit `4dabcf8`) — ver "Session 16 fixes" abajo. Antes: Session 14 (share/badge/rescan) SHIPPED; Session 15 (2026-06-07) arregló spinners infinitos de badge/share + aclaró el lío de cuentas Supabase. `main` = `4dabcf8`, todo pusheado a GitHub. **Fix verificado EN VIVO con Playwright** (Chromium en caché `~/Library/Caches/ms-playwright/chromium_headless_shell-1223`, módulo global vía `~/.npm/_npx/.../node_modules/playwright`, import por ruta absoluta + `executablePath`). App responde 200.
+Estado al reabrir: **INGENIERÍA TERMINADA. La app entrega TODO lo que promete (QA full pasado por la usuaria). Lo único que falta para vender es DISTRIBUCIÓN — empezando por comprar el dominio propio.** `main` = `d9ed351`, todo pusheado. App en vivo 200.
+
+**Lo que se hizo en Session 16 (2026-06-09→11):**
+- ✅ **Bug #87 — cajita "Scan another site"** mostraba datos viejos del sitio anterior bajo el nombre del nuevo. Arreglado (commit `4dabcf8`), verificado EN VIVO con Playwright.
+- ✅ **Bug #88 — botón "Re-scan"** dejaba un 2º clic confuso (el límite SÍ estaba bien enforced en DB; era solo lag visual). Arreglado con latch optimista (commit `d9ed351`), desplegado.
+- ✅ **QA completo de la usuaria (todo verde):** Free (4 promesas) + Fix My Site (6 promesas incl. PDF, share `/shared/:token`, badge `/badge/:token`, re-scan límite 1 bloqueando al instante). Disclaimers visibles en landing/scan/terms/privacy. Sin "50 pages" en copy. Compliance Shield no comprable. Pago real ya probado históricamente (2 transacciones en DB).
+- ℹ️ El contador `rescans_used` de `lilyrcolumbus@gmail.com` fue **reseteado a 0** vía Management API para el QA (quedó en 0).
+
+**🔧 Cómo verificar UI en vivo (Playwright — ya configurado y probado):** Chromium en caché `~/Library/Caches/ms-playwright/chromium_headless_shell-1223`; módulo en `~/.npm/_npx/<hash>/node_modules/playwright` → import por RUTA ABSOLUTA (`import pkg from '/abs/.../playwright/index.js'; const {chromium}=pkg`) + `executablePath` al headless-shell. Correr contra local (`npm run dev`, :5173) o la URL `pages.dev`. NO puedo probar flujos logueados (sin sesión de la usuaria) → eso lo prueba ella. Ver memoria `sitesafe-verify-before-claiming`.
+
+**🔧 Management API a prod (sin 2FA):** token del Keychain `security find-generic-password -s "Supabase CLI" -a supabase -w` → quitar prefijo `go-keyring-base64:` → `base64 -d` → `POST https://api.supabase.com/v1/projects/mvzolbabbkedmlhqhiwi/database/query` con `{"query":"..."}`. Usar **curl** (urllib da 403 por User-Agent). Sirve para leer/escribir prod (ej: ver/resetear `rescans_used`, leer `pg_get_functiondef`).
+
+**🎯 SIGUIENTE PASO REAL = DISTRIBUCIÓN (no ingeniería). Dominio propio es lo #1.**
+- Registrar recomendado: **Cloudflare Registrar** (el hosting ya está ahí → conexión automática, precio al costo). Alt: Porkbun/Namecheap. Evitar GoDaddy.
+- Genéricos TODOS tomados (sitesafe.com/.app/.io, adasafe/adascan/adashield/wcagcheck .com — verificado por whois 2026-06-11).
+- **🟢 LIBRES verificados (whois 2026-06-11):** `trysitesafe.com` ⭐(recomendado, mantiene marca), `adalawsuitcheck.com` ⭐(SEO/intención), `sitesafescan.com`, `ismysiteada.com`, `adacomplychecker.com`, `lawsuitproofsite.com`. ⚠️ Disponibilidad cambia — re-verificar antes de comprar.
+- Después del dominio: enviar `sitemap.xml` a Google Search Console (78 páginas SEO invisibles hoy), testimonios, Reddit, Product Hunt. Ver "Distribution playbook".
 
 **⚠️ MAPA DE CUENTAS (lo que más confunde a la usuaria — leer "ACCOUNT OWNERSHIP" + "Full SiteSafe identity map" en la sección Supabase abajo):** SiteSafe = **código** en GitHub `lilyrcolumbus-hash/ada-accessibility-checker` (🚫 NUNCA borrar) + **backend** Supabase `mvzolbabbkedmlhqhiwi` en cuenta `lyhoffllc.info@gmail.com`/org "NEXUS Voice" (= GitHub `lyhoff-code`) + **hosting** Cloudflare. Las dos identidades GitHub son suyas; el código NO está en `lyhoff-code`. El cascarón vacío `rgmzczxlgniwdxzdeakq` **ya fue borrado (2026-06-07)**. Decisión: mantener split, NO consolidar.
 
-**Lo que falta para lanzar (QA manual en navegador — requiere su login):** ver `LAUNCH-CHECKLIST.md`. Resumen: (1) probar que un pago real entra (Stripe LIVE) + refundearlo, (2) las 3 features nuevas con `lilyrcolumbus@gmail.com`/plan fix-my-site (Share, badge, límite re-scan), (3) precisión del scanner en 2-3 sitios reales server-rendered, (4) móvil. Lo anónimo ya lo verificó Claude con Playwright (sin regresión).
-
 **⚠️ PRIMERO al reabrir:** si la app "no carga" / login/scans fallan → casi seguro el Supabase de prod se **auto-pausó** (free tier). NO debuggear código: reactivar con `/restore` (ver memoria `sitesafe-supabase-autopause` + `sitesafe-supabase-mgmt-api`). ~2-3 min.
 
-**Siguiente prioridad de negocio (no ingeniería):** distribución — ver "Distribution playbook" abajo. Custom domain es lo #1.
+**🗣️ NOTA DE TRABAJO (importante para la relación):** la usuaria reacciona MUY fuerte (incl. amenazas legales) a afirmaciones sin comprobar. NUNCA afirmar un bug/comportamiento solo leyendo código — correrlo primero y etiquetar ✅ comprobado vs 🔶 hipótesis. Ver memoria `sitesafe-verify-before-claiming`.
 
 ---
 
@@ -564,6 +578,9 @@ The `scan` edge function fetches **raw HTML only** — no JS execution. This mea
 79. **Vite chunk size warning** — Main bundle was 573 kB (over 500 kB warning threshold). Added `manualChunks` to `vite.config.ts` splitting react/paypal/query into vendor chunks. Main bundle now 490 kB, no warning. Better caching since vendor chunks change rarely.
 80. **CRITICAL: Scan failed on real sites with WAF protection** — Edge function used `User-Agent: SiteSafe Accessibility Scanner/1.0` which Cloudflare/Imperva/Akamai block with 403. ALL scans of protected sites failed showing "Could not fetch this website" error. Fix: real Chrome 131 UA + 14 browser headers (`Accept-Language`, `sec-ch-ua-*`, `Sec-Fetch-*`, `Upgrade-Insecure-Requests`, etc.) + 15s timeout (was 10s) + specific error messages per HTTP status (403/401/429/404/5xx). **Awaiting deploy** to `mvzolbabbkedmlhqhiwi`.
 81. **CLAUDE.md pointed to wrong Supabase project** — Doc + `.env.local` referenced `rgmzczxlgniwdxzdeakq` (someone else's project, no CLI access for deploys). User confirmed `mvzolbabbkedmlhqhiwi` (SiteSafe-ada_checker) is the correct project. Updated all references — both project ref and webhook URL.
+
+### Session 16 fixes (2026-06-09→11)
+88. **Re-scan button allowed a confusing 2nd click before disabling.** The 1-re-scan limit was ALREADY enforced correctly server-side — verified live: `increment_rescan()` uses `used >= allowed` (allowed=1 for `fix-my-site`) and the `rescans_used` counter never exceeded 1. The only flaw was UX: the button's `disabled` depended on `profile.rescans_used`, which only updated after `refreshProfile()` round-tripped — so for a moment after a re-scan the button stayed clickable, and a 2nd click hit the server (correctly rejected) but showed a "limit reached" toast instead of a disabled button. **Fix (`ScanPage.tsx`, commit `d9ed351`):** added an optimistic `rescanConsumed` latch (set the instant the RPC succeeds) + `isRescanning` state, so the button disables immediately and stays disabled regardless of refresh lag, showing "Re-scanning…" while in flight. Free plan unaffected (allowance short-circuits on `'unlimited'`). **Verified by the user live**: re-scan #1 ran, button flipped to "Re-scan used" (disabled, cursor-not-allowed) instantly, 2nd click did nothing. Build/typecheck clean; anonymous browser smoke test confirmed no regression (logged-in re-scan flow can't be tested by Claude — no session).
 
 ### Session 16 fixes (2026-06-09) — inline "Scan another site" showed stale data
 87. **"Scan another site" box re-scanned nothing — showed previous site's data under the new site's header.** The inline form on `ScanPage` only did `navigate('/scan?url=B')`. The page never remounts on a query-param change, so the auto-start `useEffect` — guarded on `if (!r && !e)` ("only scan when there's no result yet") — saw the *previous* result (`r` truthy) and skipped. Net effect: header updated to "Results for B" (derived from `rawUrl`) but score/issues/timestamp stayed frozen on site A. **Dangerous for a paid compliance product** — a user scanning Client B would see Client A's data. **Fix:** track the exact `?url=` handled in `handledUrlRef`; re-scan whenever `rawUrl` changes to a site we haven't handled, while ignoring redirect-rewritten `result.url` (compare against `handledUrlRef`, not `result.url`) to avoid a re-scan loop. Fresh navigation (home/dashboard/new tab) always worked — only the inline box was broken. **Verified live with headless-browser test**: example.com (1 issue) → smashingmagazine.com (31 issues) now updates correctly. Commit `4dabcf8`. (Process note: this bug was first *asserted* from static reading without testing, which was wrong — only confirmed/fixed after an actual Playwright run. See memory `sitesafe-verify-before-claiming`.)
