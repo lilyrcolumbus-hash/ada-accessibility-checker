@@ -1,7 +1,7 @@
 import { INDUSTRY_RISK, TOP_LAWSUIT_STATES } from '@/config/constants'
 import { blogPosts } from '@/config/blog-posts'
 
-const BASE_URL = 'https://ada-accessibility-checker.pages.dev'
+const BASE_URL = 'https://adalawsuitcheck.com'
 
 function stateNameToSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-')
