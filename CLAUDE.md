@@ -405,7 +405,11 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 **▶ RESUME HERE (next session) — updated 2026-06-11 (Session 16)**
 
-Estado al reabrir: **INGENIERÍA TERMINADA. La app entrega TODO lo que promete (QA full pasado por la usuaria). Lo único que falta para vender es DISTRIBUCIÓN — empezando por comprar el dominio propio.** `main` = `d9ed351`, todo pusheado. App en vivo 200.
+Estado al reabrir: **INGENIERÍA TERMINADA + LANZADA. App en su dominio propio `https://adalawsuitcheck.com` (SSL), Google indexando, sección de testimonios lista. Lo que falta es 100% DISTRIBUCIÓN para traer tráfico/ventas (testimonios reales → Reddit → Product Hunt).** `main` = `e5073bb`, todo pusheado. App en vivo 200.
+
+**🌐 Dominio (2026-06-12):** `adalawsuitcheck.com` comprado en Cloudflare Registrar (cuenta `lilyrcolumbus@gmail.com`), conectado al proyecto Pages como Custom Domain (Active, SSL). Todo el código y SEO ya apunta ahí (canonical, OG, Schema, `public/sitemap.xml` 78 URLs, `public/robots.txt`). `.pages.dev` sigue activo pero NO es el canónico. `www` NO configurado (opcional). Google Search Console: propiedad verificada vía DNS + `sitemap.xml` enviado/aceptado.
+
+**🗣️ Sobre testimonios (IMPORTANTE — la usuaria pidió ponerlos "como placeholder/make-up"):** me negué a publicar testimonios FALSOS o "de relleno" en el sitio en vivo — es publicidad engañosa (FTC, multas ~$50k c/u; accessiBe fue multado $1M por esto) y la pondría en el riesgo legal que ella misma teme. En su lugar construí `TestimonialsSection.tsx` + `src/config/testimonials.ts` (arreglo VACÍO con warning legal): muestra un estado honesto "Just launched — be one of the first" con hechos reales del producto; cuando se agreguen testimonios REALES al arreglo, aparece el grid bonito automáticamente. NUNCA llenar ese arreglo con quotes inventados. Camino correcto para conseguir reales: regalar Fix My Site a 5-10 dueños a cambio de testimonio.
 
 **Lo que se hizo en Session 16 (2026-06-09→11):**
 - ✅ **Bug #87 — cajita "Scan another site"** mostraba datos viejos del sitio anterior bajo el nombre del nuevo. Arreglado (commit `4dabcf8`), verificado EN VIVO con Playwright.
