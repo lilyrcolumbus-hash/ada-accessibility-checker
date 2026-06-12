@@ -417,11 +417,12 @@ Estado al reabrir: **INGENIERÍA TERMINADA. La app entrega TODO lo que promete (
 
 **🔧 Management API a prod (sin 2FA):** token del Keychain `security find-generic-password -s "Supabase CLI" -a supabase -w` → quitar prefijo `go-keyring-base64:` → `base64 -d` → `POST https://api.supabase.com/v1/projects/mvzolbabbkedmlhqhiwi/database/query` con `{"query":"..."}`. Usar **curl** (urllib da 403 por User-Agent). Sirve para leer/escribir prod (ej: ver/resetear `rescans_used`, leer `pg_get_functiondef`).
 
-**🎯 SIGUIENTE PASO REAL = DISTRIBUCIÓN (no ingeniería). Dominio propio es lo #1.**
-- Registrar recomendado: **Cloudflare Registrar** (el hosting ya está ahí → conexión automática, precio al costo). Alt: Porkbun/Namecheap. Evitar GoDaddy.
-- Genéricos TODOS tomados (sitesafe.com/.app/.io, adasafe/adascan/adashield/wcagcheck .com — verificado por whois 2026-06-11).
-- **🟢 LIBRES verificados (whois 2026-06-11):** `trysitesafe.com` ⭐(recomendado, mantiene marca), `adalawsuitcheck.com` ⭐(SEO/intención), `sitesafescan.com`, `ismysiteada.com`, `adacomplychecker.com`, `lawsuitproofsite.com`. ⚠️ Disponibilidad cambia — re-verificar antes de comprar.
-- Después del dominio: enviar `sitemap.xml` a Google Search Console (78 páginas SEO invisibles hoy), testimonios, Reddit, Product Hunt. Ver "Distribution playbook".
+**🎯 SIGUIENTE PASO REAL = DISTRIBUCIÓN (no ingeniería).**
+- ✅ **DOMINIO COMPRADO Y EN VIVO (2026-06-12): `adalawsuitcheck.com`** — registrado en Cloudflare Registrar (cuenta `lilyrcolumbus@gmail.com`, expira 2027-06-12), conectado al proyecto Pages `ada-accessibility-checker` como Custom Domain (Active, SSL enabled). Sirve HTTP 200. El `.pages.dev` viejo sigue activo pero ya NO es el canónico.
+  - **Código actualizado al dominio nuevo** (commits `c3d6179` + `8f95f1b`): `index.html` (OG/Twitter/Schema.org + nuevo `<link rel=canonical>`), `src/config/sitemap.ts`, `src/lib/pdf-report.ts`, **`public/sitemap.xml` (78 URLs) + `public/robots.txt`** (estos 2 eran estáticos — el sitemap NO se genera de sitemap.ts en runtime), y el fallback origin de `create-checkout`/`create-portal`. ⚠️ Las 2 edge functions NO se re-desplegaron — el fallback solo se usa si falta el header Origin (nunca en un checkout real de browser); re-deploy opcional con `supabase functions deploy`.
+  - `www.adalawsuitcheck.com` NO configurado (opcional — agregar otro Custom Domain igual).
+- **➡️ PRÓXIMO: enviar el sitemap a Google Search Console** (gratis, ~10 min) — https://search.google.com/search-console → agregar propiedad `adalawsuitcheck.com` (verificar vía DNS TXT en Cloudflare, fácil porque el dominio está ahí) → Sitemaps → enviar `sitemap.xml`. Las 78 páginas SEO siguen invisibles para Google hasta hacer esto.
+- Después: testimonios (regalar Fix My Site a 5-10 dueños), Reddit (r/smallbusiness, r/Shopify), Product Hunt. Ver "Distribution playbook".
 
 **⚠️ MAPA DE CUENTAS (lo que más confunde a la usuaria — leer "ACCOUNT OWNERSHIP" + "Full SiteSafe identity map" en la sección Supabase abajo):** SiteSafe = **código** en GitHub `lilyrcolumbus-hash/ada-accessibility-checker` (🚫 NUNCA borrar) + **backend** Supabase `mvzolbabbkedmlhqhiwi` en cuenta `lyhoffllc.info@gmail.com`/org "NEXUS Voice" (= GitHub `lyhoff-code`) + **hosting** Cloudflare. Las dos identidades GitHub son suyas; el código NO está en `lyhoff-code`. El cascarón vacío `rgmzczxlgniwdxzdeakq` **ya fue borrado (2026-06-07)**. Decisión: mantener split, NO consolidar.
 
