@@ -66,7 +66,9 @@ function ScanningProgress() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+    // Full-viewport height during the scan keeps the footer below the fold, so the
+    // large spinner→results reflow doesn't register as a visible layout shift (CLS).
+    <div className="flex flex-col items-center justify-center min-h-screen px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
         {/* Spinner */}
         <div className="flex justify-center">
