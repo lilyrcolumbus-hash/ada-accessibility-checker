@@ -63,11 +63,16 @@ export function HeroSection() {
           <span className="text-primary-700">Lawsuit-Proof?</span>
         </h1>
 
-        {/* Subheadline */}
+        {/* Subheadline — says plainly what the tool IS */}
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl">
-          4,605 ADA lawsuits were filed in 2023.{' '}
-          <strong className="text-gray-800">67% targeted small businesses.</strong> Check your site
-          in 30 seconds — free.
+          Free <strong className="text-gray-800">ADA accessibility scanner</strong> — we find the
+          issues on your website that get small businesses sued, and show you the{' '}
+          <strong className="text-gray-800">exact fixes</strong> in plain English.
+        </p>
+
+        {/* Proof / urgency stat (secondary) */}
+        <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
+          4,605 ADA lawsuits filed in 2023 · 67% hit small businesses · Results in 30 seconds.
         </p>
 
         {/* URL input form */}
