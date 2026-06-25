@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiteSafe Outreach Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;min-height:100vh;padding-bottom:32px}
+a{color:#60a5fa}
+
+/* ── Layout ── */
+.container{max-width:480px;margin:0 auto;padding:16px}
+
+/* ── Header ── */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.header h1{font-size:18px;font-weight:700;color:#fff}
+.header h1 span{color:#22c55e}
+.badge-live{background:#22c55e;color:#000;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:.5px}
+.last-run{font-size:11px;color:#64748b;margin-top:2px}
+
+/* ── Stats grid ── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:#1e2130;border-radius:12px;padding:14px 16px}
+.stat-num{font-size:28px;font-weight:800;line-height:1}
+.stat-label{font-size:11px;color:#94a3b8;margin-top:4px}
+.stat.green .stat-num{color:#22c55e}
+.stat.blue  .stat-num{color:#60a5fa}
+.stat.amber .stat-num{color:#f59e0b}
+.stat.purple.stat-num{color:#a78bfa}
+
+/* ── Calendar ── */
+.section{background:#1e2130;border-radius:14px;padding:16px;margin-bottom:14px}
+.section-title{font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav h2{font-size:15px;font-weight:600}
+.cal-nav button{background:#2d3148;border:none;color:#e2e8f0;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px}
+.cal-nav button:active{background:#3d4268}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px}
+.cal-weekdays span{font-size:10px;color:#475569;padding:2px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12px;cursor:pointer;position:relative;color:#94a3b8;transition:background .15s}
+.cal-day.current-month{color:#cbd5e1}
+.cal-day.today{border:1.5px solid #3b82f6;color:#60a5fa;font-weight:700}
+.cal-day.has-data{background:rgba(34,197,94,.12);color:#4ade80}
+.cal-day.has-data:active,.cal-day.has-data:hover{background:rgba(34,197,94,.25)}
+.cal-day.selected{background:rgba(59,130,246,.25);color:#93c5fd;border:1.5px solid #3b82f6}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:#22c55e;margin-top:1px}
+.cal-count{font-size:9px;color:#22c55e;font-weight:700;margin-top:1px}
+
+/* ── Day detail popup ── */
+.day-detail{background:#252840;border:1px solid #3d4268;border-radius:12px;padding:14px;margin-top:10px;animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.day-detail h3{font-size:14px;font-weight:700;margin-bottom:6px}
+.day-detail .meta{font-size:12px;color:#94a3b8;line-height:1.6}
+.day-detail .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill{background:#1e2130;border-radius:99px;padding:3px 10px;font-size:11px;color:#94a3b8}
+.pill.green{background:rgba(34,197,94,.15);color:#4ade80}
+.pill.blue{background:rgba(59,130,246,.15);color:#93c5fd}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab-btn{flex:1;background:#1e2130;border:none;color:#94a3b8;padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.tab-btn.active{background:#3b82f6;color:#fff}
+
+/* ── Runs list ── */
+.run-card{background:#1e2130;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.run-date-col{text-align:center;min-width:38px}
+.run-day{font-size:20px;font-weight:800;line-height:1;color:#fff}
+.run-mon{font-size:10px;color:#64748b;text-transform:uppercase}
+.run-body{flex:1}
+.run-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.run-meta{font-size:11px;color:#64748b}
+.run-badge{background:rgba(34,197,94,.15);color:#4ade80;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.run-badge.zero{background:rgba(239,68,68,.1);color:#f87171}
+
+/* ── Contacts ── */
+.search-box{width:100%;background:#1e2130;border:1px solid #2d3148;border-radius:10px;color:#e2e8f0;padding:10px 12px;font-size:13px;margin-bottom:10px;outline:none}
+.search-box:focus{border-color:#3b82f6}
+.contact-card{background:#1e2130;border-radius:10px;padding:10px 14px;margin-bottom:6px}
+.contact-name{font-size:13px;font-weight:600}
+.contact-email{font-size:12px;color:#60a5fa;margin-top:2px}
+.contact-meta{font-size:11px;color:#64748b;margin-top:3px}
+.contact-issues{float:right;background:rgba(239,68,68,.1);color:#f87171;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600}
+.contact-issues.low{background:rgba(234,179,8,.1);color:#fbbf24}
+.contact-issues.none{background:rgba(100,116,139,.1);color:#94a3b8}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:32px 16px;color:#475569}
+.empty svg{margin-bottom:12px;opacity:.4}
+.loading{text-align:center;color:#475569;padding:32px;font-size:13px}
+
+/* ── Footer ── */
+.footer{text-align:center;font-size:11px;color:#334155;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>SiteSafe <span>Outreach</span></h1>
+      <div class="last-run" id="last-run-label">Loading…</div>
+    </div>
+    <span class="badge-live">LIVE</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat green"><div class="stat-num" id="s-today">—</div><div class="stat-label">Sent today</div></div>
+    <div class="stat blue"><div class="stat-num" id="s-week">—</div><div class="stat-label">This week</div></div>
+    <div class="stat amber"><div class="stat-num" id="s-month">—</div><div class="stat-label">This month</div></div>
+    <div class="stat"><div class="stat-num" id="s-total" style="color:#a78bfa">—</div><div class="stat-label">All time</div></div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="section">
+    <div class="cal-nav">
+      <button onclick="changeMonth(-1)">&#8249;</button>
+      <h2 id="cal-title"></h2>
+      <button onclick="changeMonth(1)">&#8250;</button>
+    </div>
+    <div class="cal-weekdays">
+      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div id="day-detail" style="display:none" class="day-detail"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-runs-btn" onclick="showTab('runs')">Run history</button>
+    <button class="tab-btn" id="tab-contacts-btn" onclick="showTab('contacts')">All contacts</button>
+  </div>
+
+  <!-- Run history -->
+  <div id="tab-runs">
+    <div class="loading" id="runs-loading">Loading…</div>
+    <div id="runs-list"></div>
+  </div>
+
+  <!-- Contacts -->
+  <div id="tab-contacts" style="display:none">
+    <input class="search-box" type="search" placeholder="Search name, email, website…" oninput="filterContacts(this.value)">
+    <div class="loading" id="contacts-loading">Loading…</div>
+    <div id="contacts-list"></div>
+  </div>
+
+  <div class="footer">SiteSafe · adalawsuitcheck.com · auto-refreshes every 5 min</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mvzolbabbkedmlhqhiwi.supabase.co';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12em9sYmFiYmtlZG1saHFoaXdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDgzOTAsImV4cCI6MjA4Nzk4NDM5MH0.F-Ywz77JpmL-UqYIMR4p2oTcqrsFNvh8c5v-MNOXtzU';
+
+const H = { apikey: ANON, Authorization: `Bearer ${ANON}` };
+
+async function sb(path) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: H });
+    return r.ok ? r.json() : [];
+  } catch { return []; }
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let runs = [], contacted = [];
+let calYear, calMonth;
+let selectedDay = null;
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+
+  [runs, contacted] = await Promise.all([
+    sb('outreach_runs?select=*&order=run_date.desc&limit=180'),
+    sb('outreach_contacted?select=*&order=contacted_at.desc')
+  ]);
+
+  renderStats();
+  renderCalendar();
+  renderRuns();
+  renderContacts();
+
+  if (runs.length > 0) {
+    const last = runs[0];
+    document.getElementById('last-run-label').textContent =
+      `Last run: ${fmtDate(last.run_date)} · ${last.sent} sent`;
+  } else {
+    document.getElementById('last-run-label').textContent = 'No runs yet — first run coming soon';
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const today = new Date().toISOString().slice(0,10);
+  const weekAgo = new Date(Date.now() - 7*864e5).toISOString().slice(0,10);
+  const monthStart = today.slice(0,7) + '-01';
+
+  const sum = (arr, filter) => arr.filter(filter).reduce((a,r)=>a+(r.sent||0),0);
+
+  document.getElementById('s-today').textContent  = sum(runs, r=>r.run_date===today);
+  document.getElementById('s-week').textContent   = sum(runs, r=>r.run_date>=weekAgo);
+  document.getElementById('s-month').textContent  = sum(runs, r=>r.run_date>=monthStart);
+  document.getElementById('s-total').textContent  = contacted.length;
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById('cal-title').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const today = new Date();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+
+  // Build a lookup: date string → run data
+  const runMap = {};
+  runs.forEach(r => { runMap[r.run_date] = r; });
+
+  // Prev month padding
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrev - i;
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    el.textContent = d;
+    grid.appendChild(el);
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const run = runMap[dateStr];
+    const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+
+    const el = document.createElement('div');
+    el.className = 'cal-day current-month' + (run ? ' has-data' : '') + (isToday ? ' today' : '');
+    el.innerHTML = `<span>${d}</span>${run ? `<span class="cal-count">${run.sent}</span>` : ''}`;
+
+    if (run) el.onclick = () => selectDay(dateStr, run, el);
+    grid.appendChild(el);
+  }
+
+  // Next month padding
+  const total = firstDay + daysInMonth;
+  const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 1; i <= remaining; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    el.textContent = i;
+    grid.appendChild(el);
+  }
+}
+
+function selectDay(dateStr, run, el) {
+  document.querySelectorAll('.cal-day.selected').forEach(e=>e.classList.remove('selected'));
+  const detail = document.getElementById('day-detail');
+  if (selectedDay === dateStr) {
+    selectedDay = null;
+    detail.style.display = 'none';
+    return;
+  }
+  selectedDay = dateStr;
+  el.classList.add('selected');
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <h3>${fmtDate(dateStr)}</h3>
+    <div class="meta">
+      ${run.category} · ${run.city}
+    </div>
+    <div class="pills">
+      <span class="pill green">✓ ${run.sent} sent</span>
+      <span class="pill blue">📧 ${run.with_email} found</span>
+      <span class="pill">🔍 ${run.processed} checked</span>
+      ${run.failed > 0 ? `<span class="pill">⚠ ${run.failed} failed</span>` : ''}
+    </div>`;
+}
+
+function changeMonth(delta) {
+  selectedDay = null;
+  document.getElementById('day-detail').style.display = 'none';
+  calMonth += delta;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+// ── Run history ───────────────────────────────────────────────────────────────
+function renderRuns() {
+  document.getElementById('runs-loading').style.display = 'none';
+  const list = document.getElementById('runs-list');
+  if (!runs.length) {
+    list.innerHTML = '<div class="empty">No runs yet</div>';
+    return;
+  }
+  list.innerHTML = runs.slice(0, 60).map(r => {
+    const d = new Date(r.run_date + 'T12:00:00');
+    const day = d.getDate();
+    const mon = SHORT_MONTHS[d.getMonth()];
+    const rate = r.with_email > 0 ? Math.round(r.sent/r.with_email*100) : 0;
+    return `<div class="run-card">
+      <div class="run-date-col">
+        <div class="run-day">${day}</div>
+        <div class="run-mon">${mon}</div>
+      </div>
+      <div class="run-body">
+        <div class="run-title">${r.category}</div>
+        <div class="run-meta">${r.city} · ${r.processed} checked · ${r.with_email} emails · ${rate}% rate</div>
+      </div>
+      <div class="run-badge ${r.sent===0?'zero':''}">${r.sent} sent</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Contacts ──────────────────────────────────────────────────────────────────
+let contactsRendered = false;
+function renderContacts() {
+  document.getElementById('contacts-loading').style.display = 'none';
+  renderContactsFiltered('');
+  contactsRendered = true;
+}
+
+function renderContactsFiltered(query) {
+  const q = query.toLowerCase();
+  const filtered = q
+    ? contacted.filter(c =>
+        (c.name||'').toLowerCase().includes(q) ||
+        (c.email||'').toLowerCase().includes(q) ||
+        (c.website||'').toLowerCase().includes(q)
+      )
+    : contacted;
+
+  const list = document.getElementById('contacts-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty">No contacts ${q ? 'matching "'+q+'"' : 'yet'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.slice(0, 100).map(c => {
+    const issues = parseInt(c.issues || 0);
+    const cls = issues >= 5 ? '' : issues >= 1 ? 'low' : 'none';
+    const label = issues > 0 ? `${issues} issues` : 'no issues';
+    return `<div class="contact-card">
+      <div>
+        <span class="contact-issues ${cls}">${label}</span>
+        <div class="contact-name">${esc(c.name || '—')}</div>
+      </div>
+      <div class="contact-email">${esc(c.email || '—')}</div>
+      <div class="contact-meta">${esc(c.website || '—')} · ${fmtDate(c.contacted_at)}</div>
+    </div>`;
+  }).join('');
+  if (filtered.length > 100) {
+    list.innerHTML += `<div class="empty" style="padding:12px">Showing 100 of ${filtered.length} — use search to filter</div>`;
+  }
+}
+
+function filterContacts(q) {
+  renderContactsFiltered(q);
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.getElementById('tab-runs').style.display = name==='runs' ? '' : 'none';
+  document.getElementById('tab-contacts').style.display = name==='contacts' ? '' : 'none';
+  document.getElementById('tab-runs-btn').className = 'tab-btn' + (name==='runs' ? ' active' : '');
+  document.getElementById('tab-contacts-btn').className = 'tab-btn' + (name==='contacts' ? ' active' : '');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T12:00:00');
+  return `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Auto-refresh every 5 min ──────────────────────────────────────────────────
+setInterval(init, 5 * 60 * 1000);
+
+init();
+</script>
+</body>
+</html>
