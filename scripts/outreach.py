@@ -299,14 +299,14 @@ def scan_site(url: str) -> tuple[int, int, str, str]:
         if resp.status_code != 200:
             return 0, 0, f"HTTP {resp.status_code}", "en"
         if "text/html" not in resp.headers.get("content-type", ""):
-            return 0, 0, "No es HTML", "en"
+            return 0, 0, "Not HTML", "en"
         lang = detect_language(resp.text)
         issues, critical, err = _count_issues(resp.text)
         return issues, critical, err, lang
     except requests.exceptions.Timeout:
         return 0, 0, "Timeout", "en"
     except requests.exceptions.ConnectionError:
-        return 0, 0, "Sin conexión"
+        return 0, 0, "Connection error", "en"
     except Exception as e:
         return 0, 0, str(e)[:60], "en"
 
