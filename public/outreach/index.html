@@ -1,11 +1,237 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0;url=https://mvzolbabbkedmlhqhiwi.supabase.co/storage/v1/object/public/outreach/dashboard.html">
-<title>Outreach Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiteSafe Outreach</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;min-height:100vh;padding-bottom:32px}
+.container{max-width:480px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.header h1{font-size:18px;font-weight:700;color:#fff}
+.header h1 span{color:#22c55e}
+.badge-live{background:#22c55e;color:#000;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
+.last-run{font-size:11px;color:#64748b;margin-top:2px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:#1e2130;border-radius:12px;padding:14px 16px}
+.stat-num{font-size:28px;font-weight:800;line-height:1}
+.stat-label{font-size:11px;color:#94a3b8;margin-top:4px}
+.section{background:#1e2130;border-radius:14px;padding:16px;margin-bottom:14px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav h2{font-size:15px;font-weight:600}
+.cal-nav button{background:#2d3148;border:none;color:#e2e8f0;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:16px}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px}
+.cal-weekdays span{font-size:10px;color:#475569;padding:2px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12px;cursor:pointer;color:#475569}
+.cal-day.cur{color:#cbd5e1}
+.cal-day.today{border:1.5px solid #3b82f6;color:#60a5fa;font-weight:700}
+.cal-day.has{background:rgba(34,197,94,.15);color:#4ade80}
+.cal-day.sel{background:rgba(59,130,246,.25);color:#93c5fd;border:1.5px solid #3b82f6}
+.cal-count{font-size:9px;color:#22c55e;font-weight:700}
+.day-detail{background:#252840;border:1px solid #3d4268;border-radius:12px;padding:14px;margin-top:10px}
+.day-detail h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.day-detail p{font-size:12px;color:#94a3b8;margin-bottom:8px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{border-radius:99px;padding:3px 10px;font-size:11px}
+.pill.g{background:rgba(34,197,94,.15);color:#4ade80}
+.pill.b{background:rgba(59,130,246,.15);color:#93c5fd}
+.pill.n{background:#1e2130;color:#94a3b8}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab-btn{flex:1;background:#1e2130;border:none;color:#94a3b8;padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.tab-btn.active{background:#3b82f6;color:#fff}
+.run-card{background:#1e2130;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.run-date-col{text-align:center;min-width:36px}
+.run-day{font-size:20px;font-weight:800;color:#fff;line-height:1}
+.run-mon{font-size:10px;color:#64748b;text-transform:uppercase}
+.run-body{flex:1}
+.run-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.run-meta{font-size:11px;color:#64748b}
+.run-badge{border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap;background:rgba(34,197,94,.15);color:#4ade80}
+.run-badge.zero{background:rgba(239,68,68,.1);color:#f87171}
+.search-box{width:100%;background:#1e2130;border:1px solid #2d3148;border-radius:10px;color:#e2e8f0;padding:10px 12px;font-size:13px;margin-bottom:10px;outline:none}
+.search-box:focus{border-color:#3b82f6}
+.contact-card{background:#1e2130;border-radius:10px;padding:10px 14px;margin-bottom:6px;overflow:hidden}
+.contact-name{font-size:13px;font-weight:600}
+.contact-email{font-size:12px;color:#60a5fa;margin-top:2px}
+.contact-meta{font-size:11px;color:#64748b;margin-top:3px}
+.c-issues{float:right;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600;background:rgba(239,68,68,.1);color:#f87171}
+.c-issues.low{background:rgba(234,179,8,.1);color:#fbbf24}
+.c-issues.none{background:rgba(100,116,139,.1);color:#94a3b8}
+.empty{text-align:center;padding:32px 16px;color:#475569;font-size:13px}
+.loading{text-align:center;color:#475569;padding:32px;font-size:13px}
+.footer{text-align:center;font-size:11px;color:#334155;margin-top:24px}
+</style>
 </head>
 <body>
-<script>window.location.replace("https://mvzolbabbkedmlhqhiwi.supabase.co/storage/v1/object/public/outreach/dashboard.html")</script>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>SiteSafe <span>Outreach</span></h1>
+      <div class="last-run" id="lr">Loading...</div>
+    </div>
+    <span class="badge-live">LIVE</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="s0" style="color:#22c55e">-</div><div class="stat-label">Sent today</div></div>
+    <div class="stat"><div class="stat-num" id="s1" style="color:#60a5fa">-</div><div class="stat-label">This week</div></div>
+    <div class="stat"><div class="stat-num" id="s2" style="color:#f59e0b">-</div><div class="stat-label">This month</div></div>
+    <div class="stat"><div class="stat-num" id="s3" style="color:#a78bfa">-</div><div class="stat-label">All time</div></div>
+  </div>
+
+  <div class="section">
+    <div class="cal-nav">
+      <button onclick="cm(-1)">&#8249;</button>
+      <h2 id="ct"></h2>
+      <button onclick="cm(1)">&#8250;</button>
+    </div>
+    <div class="cal-weekdays">
+      <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+    </div>
+    <div class="cal-grid" id="cg"></div>
+    <div id="dd" style="display:none" class="day-detail"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tb0" onclick="st('runs')">Run history</button>
+    <button class="tab-btn" id="tb1" onclick="st('contacts')">All contacts</button>
+  </div>
+
+  <div id="t-runs">
+    <div class="loading" id="rl">Loading...</div>
+    <div id="runs-list"></div>
+  </div>
+
+  <div id="t-contacts" style="display:none">
+    <input class="search-box" type="search" placeholder="Search name, email, website..." oninput="fc(this.value)">
+    <div class="loading" id="cl">Loading...</div>
+    <div id="contacts-list"></div>
+  </div>
+
+  <div class="footer">SiteSafe &middot; adalawsuitcheck.com &middot; updates every 5 min</div>
+</div>
+<script>
+const SB='https://mvzolbabbkedmlhqhiwi.supabase.co';
+const AK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12em9sYmFiYmtlZG1saHFoaXdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDgzOTAsImV4cCI6MjA4Nzk4NDM5MH0.F-Ywz77JpmL-UqYIMR4p2oTcqrsFNvh8c5v-MNOXtzU';
+const H={apikey:AK,Authorization:'Bearer '+AK};
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let runs=[],contacts=[],cY,cM,sel=null;
+
+async function get(p){try{const r=await fetch(SB+'/rest/v1/'+p,{headers:H});return r.ok?r.json():[];}catch{return[];}}
+
+async function init(){
+  const now=new Date();cY=now.getFullYear();cM=now.getMonth();
+  [runs,contacts]=await Promise.all([
+    get('outreach_runs?select=*&order=run_date.desc&limit=180'),
+    get('outreach_contacted?select=*&order=contacted_at.desc')
+  ]);
+  stats();cal();rRuns();rContacts();
+  document.getElementById('lr').textContent=runs.length
+    ?'Last run: '+fd(runs[0].run_date)+' - '+runs[0].sent+' sent'
+    :'No runs yet - first run coming soon';
+}
+
+function stats(){
+  const t=new Date().toISOString().slice(0,10);
+  const w=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+  const m=t.slice(0,7)+'-01';
+  const s=(f)=>runs.filter(f).reduce((a,r)=>a+(r.sent||0),0);
+  document.getElementById('s0').textContent=s(r=>r.run_date===t);
+  document.getElementById('s1').textContent=s(r=>r.run_date>=w);
+  document.getElementById('s2').textContent=s(r=>r.run_date>=m);
+  document.getElementById('s3').textContent=contacts.length;
+}
+
+function cal(){
+  document.getElementById('ct').textContent=MN[cM]+' '+cY;
+  const g=document.getElementById('cg');g.innerHTML='';
+  const now=new Date();
+  const fd0=new Date(cY,cM,1).getDay();
+  const dim=new Date(cY,cM+1,0).getDate();
+  const dip=new Date(cY,cM,0).getDate();
+  const rm={};runs.forEach(r=>{rm[r.run_date]=r;});
+  for(let i=fd0-1;i>=0;i--){const e=document.createElement('div');e.className='cal-day';e.textContent=dip-i;g.appendChild(e);}
+  for(let d=1;d<=dim;d++){
+    const ds=cY+'-'+String(cM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const run=rm[ds];
+    const isT=now.getFullYear()===cY&&now.getMonth()===cM&&now.getDate()===d;
+    const e=document.createElement('div');
+    e.className='cal-day cur'+(run?' has':'')+(isT?' today':'');
+    e.innerHTML='<span>'+d+'</span>'+(run?'<span class="cal-count">'+run.sent+'</span>':'');
+    if(run)e.onclick=()=>sd(ds,run,e);
+    g.appendChild(e);
+  }
+  const tot=fd0+dim;const rem=tot%7===0?0:7-(tot%7);
+  for(let i=1;i<=rem;i++){const e=document.createElement('div');e.className='cal-day';e.textContent=i;g.appendChild(e);}
+}
+
+function sd(ds,run,el){
+  document.querySelectorAll('.cal-day.sel').forEach(e=>e.classList.remove('sel'));
+  const d=document.getElementById('dd');
+  if(sel===ds){sel=null;d.style.display='none';return;}
+  sel=ds;el.classList.add('sel');d.style.display='block';
+  d.innerHTML='<h3>'+fd(ds)+'</h3><p>'+esc(run.category)+' &middot; '+esc(run.city)+'</p>'
+    +'<div class="pills">'
+    +'<span class="pill g">&#10003; '+run.sent+' sent</span>'
+    +'<span class="pill b">@ '+run.with_email+' found</span>'
+    +'<span class="pill n">'+run.processed+' checked</span>'
+    +(run.failed>0?'<span class="pill n">! '+run.failed+' failed</span>':'')
+    +'</div>';
+}
+
+function cm(d){sel=null;document.getElementById('dd').style.display='none';cM+=d;if(cM>11){cM=0;cY++;}if(cM<0){cM=11;cY--;}cal();}
+
+function rRuns(){
+  document.getElementById('rl').style.display='none';
+  const l=document.getElementById('runs-list');
+  if(!runs.length){l.innerHTML='<div class="empty">No runs yet</div>';return;}
+  l.innerHTML=runs.slice(0,60).map(r=>{
+    const d=new Date(r.run_date+'T12:00:00');
+    const rate=r.with_email>0?Math.round(r.sent/r.with_email*100):0;
+    return '<div class="run-card">'
+      +'<div class="run-date-col"><div class="run-day">'+d.getDate()+'</div><div class="run-mon">'+MS[d.getMonth()]+'</div></div>'
+      +'<div class="run-body"><div class="run-title">'+esc(r.category)+'</div>'
+      +'<div class="run-meta">'+esc(r.city)+' &middot; '+r.processed+' checked &middot; '+r.with_email+' emails &middot; '+rate+'% rate</div></div>'
+      +'<div class="run-badge'+(r.sent===0?' zero':'')+'">'+r.sent+' sent</div>'
+      +'</div>';
+  }).join('');
+}
+
+function rContacts(){document.getElementById('cl').style.display='none';fc('');}
+
+function fc(q){
+  q=q.toLowerCase();
+  const f=q?contacts.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.website||'').toLowerCase().includes(q)):contacts;
+  const l=document.getElementById('contacts-list');
+  if(!f.length){l.innerHTML='<div class="empty">No contacts'+(q?' matching "'+esc(q)+'"':' yet')+'</div>';return;}
+  l.innerHTML=f.slice(0,100).map(c=>{
+    const n=parseInt(c.issues||0);
+    const cls=n>=5?'':n>=1?'low':'none';
+    return '<div class="contact-card">'
+      +'<span class="c-issues '+cls+'">'+( n>0?n+' issues':'0 issues')+'</span>'
+      +'<div class="contact-name">'+esc(c.name||'-')+'</div>'
+      +'<div class="contact-email">'+esc(c.email||'-')+'</div>'
+      +'<div class="contact-meta">'+esc(c.website||'-')+' &middot; '+fd(c.contacted_at)+'</div>'
+      +'</div>';
+  }).join('');
+  if(f.length>100)l.innerHTML+='<div class="empty" style="padding:12px">Showing 100 of '+f.length+' - use search to filter</div>';
+}
+
+function st(n){
+  document.getElementById('t-runs').style.display=n==='runs'?'':'none';
+  document.getElementById('t-contacts').style.display=n==='contacts'?'':'none';
+  document.getElementById('tb0').className='tab-btn'+(n==='runs'?' active':'');
+  document.getElementById('tb1').className='tab-btn'+(n==='contacts'?' active':'');
+}
+
+function fd(s){if(!s)return '-';const d=new Date(s+'T12:00:00');return MS[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+setInterval(init,5*60*1000);
+init();
+</script>
 </body>
 </html>
