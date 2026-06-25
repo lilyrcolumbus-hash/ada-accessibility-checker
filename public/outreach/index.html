@@ -8,6 +8,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;min-height:100vh;padding-bottom:40px}
 .container{max-width:480px;margin:0 auto;padding:16px}
+
+/* Header */
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .header h1{font-size:18px;font-weight:700;color:#fff}
 .header h1 span{color:#22c55e}
@@ -21,99 +23,72 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 .stat-label{font-size:11px;color:#94a3b8;margin-top:4px}
 
 /* Calendar */
-.section{background:#1e2130;border-radius:14px;padding:16px;margin-bottom:14px}
+.cal-wrap{background:#1e2130;border-radius:14px;padding:16px;margin-bottom:16px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cal-nav h2{font-size:15px;font-weight:600}
 .cal-nav button{background:#2d3148;border:none;color:#e2e8f0;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:16px}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px}
 .cal-weekdays span{font-size:10px;color:#475569;padding:2px 0}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12px;cursor:pointer;color:#475569}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:12px;color:#475569}
 .cal-day.cur{color:#cbd5e1}
 .cal-day.today{border:1.5px solid #3b82f6;color:#60a5fa;font-weight:700}
 .cal-day.has{background:rgba(34,197,94,.15);color:#4ade80;cursor:pointer}
 .cal-day.sel{background:rgba(59,130,246,.25);color:#93c5fd;border:1.5px solid #3b82f6}
 .cal-count{font-size:9px;color:#22c55e;font-weight:700}
-.day-detail{background:#252840;border:1px solid #3d4268;border-radius:12px;padding:14px;margin-top:10px}
-.day-detail h3{font-size:14px;font-weight:700;margin-bottom:4px}
-.day-detail p{font-size:12px;color:#94a3b8;margin-bottom:8px}
-.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.day-popup{background:#252840;border:1px solid #3d4268;border-radius:12px;padding:14px;margin-top:12px}
+.day-popup h3{font-size:14px;font-weight:700;margin-bottom:2px}
+.day-popup .city{font-size:12px;color:#94a3b8;margin-bottom:10px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .pill{border-radius:99px;padding:3px 10px;font-size:11px}
 .pill.g{background:rgba(34,197,94,.15);color:#4ade80}
 .pill.b{background:rgba(59,130,246,.15);color:#93c5fd}
-.pill.n{background:#1e2130;color:#94a3b8}
+.pill.n{background:#252840;color:#94a3b8;border:1px solid #2d3148}
 .pill.r{background:rgba(239,68,68,.1);color:#f87171}
-.view-day-btn{width:100%;background:#3b82f6;border:none;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-align:center}
-.view-day-btn:active{background:#2563eb}
+.view-btn{width:100%;background:#3b82f6;border:none;color:#fff;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.view-btn:active{background:#2563eb}
 
 /* Tabs */
 .tabs{display:flex;gap:6px;margin-bottom:12px}
-.tab-btn{flex:1;background:#1e2130;border:none;color:#94a3b8;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
+.tab-btn{flex:1;background:#1e2130;border:none;color:#94a3b8;padding:10px 6px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
 .tab-btn.active{background:#3b82f6;color:#fff}
 
-/* Today emails */
-.today-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.today-header h3{font-size:14px;font-weight:700;color:#fff}
-.today-meta{font-size:11px;color:#64748b}
+/* Email list */
+.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.list-header h3{font-size:14px;font-weight:700}
+.list-meta{font-size:11px;color:#64748b}
 .biz-card{background:#1e2130;border-radius:12px;padding:12px 14px;margin-bottom:8px}
-.biz-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
-.biz-name{font-size:13px;font-weight:700;color:#fff;flex:1}
-.status-badge{border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap}
-.status-badge.sent{background:rgba(34,197,94,.15);color:#4ade80}
-.status-badge.failed{background:rgba(239,68,68,.1);color:#f87171}
+.biz-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.biz-name{font-size:13px;font-weight:700;flex:1}
+.s-badge{border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap}
+.s-badge.sent{background:rgba(34,197,94,.15);color:#4ade80}
+.s-badge.failed{background:rgba(239,68,68,.1);color:#f87171}
 .biz-email{font-size:12px;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .copy-btn{background:#2d3148;border:none;color:#94a3b8;padding:1px 7px;border-radius:5px;font-size:10px;cursor:pointer}
 .copy-btn:active{background:#3b82f6;color:#fff}
-.biz-subject{font-size:11px;color:#94a3b8;margin-bottom:4px;font-style:italic}
+.biz-sub{font-size:11px;color:#64748b;font-style:italic;margin-bottom:3px}
 .biz-site{font-size:11px;color:#475569}
-.issue-dot{display:inline-block;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-right:4px}
-.issue-dot.hot{background:rgba(239,68,68,.15);color:#f87171}
-.issue-dot.warm{background:rgba(249,115,22,.15);color:#fb923c}
-.issue-dot.mild{background:rgba(234,179,8,.12);color:#fbbf24}
-.issue-dot.cold{background:rgba(100,116,139,.12);color:#94a3b8}
-.date-selector{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.date-selector label{font-size:12px;color:#64748b;white-space:nowrap}
-.date-input{background:#1e2130;border:1px solid #2d3148;border-radius:8px;color:#e2e8f0;padding:6px 10px;font-size:12px;outline:none;flex:1}
-.date-input:focus{border-color:#3b82f6}
-
-/* Run history */
-.run-card{background:#1e2130;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer}
-.run-card:active{background:#252840}
-.run-date-col{text-align:center;min-width:36px}
-.run-day{font-size:20px;font-weight:800;color:#fff;line-height:1}
-.run-mon{font-size:10px;color:#64748b;text-transform:uppercase}
-.run-body{flex:1}
-.run-title{font-size:13px;font-weight:600;margin-bottom:2px}
-.run-meta{font-size:11px;color:#64748b}
-.run-badge{border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap;background:rgba(34,197,94,.15);color:#4ade80}
-.run-badge.zero{background:rgba(239,68,68,.1);color:#f87171}
+.biz-city{font-size:11px;color:#64748b;margin-bottom:3px}
+.issue-tag{display:inline-block;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-right:4px}
+.issue-tag.hot{background:rgba(239,68,68,.15);color:#f87171}
+.issue-tag.warm{background:rgba(249,115,22,.15);color:#fb923c}
+.issue-tag.mild{background:rgba(234,179,8,.12);color:#fbbf24}
+.issue-tag.cold{background:rgba(100,116,139,.12);color:#94a3b8}
 
 /* All contacts */
 .search-box{width:100%;background:#1e2130;border:1px solid #2d3148;border-radius:10px;color:#e2e8f0;padding:10px 12px;font-size:13px;margin-bottom:10px;outline:none}
 .search-box:focus{border-color:#3b82f6}
-.contact-card{background:#1e2130;border-radius:10px;padding:10px 14px;margin-bottom:6px}
-.contact-name{font-size:13px;font-weight:600}
-.contact-email{font-size:12px;color:#60a5fa;margin-top:2px}
-.contact-meta{font-size:11px;color:#64748b;margin-top:3px}
-.c-issues{float:right;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600;background:rgba(239,68,68,.1);color:#f87171}
+.c-card{background:#1e2130;border-radius:10px;padding:10px 14px;margin-bottom:6px}
+.c-name{font-size:13px;font-weight:600}
+.c-email{font-size:12px;color:#60a5fa;margin-top:2px}
+.c-meta{font-size:11px;color:#64748b;margin-top:3px}
+.c-issues{float:right;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600}
+.c-issues.high{background:rgba(239,68,68,.1);color:#f87171}
+.c-issues.low{background:rgba(234,179,8,.1);color:#fbbf24}
 
-/* Notes */
-.notes-section{background:#1e2130;border-radius:14px;padding:16px;margin-bottom:14px}
-.notes-title{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-.notes-title span{font-size:11px;color:#64748b;font-weight:400}
-.notes-textarea{width:100%;background:#0f1117;border:1px solid #2d3148;border-radius:10px;color:#e2e8f0;padding:10px 12px;font-size:13px;outline:none;resize:none;margin-top:10px;min-height:80px;line-height:1.5}
-.notes-textarea:focus{border-color:#3b82f6}
-.notes-save-btn{width:100%;margin-top:8px;background:#3b82f6;border:none;color:#fff;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
-.notes-save-btn:active{background:#2563eb}
-.notes-save-btn:disabled{background:#2d3148;color:#64748b;cursor:default}
-.note-item{border-top:1px solid #2d3148;padding:10px 0;font-size:12px;color:#94a3b8;line-height:1.5}
-.note-item:first-child{border-top:none}
-.note-date{font-size:10px;color:#475569;margin-bottom:3px}
-
-/* Shared */
-.empty{text-align:center;padding:32px 16px;color:#475569;font-size:13px;line-height:1.6}
+.empty{text-align:center;padding:32px 16px;color:#475569;font-size:13px;line-height:1.7}
 .loading{text-align:center;color:#475569;padding:24px;font-size:13px}
-.footer{text-align:center;font-size:11px;color:#334155;margin-top:24px}
+.footer{text-align:center;font-size:11px;color:#2d3148;margin-top:24px}
 </style>
 </head>
 <body>
@@ -136,7 +111,7 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
   </div>
 
   <!-- Calendar -->
-  <div class="section">
+  <div class="cal-wrap">
     <div class="cal-nav">
       <button onclick="cm(-1)">&#8249;</button>
       <h2 id="ct"></h2>
@@ -146,191 +121,208 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
       <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
     </div>
     <div class="cal-grid" id="cg"></div>
-    <div id="dd" style="display:none" class="day-detail"></div>
+    <!-- Day popup appears here when a day is tapped -->
+    <div id="day-popup" style="display:none" class="day-popup"></div>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab-btn active" id="tb0" onclick="st('today')">Today's emails</button>
-    <button class="tab-btn" id="tb1" onclick="st('runs')">History</button>
-    <button class="tab-btn" id="tb2" onclick="st('contacts')">All contacts</button>
+    <button class="tab-btn active" id="tb0" onclick="st(0)">Today</button>
+    <button class="tab-btn" id="tb1" onclick="st(1)">This week</button>
+    <button class="tab-btn" id="tb2" onclick="st(2)">All contacts</button>
   </div>
 
-  <!-- TODAY'S EMAILS TAB -->
-  <div id="t-today">
-    <div class="date-selector">
-      <label>Date:</label>
-      <input class="date-input" type="date" id="today-date" onchange="loadResults()">
-    </div>
-    <div class="loading" id="tl" style="display:none">Loading...</div>
-    <div id="today-list"></div>
-  </div>
+  <div id="tab-content"></div>
 
-  <!-- HISTORY TAB -->
-  <div id="t-runs" style="display:none">
-    <div class="loading" id="rl">Loading...</div>
-    <div id="runs-list"></div>
-  </div>
-
-  <!-- ALL CONTACTS TAB -->
-  <div id="t-contacts" style="display:none">
-    <input class="search-box" type="search" placeholder="Search name, email, website..." oninput="fc(this.value)">
-    <div class="loading" id="cl">Loading...</div>
-    <div id="contacts-list"></div>
-  </div>
-
-  <!-- NOTES / MEMO -->
-  <div class="notes-section">
-    <div class="notes-title">
-      📝 Notes &amp; requests
-      <span>— write here anything you need changed or added</span>
-    </div>
-    <textarea class="notes-textarea" id="note-input" placeholder="Example: next week target restaurants in Chicago&#10;Example: fix email subject — too aggressive&#10;Example: add Austin TX back to rotation"></textarea>
-    <button class="notes-save-btn" id="note-btn" onclick="saveNote()">Save note</button>
-    <div id="notes-list" style="margin-top:8px"></div>
-  </div>
-
-  <div class="footer">SiteSafe &middot; adalawsuitcheck.com &middot; auto-refresh every 5 min</div>
+  <div class="footer">SiteSafe · adalawsuitcheck.com · auto-refresh every 5 min</div>
 </div>
+
 <script>
 const SB='https://mvzolbabbkedmlhqhiwi.supabase.co';
 const AK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12em9sYmFiYmtlZG1saHFoaXdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDgzOTAsImV4cCI6MjA4Nzk4NDM5MH0.F-Ywz77JpmL-UqYIMR4p2oTcqrsFNvh8c5v-MNOXtzU';
 const H={apikey:AK,Authorization:'Bearer '+AK};
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-let runs=[],contacts=[],allSent=[],cY,cM,sel=null;
+let runs=[],contacts=[],sent=[],cY,cM,selDay=null,curTab=0;
 
 async function get(p){try{const r=await fetch(SB+'/rest/v1/'+p,{headers:H});return r.ok?r.json():[];}catch{return[];}}
-async function post(p,d){try{const r=await fetch(SB+'/rest/v1/'+p,{method:'POST',headers:{...H,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(d)});return r.ok;}catch{return false;}}
-
-function todayStr(){
-  const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function weekStart(){return new Date(Date.now()-7*864e5).toISOString().slice(0,10);}
+function monthStart(){return todayStr().slice(0,7)+'-01';}
 function fd(s){const d=new Date(s+'T12:00:00');return MS[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();}
-function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function esc(s){const e=document.createElement('div');e.textContent=s||'';return e.innerHTML;}
 
 async function init(){
   const now=new Date();cY=now.getFullYear();cM=now.getMonth();
-  document.getElementById('today-date').value=todayStr();
-  [runs,contacts,allSent]=await Promise.all([
+  [runs,contacts,sent]=await Promise.all([
     get('outreach_runs?select=*&order=run_date.desc&limit=180'),
-    get('outreach_contacted?select=*&order=contacted_at.desc'),
-    get('outreach_results?select=run_date,status&status=in.(sent,preview_sent)&limit=1000')
+    get('outreach_contacted?select=*&order=contacted_at.desc&limit=500'),
+    get('outreach_results?select=*&status=in.(sent,preview_sent,failed)&order=created_at.desc&limit=1000')
   ]);
-  stats();cal();rRuns();rContacts();loadResults();loadNotes();
-  const lastRun=runs[0];
-  document.getElementById('lr').textContent=lastRun
-    ?'Last run: '+fd(lastRun.run_date)+' · '+lastRun.sent+' sent — '+esc(lastRun.category)+', '+esc(lastRun.city)
-    :'No runs yet — automation runs Mon–Fri at 9:30am ET';
-  // Auto-refresh every 5 min
+  renderStats();
+  renderCal();
+  renderTab();
+  const last=runs[0];
+  document.getElementById('lr').textContent=last
+    ?'Last run: '+fd(last.run_date)+' · '+last.sent+' sent — '+esc(last.category)+', '+esc(last.city)
+    :'No runs yet';
   setTimeout(()=>location.reload(),300000);
 }
 
-function stats(){
-  const t=todayStr();
-  const w=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
-  const m=t.slice(0,7)+'-01';
-  // Read from allSent (outreach_results) for real-time accuracy
-  const count=(f)=>allSent.filter(f).length;
-  document.getElementById('s0').textContent=count(r=>r.run_date===t);
-  document.getElementById('s1').textContent=count(r=>r.run_date>=w);
-  document.getElementById('s2').textContent=count(r=>r.run_date>=m);
-  document.getElementById('s3').textContent=contacts.length||allSent.length;
+function renderStats(){
+  const t=todayStr(),w=weekStart(),m=monthStart();
+  const c=f=>sent.filter(f).length;
+  document.getElementById('s0').textContent=c(r=>r.run_date===t);
+  document.getElementById('s1').textContent=c(r=>r.run_date>=w);
+  document.getElementById('s2').textContent=c(r=>r.run_date>=m);
+  document.getElementById('s3').textContent=contacts.length||sent.length;
 }
 
-function cal(){
+function renderCal(){
   document.getElementById('ct').textContent=MN[cM]+' '+cY;
   const g=document.getElementById('cg');g.innerHTML='';
   const now=new Date();
   const fd0=new Date(cY,cM,1).getDay();
   const dim=new Date(cY,cM+1,0).getDate();
   const dip=new Date(cY,cM,0).getDate();
-  // Build map from both runs and allSent
+  // Map days to run data
   const rm={};
-  runs.forEach(r=>{rm[r.run_date]=rm[r.run_date]||{...r,sentCount:0};rm[r.run_date].sentCount+=r.sent||0;});
-  allSent.forEach(r=>{if(!rm[r.run_date])rm[r.run_date]={run_date:r.run_date,sent:0,sentCount:0};rm[r.run_date].sentCount++;});
+  runs.forEach(r=>{rm[r.run_date]=r;});
+  // Also fill from sent results if no run record yet
+  sent.forEach(r=>{if(!rm[r.run_date])rm[r.run_date]={run_date:r.run_date,sent:0,category:'',city:''};});
+  // Count sent per day from results (more accurate than runs table)
+  const sc={};
+  sent.filter(r=>r.status==='sent'||r.status==='preview_sent').forEach(r=>{sc[r.run_date]=(sc[r.run_date]||0)+1;});
+
   for(let i=fd0-1;i>=0;i--){const e=document.createElement('div');e.className='cal-day';e.textContent=dip-i;g.appendChild(e);}
   for(let d=1;d<=dim;d++){
     const ds=cY+'-'+String(cM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const run=rm[ds];
+    const count=sc[ds]||0;
     const isT=now.getFullYear()===cY&&now.getMonth()===cM&&now.getDate()===d;
     const e=document.createElement('div');
-    e.className='cal-day cur'+(run?' has':'')+(isT?' today':'');
-    e.innerHTML='<span>'+d+'</span>'+(run&&run.sentCount>0?'<span class="cal-count">'+run.sentCount+'</span>':'');
-    if(run)e.onclick=()=>sd(ds,run,e);
+    e.className='cal-day cur'+(count>0?' has':'')+(isT?' today':'')+(selDay===ds?' sel':'');
+    e.innerHTML='<span>'+d+'</span>'+(count>0?'<span class="cal-count">'+count+'</span>':'');
+    if(count>0||run)e.onclick=()=>openDay(ds,run,count,e);
     g.appendChild(e);
   }
   const tot=fd0+dim;const rem=tot%7===0?0:7-(tot%7);
   for(let i=1;i<=rem;i++){const e=document.createElement('div');e.className='cal-day';e.textContent=i;g.appendChild(e);}
 }
 
-function sd(ds,run,el){
+function openDay(ds,run,count,el){
   document.querySelectorAll('.cal-day.sel').forEach(e=>e.classList.remove('sel'));
-  const d=document.getElementById('dd');
-  if(sel===ds){sel=null;d.style.display='none';return;}
-  sel=ds;el.classList.add('sel');d.style.display='block';
-  const sc=run.sentCount||run.sent||0;
-  d.innerHTML='<h3>'+fd(ds)+'</h3>'
-    +(run.category?'<p>'+esc(run.category)+' &middot; '+esc(run.city)+'</p>':'')
+  const pop=document.getElementById('day-popup');
+  if(selDay===ds){selDay=null;pop.style.display='none';return;}
+  selDay=ds;el.classList.add('sel');
+  const failed=sent.filter(r=>r.run_date===ds&&r.status==='failed').length;
+  pop.innerHTML=
+    '<h3>'+fd(ds)+'</h3>'
+    +(run&&run.category?'<div class="city">'+esc(run.category)+' &middot; '+esc(run.city)+'</div>':'<div class="city">—</div>')
     +'<div class="pills">'
-    +'<span class="pill g">&#10003; '+sc+' sent</span>'
-    +(run.with_email?'<span class="pill b">'+run.with_email+' with email</span>':'')
-    +(run.processed?'<span class="pill n">'+run.processed+' checked</span>':'')
-    +(run.failed>0?'<span class="pill r">! '+run.failed+' failed</span>':'')
+    +'<span class="pill g">&#10003; '+count+' sent</span>'
+    +(run&&run.with_email?'<span class="pill b">'+run.with_email+' with email</span>':'')
+    +(run&&run.processed?'<span class="pill n">'+run.processed+' checked</span>':'')
+    +(failed>0?'<span class="pill r">&#10007; '+failed+' failed</span>':'')
     +'</div>'
-    +'<button class="view-day-btn" onclick="jumpDay(\''+ds+'\')">View all emails sent this day &#8594;</button>';
+    +'<button class="view-btn" onclick="viewDay(\''+ds+'\')">View emails sent this day &#8594;</button>';
+  pop.style.display='block';
 }
 
-function jumpDay(ds){
-  document.getElementById('today-date').value=ds;
-  st('today');
-  loadResults();
+function viewDay(ds){
+  // Switch to Today tab and show that date's emails
+  curTab=0;
+  ['tb0','tb1','tb2'].forEach((id,i)=>document.getElementById(id).className='tab-btn'+(i===0?' active':''));
+  renderEmailList(sent.filter(r=>r.run_date===ds&&(r.status==='sent'||r.status==='preview_sent'||r.status==='failed')),'Emails on '+fd(ds));
 }
 
-function cm(d){sel=null;document.getElementById('dd').style.display='none';cM+=d;if(cM>11){cM=0;cY++;}if(cM<0){cM=11;cY--;}cal();}
-
-async function loadResults(){
-  const date=document.getElementById('today-date').value||todayStr();
-  document.getElementById('tl').style.display='block';
-  document.getElementById('today-list').innerHTML='';
-  const data=await get('outreach_results?select=*&run_date=eq.'+date+'&status=in.(sent,preview_sent,failed)&order=created_at.desc&limit=200');
-  document.getElementById('tl').style.display='none';
-  renderResults(data,date);
+function cm(d){
+  selDay=null;document.getElementById('day-popup').style.display='none';
+  cM+=d;if(cM>11){cM=0;cY++;}if(cM<0){cM=11;cY--;}renderCal();
 }
 
-function renderResults(data,date){
-  const l=document.getElementById('today-list');
+function st(tab){
+  curTab=tab;
+  ['tb0','tb1','tb2'].forEach((id,i)=>document.getElementById(id).className='tab-btn'+(i===tab?' active':''));
+  renderTab();
+}
+
+function renderTab(){
+  if(curTab===0){
+    const t=todayStr();
+    const data=sent.filter(r=>r.run_date===t);
+    renderEmailList(data,'Today — '+fd(t));
+  } else if(curTab===1){
+    const w=weekStart();
+    const data=sent.filter(r=>r.run_date>=w);
+    renderEmailList(data,'This week (last 7 days)');
+  } else {
+    renderContacts();
+  }
+}
+
+function renderEmailList(data,title){
+  const ok=data.filter(r=>r.status==='sent'||r.status==='preview_sent');
+  const fail=data.filter(r=>r.status==='failed');
+  const el=document.getElementById('tab-content');
   if(!data.length){
-    l.innerHTML='<div class="empty">No emails sent on '+fd(date)+'<br><span style="font-size:11px">Automation runs Mon–Fri at 9:30am ET</span></div>';
+    el.innerHTML='<div class="empty">No emails sent<br><span style="font-size:11px">Automation runs Mon–Fri at 9:30am ET</span></div>';
     return;
   }
-  const sent=data.filter(r=>r.status==='sent'||r.status==='preview_sent').length;
-  const failed=data.filter(r=>r.status==='failed').length;
-  const hdr='<div class="today-header"><h3>'+fd(date)+'</h3>'
-    +'<span class="today-meta">'+sent+' sent'+(failed?' &middot; '+failed+' failed':'')+'</span></div>';
-  l.innerHTML=hdr+data.map(r=>{
-    const n=parseInt(r.issues||0);
-    const dotCls=n>=20?'hot':n>=10?'warm':n>=5?'mild':'cold';
-    const isSent=r.status==='sent'||r.status==='preview_sent';
-    const stCls=isSent?'sent':'failed';
-    const stLabel=r.status==='sent'?'&#10003; Sent':r.status==='preview_sent'?'&#10003; Preview':'&#10007; Failed';
-    const emailRow=r.email
-      ?'<div class="biz-email">'+esc(r.email)
-        +'<button class="copy-btn" onclick="cp(this,\''+r.email.replace(/'/g,"\\'")+'\')" >copy</button></div>'
-      :'';
-    const subj=r.subject?'<div class="biz-subject">&ldquo;'+esc(r.subject)+'&rdquo;</div>':'';
-    const site=r.website?'<div class="biz-site">'+esc(r.website.replace(/^https?:\/\//,'').replace(/\/$/,''))+'</div>':'';
-    return '<div class="biz-card">'
-      +'<div class="biz-top">'
-      +'<div class="biz-name">'+esc(r.name||'Unknown')+'</div>'
-      +'<span class="status-badge '+stCls+'">'+stLabel+'</span>'
-      +'</div>'
-      +emailRow
-      +(n>0?'<div style="margin-bottom:4px"><span class="issue-dot '+dotCls+'">'+n+' issues</span>'+(r.critical>0?'<span style="font-size:10px;color:#f87171">'+r.critical+' critical</span>':'')+'</div>':'')
-      +subj+site
+  el.innerHTML='<div class="list-header"><h3>'+esc(title)+'</h3>'
+    +'<span class="list-meta">'+ok.length+' sent'+(fail.length?' · '+fail.length+' failed':'')+'</span></div>'
+    +data.map(r=>{
+      const n=parseInt(r.issues||0);
+      const tc=n>=20?'hot':n>=10?'warm':n>=5?'mild':'cold';
+      const isSent=r.status==='sent'||r.status==='preview_sent';
+      const lbl=r.status==='preview_sent'?'&#10003; Preview':isSent?'&#10003; Sent':'&#10007; Failed';
+      const run=runs.find(x=>x.run_date===r.run_date);
+      return '<div class="biz-card">'
+        +'<div class="biz-top"><div class="biz-name">'+esc(r.name||'Unknown')+'</div>'
+        +'<span class="s-badge '+(isSent?'sent':'failed')+'">'+lbl+'</span></div>'
+        +(r.email?'<div class="biz-email">'+esc(r.email)
+          +'<button class="copy-btn" onclick="cp(this,\''+r.email.replace(/'/g,"\\'")+'\')" >copy</button></div>':'')
+        +(run?'<div class="biz-city">'+esc(run.category)+' &middot; '+esc(run.city)+'</div>':'')
+        +(n>0?'<div style="margin-bottom:3px"><span class="issue-tag '+tc+'">'+n+' issues</span>'
+          +(r.critical>0?'<span style="font-size:10px;color:#f87171">'+r.critical+' critical</span>':'')+'</div>':'')
+        +(r.subject?'<div class="biz-sub">&ldquo;'+esc(r.subject)+'&rdquo;</div>':'')
+        +(r.website?'<div class="biz-site">'+esc(r.website.replace(/^https?:\/\//,'').replace(/\/$/,''))+'</div>':'')
+        +'</div>';
+    }).join('');
+}
+
+function renderContacts(){
+  const el=document.getElementById('tab-content');
+  if(!contacts.length){
+    el.innerHTML='<input class="search-box" type="search" placeholder="Search name, email, website..." oninput="fc(this.value)">'
+      +'<div class="empty">No contacts yet</div>';
+    return;
+  }
+  el.innerHTML='<input class="search-box" type="search" placeholder="Search name, email, website..." oninput="fc(this.value)">'
+    +'<div id="c-list">'+renderContactCards(contacts)+'</div>';
+}
+
+function renderContactCards(list){
+  return list.slice(0,100).map(c=>{
+    const n=parseInt(c.issues||0);
+    return '<div class="c-card">'
+      +(n>0?'<span class="c-issues '+(n>=10?'high':'low')+'">'+n+' issues</span>':'')
+      +'<div class="c-name">'+esc(c.name)+'</div>'
+      +'<div class="c-email">'+esc(c.email)+'</div>'
+      +'<div class="c-meta">'+esc(c.website||'')+(c.contacted_at?' · '+fd(c.contacted_at.slice(0,10)):'')+'</div>'
       +'</div>';
-  }).join('');
+  }).join('')||'<div class="empty">No results</div>';
+}
+
+function fc(q){
+  q=q.toLowerCase();
+  const cl=document.getElementById('c-list');
+  if(!cl)return;
+  const res=contacts.filter(c=>
+    (c.name||'').toLowerCase().includes(q)||
+    (c.email||'').toLowerCase().includes(q)||
+    (c.website||'').toLowerCase().includes(q));
+  cl.innerHTML=renderContactCards(res);
 }
 
 function cp(btn,txt){
@@ -338,95 +330,6 @@ function cp(btn,txt){
     const o=btn.textContent;btn.textContent='copied!';btn.style.background='#22c55e';btn.style.color='#000';
     setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';},1500);
   });
-}
-
-function rRuns(){
-  document.getElementById('rl').style.display='none';
-  const l=document.getElementById('runs-list');
-  if(!runs.length){l.innerHTML='<div class="empty">No runs yet</div>';return;}
-  l.innerHTML=runs.slice(0,60).map(r=>{
-    const d=new Date(r.run_date+'T12:00:00');
-    return '<div class="run-card" onclick="jumpDay(\''+r.run_date+'\')">'
-      +'<div class="run-date-col"><div class="run-day">'+d.getDate()+'</div><div class="run-mon">'+MS[d.getMonth()]+'</div></div>'
-      +'<div class="run-body">'
-      +'<div class="run-title">'+esc(r.category)+'</div>'
-      +'<div class="run-meta">'+esc(r.city)+' &middot; '+r.processed+' checked &middot; '+r.with_email+' with email</div>'
-      +'</div>'
-      +'<span class="run-badge'+(r.sent===0?' zero':'')+'">'+r.sent+' sent</span>'
-      +'</div>';
-  }).join('');
-}
-
-function rContacts(){
-  document.getElementById('cl').style.display='none';
-  const l=document.getElementById('contacts-list');
-  if(!contacts.length){l.innerHTML='<div class="empty">No contacts yet</div>';return;}
-  l.innerHTML=contacts.slice(0,100).map(c=>{
-    const n=parseInt(c.issues||0);
-    const cls=n>=10?'':'low';
-    return '<div class="contact-card">'
-      +(n>0?'<span class="c-issues '+cls+'">'+n+'</span>':'')
-      +'<div class="contact-name">'+esc(c.name)+'</div>'
-      +'<div class="contact-email">'+esc(c.email)+'</div>'
-      +'<div class="contact-meta">'+esc(c.website||'')+(c.contacted_at?' &middot; '+fd(c.contacted_at.slice(0,10)):'')+'</div>'
-      +'</div>';
-  }).join('');
-}
-
-function fc(q){
-  q=q.toLowerCase();
-  const all=contacts.filter(c=>
-    (c.name||'').toLowerCase().includes(q)||
-    (c.email||'').toLowerCase().includes(q)||
-    (c.website||'').toLowerCase().includes(q)
-  );
-  document.getElementById('contacts-list').innerHTML=all.slice(0,100).map(c=>{
-    const n=parseInt(c.issues||0);
-    const cls=n>=10?'':'low';
-    return '<div class="contact-card">'
-      +(n>0?'<span class="c-issues '+cls+'">'+n+'</span>':'')
-      +'<div class="contact-name">'+esc(c.name)+'</div>'
-      +'<div class="contact-email">'+esc(c.email)+'</div>'
-      +'<div class="contact-meta">'+esc(c.website||'')+(c.contacted_at?' &middot; '+fd(c.contacted_at.slice(0,10)):'')+'</div>'
-      +'</div>';
-  }).join('')||(q?'<div class="empty">No results for "'+esc(q)+'"</div>':'');
-}
-
-function st(tab){
-  ['today','runs','contacts'].forEach((t,i)=>{
-    document.getElementById('t-'+t).style.display=t===tab?'block':'none';
-    document.getElementById('tb'+i).className='tab-btn'+(t===tab?' active':'');
-  });
-  if(tab==='today')loadResults();
-}
-
-async function loadNotes(){
-  const notes=await get('outreach_notes?select=*&order=created_at.desc&limit=20');
-  const l=document.getElementById('notes-list');
-  if(!notes.length){l.innerHTML='';return;}
-  l.innerHTML=notes.map(n=>{
-    const dt=new Date(n.created_at);
-    const ds=MS[dt.getMonth()]+' '+dt.getDate()+' '+dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');
-    return '<div class="note-item"><div class="note-date">'+ds+'</div>'+esc(n.note)+'</div>';
-  }).join('');
-}
-
-async function saveNote(){
-  const inp=document.getElementById('note-input');
-  const btn=document.getElementById('note-btn');
-  const txt=inp.value.trim();
-  if(!txt)return;
-  btn.disabled=true;btn.textContent='Saving...';
-  const ok=await post('outreach_notes',{note:txt});
-  if(ok){
-    inp.value='';
-    btn.textContent='Saved ✓';
-    setTimeout(()=>{btn.textContent='Save note';btn.disabled=false;},2000);
-    loadNotes();
-  } else {
-    btn.textContent='Error — try again';
-    btn.disabled=false;
-  }
 }
 
 init();
