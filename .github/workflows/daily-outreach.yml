@@ -1,0 +1,93 @@
+name: Daily Outreach
+
+on:
+  schedule:
+    # 9:00am ET = 14:00 UTC (invierno). En verano (EDT) sería 13:00 UTC.
+    # Usar 13:30 UTC como compromiso para que corra entre 9-9:30am todo el año.
+    - cron: '30 13 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      category:
+        description: 'Categoría (ej: restaurant, dental office)'
+        required: false
+        default: ''
+      city:
+        description: 'Ciudad (ej: Miami, FL)'
+        required: false
+        default: ''
+      target:
+        description: 'Meta de emails a enviar'
+        required: false
+        default: '20'
+
+jobs:
+  outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 ddgs
+          # dig para DNS lookups (verificación de dominios)
+          sudo apt-get install -y dnsutils 2>/dev/null || true
+
+      - name: Run outreach
+        env:
+          YELP_API_KEY: ${{ secrets.YELP_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          TARGET="${{ github.event.inputs.target || '20' }}"
+
+          # Construir args opcionales (si se pasaron manualmente)
+          EXTRA_ARGS=""
+          if [[ -n "${{ github.event.inputs.category }}" ]]; then
+            EXTRA_ARGS="$EXTRA_ARGS --category '${{ github.event.inputs.category }}'"
+          fi
+          if [[ -n "${{ github.event.inputs.city }}" ]]; then
+            EXTRA_ARGS="$EXTRA_ARGS --city '${{ github.event.inputs.city }}'"
+          fi
+
+          echo "=== SiteSafe Outreach — $DATE ==="
+          echo "Meta: $TARGET emails"
+
+          python3 scripts/outreach.py \
+            --target "$TARGET" \
+            --send \
+            --output /tmp/outreach-$DATE.csv \
+            $EXTRA_ARGS
+
+      - name: Summary
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          CSV="/tmp/outreach-$DATE.csv"
+          if [[ -f "$CSV" ]]; then
+            echo "=== Resultados ==="
+            python3 -c "
+          import csv
+          with open('$CSV') as f:
+              rows = list(csv.DictReader(f))
+          total  = len(rows)
+          emails = sum(1 for r in rows if r.get('email'))
+          sent   = sum(1 for r in rows if r.get('status') == 'sent')
+          failed = sum(1 for r in rows if r.get('status') == 'failed')
+          print(f'Procesados : {total}')
+          print(f'Con email  : {emails}')
+          print(f'Enviados   : {sent}')
+          print(f'Fallidos   : {failed}')
+          "
+            echo ""
+            echo "Dashboard: https://mvzolbabbkedmlhqhiwi.supabase.co/storage/v1/object/public/outreach/latest.html"
+          else
+            echo "No se generó CSV"
+          fi
