@@ -72,6 +72,22 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 .vbtn{width:100%;background:#3b82f6;border:none;color:#fff;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
 .vbtn:active{background:#2563eb}
 
+/* Run history */
+.runhist{background:#1e2130;border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.rh-title{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.rh-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #252840;cursor:pointer}
+.rh-row:last-child{border-bottom:none;padding-bottom:0}
+.rh-row:first-of-type{padding-top:0}
+.rh-date{min-width:42px;text-align:center}
+.rh-day{font-size:17px;font-weight:800;color:#fff;line-height:1}
+.rh-mon{font-size:10px;color:#64748b;text-transform:uppercase}
+.rh-info{flex:1}
+.rh-cat{font-size:13px;font-weight:600;color:#e2e8f0}
+.rh-city{font-size:11px;color:#64748b;margin-top:1px}
+.rh-badge{border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700;background:rgba(34,197,94,.15);color:#4ade80;white-space:nowrap}
+.rh-badge.zero{background:rgba(100,116,139,.12);color:#64748b}
+.rh-empty{font-size:12px;color:#475569;text-align:center;padding:8px 0}
+
 .empty{text-align:center;padding:28px 16px;color:#475569;font-size:13px;line-height:1.7}
 .foot{text-align:center;font-size:11px;color:#1e2130;margin-top:20px}
 </style>
@@ -106,6 +122,9 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
       <div class="stat-label">All time ›</div>
     </div>
   </div>
+
+  <!-- Run history — always visible -->
+  <div class="runhist" id="runhist"></div>
 
   <!-- Email list panel (hidden until stat card tapped) -->
   <div class="email-panel" id="epanel">
@@ -154,6 +173,7 @@ async function init(){
     g('outreach_results?select=*&status=in.(sent,preview_sent,failed)&order=created_at.desc&limit=2000')
   ]);
   renderStats();
+  renderRunHistory();
   renderCal();
   const last=runs[0];
   document.getElementById('lr').textContent=last
@@ -169,6 +189,20 @@ function renderStats(){
   document.getElementById('s1').textContent=c(r=>r.run_date>=w);
   document.getElementById('s2').textContent=c(r=>r.run_date>=m);
   document.getElementById('s3').textContent=c(()=>true);
+}
+
+function renderRunHistory(){
+  const el=document.getElementById('runhist');
+  if(!runs.length){el.innerHTML='<div class="rh-title">Run history</div><div class="rh-empty">No runs yet</div>';return;}
+  el.innerHTML='<div class="rh-title">Run history — business &amp; location</div>'
+    +runs.slice(0,30).map(r=>{
+      const d=new Date(r.run_date+'T12:00:00');
+      return '<div class="rh-row" onclick="showDayEmails(\''+r.run_date+'\')">'
+        +'<div class="rh-date"><div class="rh-day">'+d.getDate()+'</div><div class="rh-mon">'+MS[d.getMonth()]+'</div></div>'
+        +'<div class="rh-info"><div class="rh-cat">'+esc(r.category)+'</div><div class="rh-city">'+esc(r.city)+'</div></div>'
+        +'<span class="rh-badge'+(r.sent===0?' zero':'')+'">'+r.sent+' sent</span>'
+        +'</div>';
+    }).join('');
 }
 
 function openPanel(idx){
