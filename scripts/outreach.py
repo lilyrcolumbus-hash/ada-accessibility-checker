@@ -722,9 +722,11 @@ def main():
     print(f"✓ {sent} emails sent")
     print(f"✓ Saved to: {args.output}")
 
-    # ── Save per-email results to Supabase ───────────────────────────────────
+    # ── Save per-email results to Supabase (only sent/failed — no noise) ────────
     today = datetime.date.today().isoformat()
     for r in results:
+        if r.get("status") not in ("sent", "preview_sent", "failed"):
+            continue
         _sb_upsert("outreach_results", {
             "run_date": today,
             "name": r.get("name",""), "website": r.get("website",""),
