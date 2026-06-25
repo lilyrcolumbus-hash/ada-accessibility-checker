@@ -722,6 +722,18 @@ def main():
     print(f"✓ {sent} emails sent")
     print(f"✓ Saved to: {args.output}")
 
+    # ── Save run summary to Supabase ──────────────────────────────────────────
+    failed_count = sum(1 for r in results if r.get("status") == "failed")
+    _sb_upsert("outreach_runs", {
+        "run_date": datetime.date.today().isoformat(),
+        "category": args.category,
+        "city": args.city,
+        "processed": checked,
+        "with_email": with_email,
+        "sent": sent,
+        "failed": failed_count,
+    })
+
     # ── Generate and upload dashboard to Supabase Storage ────────────────────
     if SUPABASE_URL and SUPABASE_SERVICE_KEY:
         try:
