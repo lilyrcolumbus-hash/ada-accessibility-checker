@@ -617,6 +617,18 @@ def process_biz(biz: Business, already_contacted: set, results: list,
     else:
         row["status"] = "ready"
 
+    # Save to Supabase immediately — dashboard updates in real-time
+    if row["status"] in ("sent", "preview_sent", "failed"):
+        _sb_upsert("outreach_results", {
+            "run_date": datetime.date.today().isoformat(),
+            "name": row.get("name",""), "website": row.get("website",""),
+            "email": row.get("email",""), "phone": row.get("phone",""),
+            "issues": int(row.get("issues") or 0), "critical": int(row.get("critical") or 0),
+            "scan_error": row.get("scan_error",""), "scan_url": row.get("scan_url",""),
+            "subject": row.get("subject",""), "body": row.get("body",""),
+            "status": row["status"],
+        })
+
     results.append(row)
     time.sleep(1)
     return newly_sent
