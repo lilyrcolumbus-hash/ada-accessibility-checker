@@ -85,7 +85,7 @@ jobs:
           print(f'Failed     : {failed}')
           "
             echo ""
-            echo "Dashboard: https://mvzolbabbkedmlhqhiwi.supabase.co/storage/v1/object/public/outreach/latest.html"
+            echo "Dashboard: https://adalawsuitcheck.com/outreach/"
           else
             echo "No CSV generated"
           fi
