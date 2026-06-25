@@ -2,21 +2,21 @@ name: Daily Outreach
 
 on:
   schedule:
-    # 9:00am ET = 14:00 UTC (invierno). En verano (EDT) sería 13:00 UTC.
-    # Usar 13:30 UTC como compromiso para que corra entre 9-9:30am todo el año.
+    # 9:00am ET = 14:00 UTC (EST winter). EDT summer = 13:00 UTC.
+    # 13:30 UTC splits the difference — runs between 9:00–9:30am year-round.
     - cron: '30 13 * * 1-5'
   workflow_dispatch:
     inputs:
       category:
-        description: 'Categoría (ej: restaurant, dental office)'
+        description: 'Business category (e.g. restaurant, dental office)'
         required: false
         default: ''
       city:
-        description: 'Ciudad (ej: Miami, FL)'
+        description: 'City (e.g. Miami, FL)'
         required: false
         default: ''
       target:
-        description: 'Meta de emails a enviar'
+        description: 'Number of emails to send'
         required: false
         default: '20'
 
@@ -35,7 +35,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install requests beautifulsoup4 ddgs
-          # dig para DNS lookups (verificación de dominios)
           sudo apt-get install -y dnsutils 2>/dev/null || true
 
       - name: Run outreach
@@ -49,7 +48,6 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           TARGET="${{ github.event.inputs.target || '20' }}"
 
-          # Construir args opcionales (si se pasaron manualmente)
           EXTRA_ARGS=""
           if [[ -n "${{ github.event.inputs.category }}" ]]; then
             EXTRA_ARGS="$EXTRA_ARGS --category '${{ github.event.inputs.category }}'"
@@ -59,7 +57,7 @@ jobs:
           fi
 
           echo "=== SiteSafe Outreach — $DATE ==="
-          echo "Meta: $TARGET emails"
+          echo "Target: $TARGET emails"
 
           python3 scripts/outreach.py \
             --target "$TARGET" \
@@ -72,7 +70,7 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           CSV="/tmp/outreach-$DATE.csv"
           if [[ -f "$CSV" ]]; then
-            echo "=== Resultados ==="
+            echo "=== Results ==="
             python3 -c "
           import csv
           with open('$CSV') as f:
@@ -81,13 +79,13 @@ jobs:
           emails = sum(1 for r in rows if r.get('email'))
           sent   = sum(1 for r in rows if r.get('status') == 'sent')
           failed = sum(1 for r in rows if r.get('status') == 'failed')
-          print(f'Procesados : {total}')
-          print(f'Con email  : {emails}')
-          print(f'Enviados   : {sent}')
-          print(f'Fallidos   : {failed}')
+          print(f'Processed  : {total}')
+          print(f'With email : {emails}')
+          print(f'Sent       : {sent}')
+          print(f'Failed     : {failed}')
           "
             echo ""
             echo "Dashboard: https://mvzolbabbkedmlhqhiwi.supabase.co/storage/v1/object/public/outreach/latest.html"
           else
-            echo "No se generó CSV"
+            echo "No CSV generated"
           fi
