@@ -243,7 +243,7 @@ async function loadResults(){
   document.getElementById('tl').style.display='block';
   document.getElementById('tl').textContent='Loading...';
   document.getElementById('today-list').innerHTML='';
-  const data=await get('outreach_results?select=*&run_date=eq.'+date+'&order=created_at.desc&limit=200');
+  const data=await get('outreach_results?select=*&run_date=eq.'+date+'&status=in.(sent,preview_sent,failed)&order=created_at.desc&limit=200');
   document.getElementById('tl').style.display='none';
   renderResults(data,date);
 }
@@ -254,14 +254,15 @@ function renderResults(data,date){
     l.innerHTML='<div class="empty">No results for '+fd(date)+'<br><span style="font-size:11px">Automation runs Mon&ndash;Fri at 9:30am ET</span></div>';
     return;
   }
-  const sent=data.filter(r=>r.status==='sent').length;
+  const sent=data.filter(r=>r.status==='sent'||r.status==='preview_sent').length;
+  const failed=data.filter(r=>r.status==='failed').length;
   const hdr='<div class="today-header"><h3>'+fd(date)+'</h3>'
-    +'<span class="today-meta">'+sent+' sent &middot; '+data.length+' total</span></div>';
+    +'<span class="today-meta">'+sent+' sent &middot; '+failed+' failed</span></div>';
   l.innerHTML=hdr+data.map(r=>{
     const n=parseInt(r.issues||0);
     const dotCls=n>=20?'hot':n>=10?'warm':n>=5?'mild':'cold';
-    const stCls=r.status==='sent'?'sent':r.status==='failed'?'failed':r.status==='no_email'?'no_email':'skipped';
-    const stLabel=r.status==='sent'?'&#10003; Sent':r.status==='failed'?'&#10007; Failed':r.status==='no_email'?'No email':'Skipped';
+    const stCls=r.status==='sent'||r.status==='preview_sent'?'sent':'failed';
+    const stLabel=r.status==='sent'?'&#10003; Sent':r.status==='preview_sent'?'&#10003; Preview sent':'&#10007; Failed';
     const emailRow=r.email
       ?'<div class="biz-email">'+esc(r.email)
         +'<button class="copy-btn" onclick="cp(this,\''+esc(r.email)+'\')">copy</button></div>'
