@@ -39,7 +39,7 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 .pill.b{background:rgba(59,130,246,.15);color:#93c5fd}
 .pill.n{background:#1e2130;color:#94a3b8}
 .tabs{display:flex;gap:6px;margin-bottom:12px}
-.tab-btn{flex:1;background:#1e2130;border:none;color:#94a3b8;padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.tab-btn{flex:1;background:#1e2130;border:none;color:#94a3b8;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
 .tab-btn.active{background:#3b82f6;color:#fff}
 .run-card{background:#1e2130;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
 .run-date-col{text-align:center;min-width:36px}
@@ -59,6 +59,32 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 .c-issues{float:right;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600;background:rgba(239,68,68,.1);color:#f87171}
 .c-issues.low{background:rgba(234,179,8,.1);color:#fbbf24}
 .c-issues.none{background:rgba(100,116,139,.1);color:#94a3b8}
+/* Today tab styles */
+.today-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.today-header h3{font-size:14px;font-weight:700;color:#fff}
+.today-meta{font-size:11px;color:#64748b}
+.biz-card{background:#1e2130;border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.biz-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.biz-name{font-size:13px;font-weight:700;color:#fff;flex:1}
+.status-badge{border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap}
+.status-badge.sent{background:rgba(34,197,94,.15);color:#4ade80}
+.status-badge.failed{background:rgba(239,68,68,.1);color:#f87171}
+.status-badge.no_email{background:rgba(100,116,139,.15);color:#94a3b8}
+.status-badge.skipped{background:rgba(100,116,139,.15);color:#94a3b8}
+.biz-email{font-size:12px;color:#60a5fa;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.copy-btn{background:#2d3148;border:none;color:#94a3b8;padding:1px 7px;border-radius:5px;font-size:10px;cursor:pointer}
+.copy-btn:active{background:#3b82f6;color:#fff}
+.biz-subject{font-size:11px;color:#94a3b8;margin-bottom:4px;font-style:italic}
+.biz-site{font-size:11px;color:#475569}
+.issue-dot{display:inline-block;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-right:4px}
+.issue-dot.hot{background:rgba(239,68,68,.15);color:#f87171}
+.issue-dot.warm{background:rgba(249,115,22,.15);color:#fb923c}
+.issue-dot.mild{background:rgba(234,179,8,.12);color:#fbbf24}
+.issue-dot.cold{background:rgba(100,116,139,.12);color:#94a3b8}
+.date-selector{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.date-selector label{font-size:12px;color:#64748b;white-space:nowrap}
+.date-input{background:#1e2130;border:1px solid #2d3148;border-radius:8px;color:#e2e8f0;padding:6px 10px;font-size:12px;outline:none;flex:1}
+.date-input:focus{border-color:#3b82f6}
 .empty{text-align:center;padding:32px 16px;color:#475569;font-size:13px}
 .loading{text-align:center;color:#475569;padding:32px;font-size:13px}
 .footer{text-align:center;font-size:11px;color:#334155;margin-top:24px}
@@ -95,15 +121,28 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" id="tb0" onclick="st('runs')">Run history</button>
-    <button class="tab-btn" id="tb1" onclick="st('contacts')">All contacts</button>
+    <button class="tab-btn active" id="tb0" onclick="st('today')">Today's emails</button>
+    <button class="tab-btn" id="tb1" onclick="st('runs')">Run history</button>
+    <button class="tab-btn" id="tb2" onclick="st('contacts')">All contacts</button>
   </div>
 
-  <div id="t-runs">
+  <!-- TODAY'S EMAILS TAB -->
+  <div id="t-today">
+    <div class="date-selector">
+      <label>Date:</label>
+      <input class="date-input" type="date" id="today-date" onchange="loadResults()">
+    </div>
+    <div class="loading" id="tl">Loading...</div>
+    <div id="today-list"></div>
+  </div>
+
+  <!-- RUN HISTORY TAB -->
+  <div id="t-runs" style="display:none">
     <div class="loading" id="rl">Loading...</div>
     <div id="runs-list"></div>
   </div>
 
+  <!-- ALL CONTACTS TAB -->
   <div id="t-contacts" style="display:none">
     <input class="search-box" type="search" placeholder="Search name, email, website..." oninput="fc(this.value)">
     <div class="loading" id="cl">Loading...</div>
@@ -122,20 +161,28 @@ let runs=[],contacts=[],cY,cM,sel=null;
 
 async function get(p){try{const r=await fetch(SB+'/rest/v1/'+p,{headers:H});return r.ok?r.json():[];}catch{return[];}}
 
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 async function init(){
   const now=new Date();cY=now.getFullYear();cM=now.getMonth();
+  // Set today's date picker to today
+  const dp=document.getElementById('today-date');
+  dp.value=todayStr();
   [runs,contacts]=await Promise.all([
     get('outreach_runs?select=*&order=run_date.desc&limit=180'),
     get('outreach_contacted?select=*&order=contacted_at.desc')
   ]);
-  stats();cal();rRuns();rContacts();
+  stats();cal();rRuns();rContacts();loadResults();
   document.getElementById('lr').textContent=runs.length
-    ?'Last run: '+fd(runs[0].run_date)+' - '+runs[0].sent+' sent'
-    :'No runs yet - first run coming soon';
+    ?'Last run: '+fd(runs[0].run_date)+' · '+runs[0].sent+' sent'
+    :'No runs yet — automation runs Mon–Fri at 9:30am ET';
 }
 
 function stats(){
-  const t=new Date().toISOString().slice(0,10);
+  const t=todayStr();
   const w=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
   const m=t.slice(0,7)+'-01';
   const s=(f)=>runs.filter(f).reduce((a,r)=>a+(r.sent||0),0);
@@ -179,10 +226,66 @@ function sd(ds,run,el){
     +'<span class="pill b">@ '+run.with_email+' found</span>'
     +'<span class="pill n">'+run.processed+' checked</span>'
     +(run.failed>0?'<span class="pill n">! '+run.failed+' failed</span>':'')
-    +'</div>';
+    +'</div>'
+    +'<div style="margin-top:10px"><button onclick="jumpDay(\''+ds+'\')" style="background:#3b82f6;border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer">View emails for this day &#8594;</button></div>';
+}
+
+function jumpDay(ds){
+  document.getElementById('today-date').value=ds;
+  st('today');
+  loadResults();
 }
 
 function cm(d){sel=null;document.getElementById('dd').style.display='none';cM+=d;if(cM>11){cM=0;cY++;}if(cM<0){cM=11;cY--;}cal();}
+
+async function loadResults(){
+  const date=document.getElementById('today-date').value||todayStr();
+  document.getElementById('tl').style.display='block';
+  document.getElementById('tl').textContent='Loading...';
+  document.getElementById('today-list').innerHTML='';
+  const data=await get('outreach_results?select=*&run_date=eq.'+date+'&order=created_at.desc&limit=200');
+  document.getElementById('tl').style.display='none';
+  renderResults(data,date);
+}
+
+function renderResults(data,date){
+  const l=document.getElementById('today-list');
+  if(!data.length){
+    l.innerHTML='<div class="empty">No results for '+fd(date)+'<br><span style="font-size:11px">Automation runs Mon&ndash;Fri at 9:30am ET</span></div>';
+    return;
+  }
+  const sent=data.filter(r=>r.status==='sent').length;
+  const hdr='<div class="today-header"><h3>'+fd(date)+'</h3>'
+    +'<span class="today-meta">'+sent+' sent &middot; '+data.length+' total</span></div>';
+  l.innerHTML=hdr+data.map(r=>{
+    const n=parseInt(r.issues||0);
+    const dotCls=n>=20?'hot':n>=10?'warm':n>=5?'mild':'cold';
+    const stCls=r.status==='sent'?'sent':r.status==='failed'?'failed':r.status==='no_email'?'no_email':'skipped';
+    const stLabel=r.status==='sent'?'&#10003; Sent':r.status==='failed'?'&#10007; Failed':r.status==='no_email'?'No email':'Skipped';
+    const emailRow=r.email
+      ?'<div class="biz-email">'+esc(r.email)
+        +'<button class="copy-btn" onclick="cp(this,\''+esc(r.email)+'\')">copy</button></div>'
+      :'<div class="biz-email" style="color:#475569">No email found</div>';
+    const subj=r.subject?'<div class="biz-subject">&ldquo;'+esc(r.subject)+'&rdquo;</div>':'';
+    const site=r.website?'<div class="biz-site">'+esc(r.website.replace(/^https?:\/\//,'').replace(/\/$/,''))+'</div>':'';
+    return '<div class="biz-card">'
+      +'<div class="biz-top">'
+      +'<div class="biz-name">'+esc(r.name||'Unknown')+'</div>'
+      +'<span class="status-badge '+stCls+'">'+stLabel+'</span>'
+      +'</div>'
+      +emailRow
+      +(n>0?'<div style="margin-bottom:4px"><span class="issue-dot '+dotCls+'">'+n+' issues</span>'+(r.critical>0?'<span style="font-size:10px;color:#f87171">'+r.critical+' critical</span>':'')+'</div>':'')
+      +subj+site
+      +'</div>';
+  }).join('');
+}
+
+function cp(btn,txt){
+  navigator.clipboard.writeText(txt).then(()=>{
+    const orig=btn.textContent;btn.textContent='copied!';btn.style.background='#22c55e';btn.style.color='#000';
+    setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},1500);
+  });
+}
 
 function rRuns(){
   document.getElementById('rl').style.display='none';
@@ -217,18 +320,18 @@ function fc(q){
       +'<div class="contact-meta">'+esc(c.website||'-')+' &middot; '+fd(c.contacted_at)+'</div>'
       +'</div>';
   }).join('');
-  if(f.length>100)l.innerHTML+='<div class="empty" style="padding:12px">Showing 100 of '+f.length+' - use search to filter</div>';
+  if(f.length>100)l.innerHTML+='<div class="empty" style="padding:12px">Showing 100 of '+f.length+' &mdash; use search to filter</div>';
 }
 
 function st(n){
-  document.getElementById('t-runs').style.display=n==='runs'?'':'none';
-  document.getElementById('t-contacts').style.display=n==='contacts'?'':'none';
-  document.getElementById('tb0').className='tab-btn'+(n==='runs'?' active':'');
-  document.getElementById('tb1').className='tab-btn'+(n==='contacts'?' active':'');
+  ['today','runs','contacts'].forEach((id,i)=>{
+    document.getElementById('t-'+id).style.display=n===id?'':'none';
+    document.getElementById('tb'+i).className='tab-btn'+(n===id?' active':'');
+  });
 }
 
 function fd(s){if(!s)return '-';const d=new Date(s+'T12:00:00');return MS[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 setInterval(init,5*60*1000);
 init();
