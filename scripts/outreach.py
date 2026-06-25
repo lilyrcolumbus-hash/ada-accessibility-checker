@@ -37,9 +37,9 @@ SITESAFE_URL        = "https://adalawsuitcheck.com"
 SENDER_NAME         = "Lily from SiteSafe"
 
 OUTREACH_DIR   = Path.home() / "Desktop" / "SiteSafe-Outreach"
-CONTACTED_LOG  = OUTREACH_DIR / "contacted.csv"  # backup local
+CONTACTED_LOG  = OUTREACH_DIR / "contacted.csv"  # local backup
 
-# ── Rotación diaria automática (25 categorías × 30 ciudades = 750 combos) ────
+# ── Daily rotation — 25 categories × 30 cities = 750 unique combos ───────────
 CATEGORIES = [
     "restaurant", "dental office", "hotel", "law firm", "physical therapy",
     "salon", "optometry", "chiropractor", "veterinary", "auto repair",
@@ -57,7 +57,7 @@ CITIES = [
 ]
 
 def _daily_defaults() -> tuple[str, str]:
-    """Devuelve (categoría, ciudad) según el día del año para rotar automáticamente."""
+    """Returns (category, city) based on day-of-year for automatic rotation."""
     day = int(datetime.date.today().strftime("%j"))
     return CATEGORIES[day % len(CATEGORIES)], CITIES[(day * 7) % len(CITIES)]
 
@@ -473,6 +473,7 @@ def send_email(to: str, subject: str, body: str) -> bool:
 
 # ── Supabase REST helpers ─────────────────────────────────────────────────────
 
+
 def _sb_headers() -> dict:
     return {
         "apikey": SUPABASE_SERVICE_KEY,
@@ -504,7 +505,7 @@ def _sb_upsert(table: str, data: dict) -> bool:
         return False
 
 def upload_dashboard_html(html: str) -> str:
-    """Sube el dashboard HTML al Storage de Supabase. Devuelve la URL pública."""
+    """Uploads dashboard HTML to Supabase Storage. Returns the public URL."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         return ""
     try:
@@ -521,34 +522,30 @@ def upload_dashboard_html(html: str) -> str:
         if resp.ok:
             return f"{SUPABASE_URL}/storage/v1/object/public/outreach/latest.html"
     except Exception as e:
-        print(f"  ⚠ Error subiendo dashboard: {e}")
+        print(f"  Warning: dashboard upload failed: {e}")
     return ""
 
-# ── Deduplicación — registro permanente de contactados ───────────────────────
+# ── Deduplication — permanent contacted log ───────────────────────────────────
 
 def load_contacted() -> set[str]:
-    """Carga emails ya contactados: Supabase primero, CSV local como fallback."""
-    # 1. Supabase (fuente de verdad en la nube)
+    """Loads already-contacted emails: Supabase first, local CSV as fallback."""
     rows = _sb_get("outreach_contacted", "select=email")
     if rows:
         cloud = {r["email"].lower() for r in rows if r.get("email")}
-        print(f"  [Supabase] {len(cloud)} emails ya contactados en la nube")
+        print(f"  [Supabase] {len(cloud)} emails already contacted")
         return cloud
-    # 2. Fallback: CSV local (cuando no hay Supabase configurado)
     if CONTACTED_LOG.exists():
         with open(CONTACTED_LOG, newline="", encoding="utf-8") as f:
             return {row["email"].lower() for row in csv.DictReader(f) if row.get("email")}
     return set()
 
 def mark_contacted(email: str, biz_name: str, website: str, issues: int = 0) -> None:
-    """Registra el email en Supabase (nube) y en CSV local como backup."""
+    """Records email in Supabase (cloud) and local CSV as backup."""
     email_lower = email.lower()
-    # 1. Supabase
     _sb_upsert("outreach_contacted", {
         "email": email_lower, "name": biz_name, "website": website, "issues": issues,
         "contacted_at": datetime.date.today().isoformat(),
     })
-    # 2. CSV local (backup cuando corre en Mac)
     try:
         OUTREACH_DIR.mkdir(parents=True, exist_ok=True)
         write_header = not CONTACTED_LOG.exists()
@@ -565,33 +562,33 @@ def mark_contacted(email: str, biz_name: str, website: str, issues: int = 0) -> 
 
 def process_biz(biz: Business, already_contacted: set, results: list,
                 args, sent_count: int) -> int:
-    """Procesa un negocio. Devuelve 1 si se envió email, 0 si no."""
+    """Processes one business. Returns 1 if email was sent, 0 otherwise."""
 
-    # 1. Website (Yellow Pages ya lo incluye a veces)
+    # 1. Find website (Yellow Pages sometimes includes it directly)
     if not biz.website:
         biz.website = find_website(biz.name, biz.city)
     if biz.website:
         print(f"  ✓ website: {biz.website}")
     else:
-        print(f"  ✗ website no encontrado — skip")
+        print(f"  ✗ website not found — skip")
         return 0
 
-    # 2. Email (múltiples páginas + DuckDuckGo fallback)
+    # 2. Email (scrape multiple pages + DuckDuckGo fallback)
     biz.email = extract_email(biz.website)
     if biz.email and biz.email.lower() in already_contacted:
-        print(f"  ⟳ {biz.email} ya contactado — skip")
+        print(f"  ⟳ {biz.email} already contacted — skip")
         return 0
-    print(f"  {'✓ email: ' + biz.email if biz.email else '✗ email no encontrado'}")
+    print(f"  {'✓ email: ' + biz.email if biz.email else '✗ email not found'}")
 
-    # 3. Scan ADA
+    # 3. ADA scan
     biz.issues, biz.critical, biz.scan_error, biz.lang = scan_site(biz.website)
     if biz.scan_error:
         print(f"  ⚠ scan: {biz.scan_error}")
     else:
-        lang_tag = " 🇪🇸 español" if biz.lang == "es" else ""
-        print(f"  → {biz.issues} issues ({biz.critical} críticos){lang_tag}")
+        lang_tag = " 🇪🇸 spanish site" if biz.lang == "es" else ""
+        print(f"  → {biz.issues} issues ({biz.critical} critical){lang_tag}")
 
-    # 4. Generar email
+    # 4. Generate email
     email_data = generate_email(biz)
     row = {
         "name": biz.name, "website": biz.website, "email": biz.email,
@@ -601,12 +598,12 @@ def process_biz(biz: Business, already_contacted: set, results: list,
         "body": email_data["body"], "status": "",
     }
 
-    # 5. Enviar / preview
+    # 5. Send / preview
     newly_sent = 0
     if args.preview and biz.email:
         send_email("codebake.SaaS@outlook.com",
                    f"[PREVIEW] {email_data['subject']}",
-                   f"--- PREVIEW para: {biz.email} ---\n\n{email_data['body']}")
+                   f"--- PREVIEW for: {biz.email} ---\n\n{email_data['body']}")
         row["status"] = "preview_sent"
     elif args.send and biz.email:
         ok = send_email(biz.email, email_data["subject"], email_data["body"])
@@ -631,9 +628,9 @@ def main():
     parser.add_argument("--category", default=default_cat)
     parser.add_argument("--city", default=default_city)
     parser.add_argument("--target", type=int, default=20,
-                        help="Meta de emails enviados (sigue buscando hasta llegar)")
+                        help="Target emails to send (keeps searching until reached)")
     parser.add_argument("--limit", type=int, default=0,
-                        help="Límite fijo de negocios a procesar (modo legacy, desactiva --target)")
+                        help="Fixed business limit (legacy mode, disables --target)")
     parser.add_argument("--output", default="outreach.csv")
     parser.add_argument("--send", action="store_true")
     parser.add_argument("--preview", action="store_true")
@@ -643,35 +640,34 @@ def main():
     results: list[dict] = []
     sent = 0
     checked = 0
-    MAX_CHECKED = 200  # tope de seguridad para no correr infinito
+    MAX_CHECKED = 200  # safety cap to prevent infinite runs
 
-    # ── Modo legacy (--limit explícito) ──────────────────────────────────────
+    # ── Legacy mode (explicit --limit) ───────────────────────────────────────
     if args.limit > 0:
-        print(f"\nBuscando: {args.category} en {args.city} (límite fijo {args.limit})\n")
+        print(f"\nSearching: {args.category} in {args.city} (fixed limit {args.limit})\n")
         businesses = yelp_search(args.category, args.city, limit=args.limit)
-        print(f"Yelp encontró {len(businesses)} negocios\n")
+        print(f"Yelp found {len(businesses)} businesses\n")
         for i, biz in enumerate(businesses, 1):
             print(f"[{i}/{len(businesses)}] {biz.name}")
             sent += process_biz(biz, already_contacted, results, args, sent)
     else:
-        # ── Modo target: corre hasta enviar N emails ──────────────────────────
+        # ── Target mode: run until N emails sent ─────────────────────────────
         target = args.target
-        print(f"\nMeta del día: {target} emails enviados")
-        print(f"Fuentes: Yelp → Yellow Pages")
-        print(f"Categoría: {args.category} | Ciudad: {args.city}\n")
+        print(f"\nDaily target: {target} emails")
+        print(f"Sources: Yelp → Yellow Pages")
+        print(f"Category: {args.category} | City: {args.city}\n")
 
         sources_exhausted = {"yelp": False, "yp": False}
         yelp_offset = 0
         yp_done = False
 
         while sent < target and checked < MAX_CHECKED:
-            # — Fuente 1: Yelp (paginado) —
             if not sources_exhausted["yelp"]:
                 batch = yelp_search(args.category, args.city, limit=50, offset=yelp_offset)
                 yelp_offset += 50
                 if not batch:
                     sources_exhausted["yelp"] = True
-                    print("  [Yelp agotado — cambiando a Yellow Pages]\n")
+                    print("  [Yelp exhausted — switching to Yellow Pages]\n")
                 else:
                     for biz in batch:
                         if sent >= target or checked >= MAX_CHECKED:
@@ -683,14 +679,13 @@ def main():
                             break
                     continue
 
-            # — Fuente 2: Yellow Pages —
             if not sources_exhausted["yp"] and not yp_done:
-                print("\n[Buscando en Yellow Pages...]\n")
+                print("\n[Searching Yellow Pages...]\n")
                 yp_batch = yellowpages_search(args.category, args.city)
                 yp_done = True
                 if not yp_batch:
                     sources_exhausted["yp"] = True
-                    print("  [Yellow Pages sin resultados]\n")
+                    print("  [Yellow Pages: no results]\n")
                 else:
                     for biz in yp_batch:
                         if sent >= target or checked >= MAX_CHECKED:
@@ -700,18 +695,17 @@ def main():
                         sent += process_biz(biz, already_contacted, results, args, sent)
                 continue
 
-            # — Sin más fuentes —
-            print(f"\nFuentes agotadas con {sent}/{target} emails enviados.")
+            print(f"\nSources exhausted. Sent: {sent}/{target}")
             break
 
         if sent >= target:
-            print(f"\n✅ Meta alcanzada: {sent} emails enviados.")
+            print(f"\n✅ Target reached: {sent} emails sent.")
         elif checked >= MAX_CHECKED:
-            print(f"\n⚠ Límite de seguridad ({MAX_CHECKED} negocios revisados). Enviados: {sent}/{target}")
+            print(f"\n⚠ Safety cap hit ({MAX_CHECKED} businesses checked). Sent: {sent}/{target}")
 
-    # ── Guardar CSV ───────────────────────────────────────────────────────────
+    # ── Save CSV ──────────────────────────────────────────────────────────────
     if not results:
-        print("\nNo se encontraron negocios con website.")
+        print("\nNo businesses found with a website.")
         return
 
     FIELDS = ["name","website","email","phone","issues","critical","scan_error",
@@ -723,12 +717,12 @@ def main():
 
     with_email = sum(1 for r in results if r.get("email"))
     print(f"\n{'─'*50}")
-    print(f"✓ {checked} negocios revisados")
-    print(f"✓ {with_email} con email encontrado")
-    print(f"✓ {sent} emails enviados")
-    print(f"✓ Guardado en: {args.output}")
+    print(f"✓ {checked} businesses checked")
+    print(f"✓ {with_email} with email found")
+    print(f"✓ {sent} emails sent")
+    print(f"✓ Saved to: {args.output}")
 
-    # ── Generar y subir dashboard a Supabase Storage ──────────────────────────
+    # ── Generate and upload dashboard to Supabase Storage ────────────────────
     if SUPABASE_URL and SUPABASE_SERVICE_KEY:
         try:
             sys.path.insert(0, str(Path(__file__).parent))
@@ -737,9 +731,9 @@ def main():
             html = generate_html(results, date_str, args.output, "", server_mode=False)
             url = upload_dashboard_html(html)
             if url:
-                print(f"✓ Dashboard en: {url}")
+                print(f"✓ Dashboard at: {url}")
         except Exception as e:
-            print(f"  ⚠ Dashboard no subido: {e}")
+            print(f"  Warning: dashboard not uploaded: {e}")
 
 if __name__ == "__main__":
     main()
