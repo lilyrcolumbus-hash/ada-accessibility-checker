@@ -30,7 +30,9 @@ from bs4 import BeautifulSoup
 
 YELP_API_KEY        = os.environ.get("YELP_API_KEY", "")
 RESEND_API_KEY      = os.environ.get("RESEND_API_KEY", "")
-FROM_EMAIL          = os.environ.get("FROM_EMAIL", "")
+BREVO_API_KEY       = os.environ.get("BREVO_API_KEY", "")
+SENDGRID_API_KEY    = os.environ.get("SENDGRID_API_KEY", "")
+FROM_EMAIL          = os.environ.get("FROM_EMAIL", "lily@adalawsuitcheck.com")
 SUPABASE_URL        = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 SITESAFE_URL        = "https://adalawsuitcheck.com"
@@ -535,24 +537,96 @@ Lily
 SiteSafe · adalawsuitcheck.com"""
     return {"subject": subject, "body": body, "scan_url": scan_link}
 
-# ── Envío via Resend (opcional) ───────────────────────────────────────────────
+# ── Envío de email — Plan A: Resend / Plan B: Brevo / Plan C: SendGrid ───────
 
-def send_email(to: str, subject: str, body: str) -> bool:
-    if not RESEND_API_KEY or not FROM_EMAIL:
+def _try_resend(to: str, subject: str, body: str) -> bool:
+    if not RESEND_API_KEY:
         return False
     try:
         resp = requests.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": f"{SENDER_NAME} <lily@adalawsuitcheck.com>", "reply_to": "codebake.SaaS@outlook.com", "to": to, "subject": subject, "text": body},
+            json={
+                "from": f"{SENDER_NAME} <{FROM_EMAIL}>",
+                "reply_to": "codebake.SaaS@outlook.com",
+                "to": to, "subject": subject, "text": body,
+            },
             timeout=10,
         )
-        if resp.status_code not in (200, 201):
-            print(f"  ✗ Resend error {resp.status_code}: {resp.text[:200]}")
-        return resp.status_code in (200, 201)
+        if resp.status_code in (200, 201):
+            return True
+        print(f"  ✗ Resend {resp.status_code}: {resp.text[:150]}")
+        return False
     except Exception as e:
         print(f"  ✗ Resend exception: {e}")
         return False
+
+def _try_brevo(to: str, subject: str, body: str) -> bool:
+    if not BREVO_API_KEY:
+        return False
+    try:
+        resp = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={"api-key": BREVO_API_KEY, "Content-Type": "application/json"},
+            json={
+                "sender": {"name": SENDER_NAME, "email": FROM_EMAIL},
+                "replyTo": {"email": "codebake.SaaS@outlook.com"},
+                "to": [{"email": to}],
+                "subject": subject,
+                "textContent": body,
+            },
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            return True
+        print(f"  ✗ Brevo {resp.status_code}: {resp.text[:150]}")
+        return False
+    except Exception as e:
+        print(f"  ✗ Brevo exception: {e}")
+        return False
+
+def _try_sendgrid(to: str, subject: str, body: str) -> bool:
+    if not SENDGRID_API_KEY:
+        return False
+    try:
+        resp = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "personalizations": [{"to": [{"email": to}]}],
+                "from": {"email": FROM_EMAIL, "name": SENDER_NAME},
+                "reply_to": {"email": "codebake.SaaS@outlook.com"},
+                "subject": subject,
+                "content": [{"type": "text/plain", "value": body}],
+            },
+            timeout=10,
+        )
+        if resp.status_code == 202:
+            return True
+        print(f"  ✗ SendGrid {resp.status_code}: {resp.text[:150]}")
+        return False
+    except Exception as e:
+        print(f"  ✗ SendGrid exception: {e}")
+        return False
+
+def send_email(to: str, subject: str, body: str) -> bool:
+    """
+    Intenta enviar en cascada: Resend → Brevo → SendGrid.
+    Usa el primero que tenga API key configurada y responda OK.
+    """
+    providers = [
+        ("Resend",   _try_resend),
+        ("Brevo",    _try_brevo),
+        ("SendGrid", _try_sendgrid),
+    ]
+    for name, fn in providers:
+        result = fn(to, subject, body)
+        if result:
+            print(f"  ✓ Sent via {name}")
+            return True
+        # Si falla, intenta el siguiente automáticamente
+    print("  ✗ All email providers failed")
+    return False
 
 # ── Supabase REST helpers ─────────────────────────────────────────────────────
 
