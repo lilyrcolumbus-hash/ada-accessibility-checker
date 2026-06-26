@@ -70,6 +70,20 @@ BROWSER_HEADERS = {
 EMAIL_BLACKLIST = {"example.com", "domain.com", "wixpress.com", "squarespace.com",
                    "shopify.com", "wordpress.com", "sentry.io", "googleapis.com"}
 
+# TLDs that are actually file extensions — matched regex produces false emails like 700x400@2x.jpg
+FILE_EXT_TLDS = frozenset({
+    "jpg", "jpeg", "png", "gif", "svg", "webp", "ico", "bmp", "tiff",
+    "css", "js", "ts", "json", "xml", "txt", "csv", "pdf", "zip",
+    "mp4", "mov", "avi", "mp3", "wav", "woff", "woff2", "ttf", "eot",
+    "2x", "1x", "3x",
+})
+
+# Personal email providers — valid for small business owners
+PERSONAL_EMAIL_DOMAINS = frozenset({
+    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",
+    "aol.com", "protonmail.com", "live.com", "msn.com", "me.com",
+})
+
 SKIP_DOMAINS = {"yelp.com", "facebook.com", "instagram.com", "twitter.com",
                 "linkedin.com", "google.com", "tripadvisor.com", "zoominfo.com",
                 "yellowpages.com", "bbb.org", "mapquest.com", "doordash.com",
@@ -237,40 +251,97 @@ def guess_email(domain: str) -> str:
 def extract_email(base_url: str) -> str:
     email_re = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
-    def _clean(candidate: str) -> str:
-        """Devuelve el email si es válido, vacío si no."""
-        domain = candidate.split("@")[1].lower()
-        if domain in EMAIL_BLACKLIST:
-            return ""
-        if any(bad in domain for bad in ("example", "yourbrand", "sentry", "wix", "placeholder")):
-            return ""
-        return candidate
+    parsed_base = urlparse(base_url)
+    site_domain = parsed_base.netloc.lower().replace("www.", "")  # e.g. "fairmont.com"
+    # Root label before TLD: "fairmont" from "fairmont.com", "milkandhoney" from "milkandhoneyspa.com"
+    site_root = site_domain.rsplit(".", 1)[0].split(".")[-1] if site_domain else ""
 
-    def scrape(url: str) -> str:
+    def _score(candidate: str) -> int:
+        """
+        2 = email domain matches or is related to the business website (best)
+        1 = personal email (gmail/yahoo/outlook — valid for small business owners)
+        0 = unrelated business domain (skip)
+        -1 = invalid (file extension TLD, blacklisted, noreply, etc.)
+        """
+        lower = candidate.lower()
+        if "@" not in lower:
+            return -1
+        local, domain = lower.split("@", 1)
+
+        # Reject file-extension TLDs — catches "700x400@2x.jpg" etc.
+        tld = domain.rsplit(".", 1)[-1]
+        if tld in FILE_EXT_TLDS:
+            return -1
+
+        if domain in EMAIL_BLACKLIST:
+            return -1
+        if any(bad in domain for bad in ("example", "yourbrand", "sentry", "wix", "placeholder")):
+            return -1
+        if "noreply" in local or "no-reply" in local or "donotreply" in local:
+            return -1
+
+        # Personal email (gmail, yahoo, etc.) — valid for small biz owners
+        if domain in PERSONAL_EMAIL_DOMAINS:
+            return 1
+
+        # Domain matches the business website
+        email_domain_root = domain.rsplit(".", 1)[0].split(".")[-1]
+        if domain == site_domain:
+            return 2  # exact match
+        if domain.endswith("." + site_domain) or site_domain.endswith("." + domain):
+            return 2  # subdomain relationship
+        if site_root and email_domain_root == site_root:
+            return 2  # same registrable root (e.g. salon.com / salonaustin.com — wait, roots differ; this mainly catches spa.com/spa-seattle.com)
+
+        # Unrelated business domain — likely a CDN, analytics, or embedded service widget
+        return 0
+
+    def scrape(url: str) -> list[tuple[int, str]]:
+        """Returns scored (score, email) candidates, score >= 1 only."""
         try:
             resp = requests.get(url, headers=BROWSER_HEADERS, timeout=8, allow_redirects=True)
             if resp.status_code != 200:
-                return ""
+                return []
+            # Strip <script> blocks before scanning — most CDN/service emails live there
             text = re.sub(r"<script[^>]*>.*?</script>", "", resp.text, flags=re.DOTALL)
+            seen: set[str] = set()
+            results: list[tuple[int, str]] = []
             for candidate in email_re.findall(text):
-                if clean := _clean(candidate):
-                    return clean
+                norm = candidate.lower()
+                if norm in seen:
+                    continue
+                seen.add(norm)
+                s = _score(candidate)
+                if s >= 1:
+                    results.append((s, candidate))
+            return results
         except Exception:
-            pass
-        return ""
+            return []
+
+    def _best(candidates: list[tuple[int, str]]) -> str:
+        if not candidates:
+            return ""
+        return max(candidates, key=lambda x: x[0])[1]
+
+    all_candidates: list[tuple[int, str]] = []
 
     # 1. Página principal
-    email = scrape(base_url)
-    if email:
-        return email
+    all_candidates.extend(scrape(base_url))
+    if any(s >= 2 for s, _ in all_candidates):
+        return _best([(s, e) for s, e in all_candidates if s >= 2])
 
     # 2. Páginas de contacto / about / team
     parsed = urlparse(base_url)
     base = f"{parsed.scheme}://{parsed.netloc}"
     for path in CONTACT_PATHS:
-        email = scrape(f"{base}{path}")
-        if email:
-            return email
+        all_candidates.extend(scrape(f"{base}{path}"))
+        if any(s >= 2 for s, _ in all_candidates):
+            return _best([(s, e) for s, e in all_candidates if s >= 2])
+
+    # Check personal emails collected so far before trying DuckDuckGo
+    personal = [(s, e) for s, e in all_candidates if s == 1]
+    if personal:
+        return _best(personal)
 
     # 3. DuckDuckGo: buscar "@domain.com" en snippets
     domain = parsed.netloc.replace("www.", "")
@@ -279,10 +350,19 @@ def extract_email(base_url: str) -> str:
         with DDGS() as d:
             for result in d.text(f'"@{domain}" contact email', max_results=5):
                 for candidate in email_re.findall(result.get("body", "")):
-                    if clean := _clean(candidate):
-                        return clean
+                    s = _score(candidate)
+                    if s >= 1:
+                        all_candidates.append((s, candidate))
     except Exception:
         pass
+
+    if all_candidates:
+        domain_match = [(s, e) for s, e in all_candidates if s >= 2]
+        if domain_match:
+            return _best(domain_match)
+        personal = [(s, e) for s, e in all_candidates if s == 1]
+        if personal:
+            return _best(personal)
 
     # 4. Email permutation: info@, contact@, hello@... + verificación SMTP/MX
     guessed = guess_email(domain)
@@ -467,8 +547,11 @@ def send_email(to: str, subject: str, body: str) -> bool:
             json={"from": f"{SENDER_NAME} <lily@adalawsuitcheck.com>", "reply_to": "codebake.SaaS@outlook.com", "to": to, "subject": subject, "text": body},
             timeout=10,
         )
+        if resp.status_code not in (200, 201):
+            print(f"  ✗ Resend error {resp.status_code}: {resp.text[:200]}")
         return resp.status_code in (200, 201)
-    except Exception:
+    except Exception as e:
+        print(f"  ✗ Resend exception: {e}")
         return False
 
 # ── Supabase REST helpers ─────────────────────────────────────────────────────
