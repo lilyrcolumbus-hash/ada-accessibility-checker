@@ -18,7 +18,7 @@ on:
       target:
         description: 'Number of emails to send'
         required: false
-        default: '20'
+        default: '50'
 
 jobs:
   outreach:
@@ -48,7 +48,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           DATE=$(date +%Y-%m-%d)
-          TARGET="${{ github.event.inputs.target || '20' }}"
+          TARGET="${{ github.event.inputs.target || '50' }}"
 
           EXTRA_ARGS=""
           if [[ -n "${{ github.event.inputs.category }}" ]]; then
