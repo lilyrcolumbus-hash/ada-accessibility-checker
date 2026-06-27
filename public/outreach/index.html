@@ -363,8 +363,8 @@ function cm(d){selDay=null;document.getElementById('dpop').style.display='none';
 // ── Traffic view ─────────────────────────────────────────────────────────────
 let trafficLoaded=false;
 function switchView(v){
-  document.getElementById('view-outreach').style.display=v==='outreach'?'':'none';
-  document.getElementById('view-traffic').style.display=v==='traffic'?'':'none';
+  document.getElementById('view-outreach').style.display=v==='outreach'?'block':'none';
+  document.getElementById('view-traffic').style.display=v==='traffic'?'block':'none';
   document.getElementById('tab-out').className='vtab'+(v==='outreach'?' on':'');
   document.getElementById('tab-tr').className='vtab'+(v==='traffic'?' on':'');
   if(v==='traffic'&&!trafficLoaded)loadTraffic();
