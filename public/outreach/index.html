@@ -96,6 +96,17 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
 .vtab{flex:1;text-align:center;padding:7px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#64748b;border:none;background:transparent}
 .vtab.on{background:#252840;color:#e2e8f0}
 
+/* Leads section */
+.leads{display:none}
+.lead-card{background:#0f1117;border-radius:10px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lead-email{font-size:13px;color:#60a5fa;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lead-date{font-size:11px;color:#475569;white-space:nowrap}
+.leads-count{font-size:28px;font-weight:800;color:#22c55e;line-height:1;margin-bottom:4px}
+.leads-label{font-size:11px;color:#94a3b8}
+.leads-hero{background:#1e2130;border-radius:12px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+.leads-list{background:#1e2130;border-radius:14px;padding:14px 16px}
+.leads-list-title{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
 /* Traffic section */
 .traffic{display:none}
 .tr-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px}
@@ -137,6 +148,7 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
   <div class="vtoggle">
     <button class="vtab on" id="tab-out" onclick="switchView('outreach')">📧 Outreach</button>
     <button class="vtab" id="tab-tr" onclick="switchView('traffic')">📊 Website Traffic</button>
+    <button class="vtab" id="tab-ld" onclick="switchView('leads')">🎯 Leads</button>
   </div>
 
   <!-- OUTREACH VIEW -->
@@ -189,6 +201,21 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
   </div>
 
   </div><!-- /view-outreach -->
+
+  <!-- LEADS VIEW -->
+  <div id="view-leads" class="leads">
+    <div class="leads-hero">
+      <div>
+        <div class="leads-count" id="ld-count">—</div>
+        <div class="leads-label">Total leads captured</div>
+      </div>
+      <div style="flex:1;text-align:right;font-size:12px;color:#475569">Emails collected from<br>free scan page</div>
+    </div>
+    <div class="leads-list">
+      <div class="leads-list-title">Recent leads</div>
+      <div id="ld-list"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
 
   <!-- TRAFFIC VIEW -->
   <div id="view-traffic" class="traffic">
@@ -378,14 +405,44 @@ function showDayEmails(ds){
 
 function cm(d){selDay=null;document.getElementById('dpop').style.display='none';cM+=d;if(cM>11){cM=0;cY++;}if(cM<0){cM=11;cY--;}renderCal();}
 
+// ── Leads view ───────────────────────────────────────────────────────────────
+let leadsLoaded=false;
+async function loadLeads(){
+  leadsLoaded=true;
+  try{
+    const r=await fetch(SB+'/rest/v1/rpc/get_leads',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:'{}'});
+    const data=await r.json();
+    if(!Array.isArray(data)||data.length===0){
+      document.getElementById('ld-count').textContent='0';
+      document.getElementById('ld-list').innerHTML='<div class="empty">No leads yet — share your scan page to get started</div>';
+      return;
+    }
+    document.getElementById('ld-count').textContent=data.length;
+    document.getElementById('ld-list').innerHTML=data.map(l=>{
+      const d=new Date(l.created_at);
+      const ds=(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear();
+      return '<div class="lead-card">'
+        +'<div class="lead-email">'+esc(l.email)+'</div>'
+        +'<button class="cp" onclick="cp(this,\''+l.email.replace(/'/g,"\\'")+'\')" style="flex-shrink:0">copy</button>'
+        +'<div class="lead-date">'+ds+'</div>'
+        +'</div>';
+    }).join('');
+  }catch(e){
+    document.getElementById('ld-list').innerHTML='<div class="empty">Error loading leads — run the SQL migration first</div>';
+  }
+}
+
 // ── Traffic view ─────────────────────────────────────────────────────────────
 let trafficLoaded=false;
 function switchView(v){
   document.getElementById('view-outreach').style.display=v==='outreach'?'block':'none';
+  document.getElementById('view-leads').style.display=v==='leads'?'block':'none';
   document.getElementById('view-traffic').style.display=v==='traffic'?'block':'none';
   document.getElementById('tab-out').className='vtab'+(v==='outreach'?' on':'');
+  document.getElementById('tab-ld').className='vtab'+(v==='leads'?' on':'');
   document.getElementById('tab-tr').className='vtab'+(v==='traffic'?' on':'');
   if(v==='traffic'&&!trafficLoaded)loadTraffic();
+  if(v==='leads'&&!leadsLoaded)loadLeads();
 }
 async function loadTraffic(){
   trafficLoaded=true;
