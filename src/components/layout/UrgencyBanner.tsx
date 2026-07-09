@@ -1,20 +1,12 @@
 import { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
-const DISMISS_KEY = 'sitesafe_urgency_dismissed';
-const DEADLINE = new Date('2026-04-26T00:00:00');
+const DISMISS_KEY = 'sitesafe_urgency_dismissed_v2';
 
 export function UrgencyBanner() {
   const [dismissed, setDismissed] = useState(() => !!sessionStorage.getItem(DISMISS_KEY));
 
   if (dismissed) return null;
-
-  const now = new Date();
-  const diffMs = DEADLINE.getTime() - now.getTime();
-  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-  // Hide banner after deadline has passed
-  if (daysLeft <= 0) return null;
 
   function handleDismiss() {
     sessionStorage.setItem(DISMISS_KEY, '1');
@@ -26,7 +18,7 @@ export function UrgencyBanner() {
       <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-4 py-1.5 text-xs font-medium sm:text-sm">
         <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
         <span>
-          Federal ADA deadline: April 26, 2026 — <strong>{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</strong>
+          ADA lawsuits hit a record high in 2025 — <strong>over 2,000 small businesses sued in the first half of the year alone.</strong>
         </span>
         <button
           onClick={handleDismiss}
