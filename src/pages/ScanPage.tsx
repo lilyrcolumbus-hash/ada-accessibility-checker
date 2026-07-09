@@ -464,7 +464,7 @@ export function ScanPage() {
       )}
 
       {/* Email capture for non-logged-in users */}
-      {!user && result && <EmailCapture />}
+      {!user && result && <EmailCapture result={result} />}
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
