@@ -403,7 +403,15 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-06-13 (Session 16)**
+**▶ RESUME HERE (next session) — updated 2026-07-09 (Session 17)**
+
+**⚠️ PENDIENTE MANUAL (1 paso, 30 segundos):** Aplicar migración `supabase/migrations/015_get_leads_function.sql` en Supabase SQL Editor para activar la pestaña "🎯 Leads" del dashboard de outreach. Entrar a supabase.com → proyecto `mvzolbabbkedmlhqhiwi` → SQL Editor → pegar y ejecutar el contenido de ese archivo. Sin esto, la pestaña Leads da error.
+
+**Lo hecho en Session 17 (2026-07-09):**
+- ✅ **UrgencyBanner reactivado:** el countdown de abril 2026 había vencido y el banner se ocultaba para todos. Reemplazado con mensaje permanente sobre récord de demandas en 2025 (commit mergeado a main).
+- ✅ **Email de seguimiento automático:** cuando un visitante pone su email en la página de resultados del scan, le llega automáticamente un correo personalizado con su score, el issue más crítico encontrado, y CTA para comprar los $49. Llama a Resend directamente desde el browser (`re_JLAg1eJ3_3vCaby1f7XPDcsFmWLWKQCBj`). `EmailCapture.tsx` actualizado con copy contextual ("Email me my full report — N issues found").
+- ✅ **Pestaña Leads en /outreach/:** nueva pestaña "🎯 Leads" en el dashboard de outreach mostrando todos los emails capturados con fecha y botón copy. Usa función `get_leads()` SECURITY DEFINER (mismo patrón que `get_shared_report`). **Requiere aplicar migración 015 en Supabase (ver arriba).**
+- ℹ️ Edge function `supabase/functions/send-scan-followup/index.ts` creada pero NO desplegada — no se necesita porque el email se manda directo desde el browser.
 
 Estado al reabrir: **INGENIERÍA TERMINADA + LANZADA. App en su dominio propio `https://adalawsuitcheck.com` (SSL), Google indexando, 3 testimonios reales en vivo, analítica activa con tráfico real (30 visitas/24h). Lo que falta es 100% DISTRIBUCIÓN para traer más tráfico/ventas (Reddit → Product Hunt).** `main` = `a853661`, todo pusheado. App en vivo 200.
 
