@@ -308,8 +308,10 @@ function openPanel(idx){
   const data=sent.filter(r=>(r.status==='sent'||r.status==='preview_sent'||r.status==='failed')&&filters[idx](r));
   const ok=data.filter(r=>r.status==='sent').length;
   const fail=data.filter(r=>r.status==='failed').length;
+  const delivered=data.filter(r=>r.delivery_status==='delivered').length;
+  const bounced=data.filter(r=>r.delivery_status==='bounced'||r.delivery_status==='suppressed').length;
   document.getElementById('ptitle').textContent=titles[idx];
-  document.getElementById('pmeta').textContent=ok+' sent'+(fail?' · '+fail+' failed':'');
+  document.getElementById('pmeta').textContent=ok+' sent'+(delivered?' · '+delivered+' confirmed delivered':'')+(bounced?' · '+bounced+' bounced':'')+(fail?' · '+fail+' failed':'');
   document.getElementById('plist').innerHTML=data.length?data.map(r=>bizCard(r)).join('')
     :'<div class="empty">No emails for this period</div>';
   document.getElementById('epanel').style.display='block';
@@ -322,16 +324,26 @@ function closePanel(){
   [0,1,2,3].forEach(i=>document.getElementById('sc'+i).className='stat');
 }
 
+const DELIVERY_BADGES={
+  delivered:{lbl:'&#10003; Delivered',cls:'s'},
+  bounced:{lbl:'&#10007; Bounced',cls:'f'},
+  delivery_delayed:{lbl:'&#8987; Delayed',cls:'f'},
+  suppressed:{lbl:'&#8856; Suppressed',cls:'f'},
+  complained:{lbl:'&#9888; Complained',cls:'f'},
+};
+
 function bizCard(r){
   const n=parseInt(r.issues||0);
   const tc=n>=20?'hot':n>=10?'warm':n>=5?'mild':'cold';
   const isSent=r.status==='sent'||r.status==='preview_sent';
-  const lbl=r.status==='preview_sent'?'&#10003; Preview':isSent?'&#10003; Sent':'&#10007; Failed';
+  const dbadge=DELIVERY_BADGES[r.delivery_status];
+  const lbl=dbadge?dbadge.lbl:(r.status==='preview_sent'?'&#10003; Preview':isSent?'&#10003; Sent (verifying&hellip;)':'&#10007; Failed');
+  const cls=dbadge?dbadge.cls:(isSent?'s':'f');
   const run=runs.find(x=>x.run_date===r.run_date);
   return '<div class="biz-card">'
     +'<div class="biz-top"><div class="biz-name">'+esc(r.name||'Unknown')+'</div>'
-    +'<span class="sbadge '+(isSent?'s':'f')+'">'+lbl+'</span></div>'
-    +(run?'<div class="biz-city">'+esc(run.category)+' &middot; '+esc(run.city)+' &middot; '+fd(r.run_date)+'</div>':'<div class="biz-city">'+fd(r.run_date)+'</div>')
+    +'<span class="sbadge '+cls+'">'+lbl+'</span></div>'
+    +(run?'<div class="biz-city">'+esc(run.category)+' &middot; '+esc(run.city)+' &middot; '+fd(r.run_date)+(r.provider?' &middot; via '+esc(r.provider):'')+'</div>':'<div class="biz-city">'+fd(r.run_date)+(r.provider?' &middot; via '+esc(r.provider):'')+'</div>')
     +(r.email?'<div class="biz-email">'+esc(r.email)+'<button class="cp" onclick="cp(this,\''+r.email.replace(/'/g,"\\'")+'\')" >copy</button></div>':'')
     +(n>0?'<div><span class="itag '+tc+'">'+n+' issues</span>'+(r.critical>0?'<span style="font-size:10px;color:#f87171">'+r.critical+' critical</span>':'')+'</div>':'')
     +(r.subject?'<div class="biz-sub">&ldquo;'+esc(r.subject)+'&rdquo;</div>':'')
@@ -393,11 +405,13 @@ function showDayEmails(ds){
   const data=sent.filter(r=>r.run_date===ds);
   const ok=data.filter(r=>r.status==='sent').length;
   const fail=data.filter(r=>r.status==='failed').length;
+  const delivered=data.filter(r=>r.delivery_status==='delivered').length;
+  const bounced=data.filter(r=>r.delivery_status==='bounced'||r.delivery_status==='suppressed').length;
   openIdx=99;
   [0,1,2,3].forEach(i=>document.getElementById('sc'+i).className='stat');
   const run=runs.find(x=>x.run_date===ds);
   document.getElementById('ptitle').textContent=fd(ds)+(run?' — '+esc(run.category)+', '+esc(run.city):'');
-  document.getElementById('pmeta').textContent=ok+' sent'+(fail?' · '+fail+' failed':'');
+  document.getElementById('pmeta').textContent=ok+' sent'+(delivered?' · '+delivered+' confirmed delivered':'')+(bounced?' · '+bounced+' bounced':'')+(fail?' · '+fail+' failed':'');
   document.getElementById('plist').innerHTML=data.length?data.map(r=>bizCard(r)).join(''):'<div class="empty">No emails</div>';
   document.getElementById('epanel').style.display='block';
   document.getElementById('epanel').scrollIntoView({behavior:'smooth',block:'start'});

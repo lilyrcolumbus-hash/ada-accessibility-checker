@@ -539,9 +539,9 @@ SiteSafe · adalawsuitcheck.com"""
 
 # ── Envío de email — Plan A: Resend / Plan B: Brevo / Plan C: SendGrid ───────
 
-def _try_resend(to: str, subject: str, body: str) -> bool:
+def _try_resend(to: str, subject: str, body: str) -> tuple[bool, str | None]:
     if not RESEND_API_KEY:
-        return False
+        return False, None
     try:
         resp = requests.post(
             "https://api.resend.com/emails",
@@ -554,16 +554,16 @@ def _try_resend(to: str, subject: str, body: str) -> bool:
             timeout=10,
         )
         if resp.status_code in (200, 201):
-            return True
+            return True, resp.json().get("id")
         print(f"  ✗ Resend {resp.status_code}: {resp.text[:150]}")
-        return False
+        return False, None
     except Exception as e:
         print(f"  ✗ Resend exception: {e}")
-        return False
+        return False, None
 
-def _try_brevo(to: str, subject: str, body: str) -> bool:
+def _try_brevo(to: str, subject: str, body: str) -> tuple[bool, str | None]:
     if not BREVO_API_KEY:
-        return False
+        return False, None
     try:
         resp = requests.post(
             "https://api.brevo.com/v3/smtp/email",
@@ -578,16 +578,18 @@ def _try_brevo(to: str, subject: str, body: str) -> bool:
             timeout=10,
         )
         if resp.status_code in (200, 201):
-            return True
+            data = resp.json()
+            msg_id = data.get("messageId") or (data.get("messageIds") or [None])[0]
+            return True, msg_id
         print(f"  ✗ Brevo {resp.status_code}: {resp.text[:150]}")
-        return False
+        return False, None
     except Exception as e:
         print(f"  ✗ Brevo exception: {e}")
-        return False
+        return False, None
 
-def _try_sendgrid(to: str, subject: str, body: str) -> bool:
+def _try_sendgrid(to: str, subject: str, body: str) -> tuple[bool, str | None]:
     if not SENDGRID_API_KEY:
-        return False
+        return False, None
     try:
         resp = requests.post(
             "https://api.sendgrid.com/v3/mail/send",
@@ -602,17 +604,20 @@ def _try_sendgrid(to: str, subject: str, body: str) -> bool:
             timeout=10,
         )
         if resp.status_code == 202:
-            return True
+            # SendGrid returns the message id in a response header, e.g. "<id>.filterdrecv-xxx"
+            msg_id = resp.headers.get("X-Message-Id")
+            return True, msg_id
         print(f"  ✗ SendGrid {resp.status_code}: {resp.text[:150]}")
-        return False
+        return False, None
     except Exception as e:
         print(f"  ✗ SendGrid exception: {e}")
-        return False
+        return False, None
 
-def send_email(to: str, subject: str, body: str) -> bool:
+def send_email(to: str, subject: str, body: str) -> tuple[bool, str | None, str | None]:
     """
     Intenta enviar en cascada: Resend → Brevo → SendGrid.
     Usa el primero que tenga API key configurada y responda OK.
+    Devuelve (exito, proveedor_usado, id_del_mensaje_en_ese_proveedor).
     """
     providers = [
         ("Resend",   _try_resend),
@@ -620,13 +625,13 @@ def send_email(to: str, subject: str, body: str) -> bool:
         ("SendGrid", _try_sendgrid),
     ]
     for name, fn in providers:
-        result = fn(to, subject, body)
-        if result:
+        ok, msg_id = fn(to, subject, body)
+        if ok:
             print(f"  ✓ Sent via {name}")
-            return True
+            return True, name, msg_id
         # Si falla, intenta el siguiente automáticamente
     print("  ✗ All email providers failed")
-    return False
+    return False, None, None
 
 # ── Supabase REST helpers ─────────────────────────────────────────────────────
 
@@ -660,6 +665,84 @@ def _sb_upsert(table: str, data: dict) -> bool:
         return r.ok
     except Exception:
         return False
+
+def _sb_patch(table: str, params: str, data: dict) -> bool:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return False
+    try:
+        r = requests.patch(
+            f"{SUPABASE_URL}/rest/v1/{table}?{params}",
+            headers={**_sb_headers(), "Prefer": "return=minimal"},
+            json=data, timeout=15,
+        )
+        return r.ok
+    except Exception:
+        return False
+
+# ── Verificación real de entrega contra cada proveedor ───────────────────────
+
+def _check_resend_status(message_id: str) -> str | None:
+    try:
+        r = requests.get(f"https://api.resend.com/emails/{message_id}",
+                          headers={"Authorization": f"Bearer {RESEND_API_KEY}"}, timeout=10)
+        if r.ok:
+            return r.json().get("last_event")
+    except Exception:
+        pass
+    return None
+
+def _check_brevo_status(message_id: str) -> str | None:
+    try:
+        r = requests.get("https://api.brevo.com/v3/smtp/statistics/events",
+                          headers={"api-key": BREVO_API_KEY},
+                          params={"messageId": message_id, "limit": 1}, timeout=10)
+        if r.ok:
+            events = r.json().get("events") or []
+            if events:
+                return events[0].get("event")
+    except Exception:
+        pass
+    return None
+
+def _check_sendgrid_status(message_id: str) -> str | None:
+    try:
+        r = requests.get("https://api.sendgrid.com/v3/messages",
+                          headers={"Authorization": f"Bearer {SENDGRID_API_KEY}"},
+                          params={"query": f'msg_id="{message_id}"'}, timeout=10)
+        if r.ok:
+            msgs = r.json().get("messages") or []
+            if msgs:
+                return msgs[0].get("status")
+    except Exception:
+        pass
+    return None
+
+def verify_deliveries(run_date: str) -> None:
+    """
+    Consulta a cada proveedor real (Resend/Brevo/SendGrid) el estado de entrega
+    de cada correo enviado hoy, usando el provider_message_id guardado al enviar.
+    Actualiza delivery_status en Supabase con el dato verificado — ya no con lo
+    que el script asumió, sino con lo que la plataforma confirma.
+    """
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return
+    rows = _sb_get("outreach_results",
+                    f"select=id,provider,provider_message_id&run_date=eq.{run_date}"
+                    f"&status=eq.sent&provider_message_id=not.is.null")
+    if not rows:
+        return
+    print(f"\n[Verifying delivery status for {len(rows)} sent emails...]")
+    checkers = {"Resend": _check_resend_status, "Brevo": _check_brevo_status, "SendGrid": _check_sendgrid_status}
+    verified = 0
+    for row in rows:
+        checker = checkers.get(row.get("provider"))
+        if not checker:
+            continue
+        status = checker(row["provider_message_id"])
+        if status:
+            _sb_patch("outreach_results", f"id=eq.{row['id']}", {"delivery_status": status})
+            verified += 1
+    print(f"[Verified {verified}/{len(rows)} — real delivery status from providers]")
 
 def upload_dashboard_html(html: str) -> str:
     """Uploads dashboard HTML to Supabase Storage. Returns the public URL."""
@@ -757,13 +840,15 @@ def process_biz(biz: Business, already_contacted: set, results: list,
 
     # 5. Send / preview
     newly_sent = 0
+    provider = None
+    provider_message_id = None
     if args.preview and biz.email:
         send_email("codebake.SaaS@outlook.com",
                    f"[PREVIEW] {email_data['subject']}",
                    f"--- PREVIEW for: {biz.email} ---\n\n{email_data['body']}")
         row["status"] = "preview_sent"
     elif args.send and biz.email:
-        ok = send_email(biz.email, email_data["subject"], email_data["body"])
+        ok, provider, provider_message_id = send_email(biz.email, email_data["subject"], email_data["body"])
         row["status"] = "sent" if ok else "failed"
         if ok:
             newly_sent = 1
@@ -784,6 +869,9 @@ def process_biz(biz: Business, already_contacted: set, results: list,
             "scan_error": row.get("scan_error",""), "scan_url": row.get("scan_url",""),
             "subject": row.get("subject",""), "body": row.get("body",""),
             "status": row["status"],
+            "provider": provider,
+            "provider_message_id": provider_message_id,
+            "delivery_status": "pending" if row["status"] == "sent" else row["status"],
         })
 
     results.append(row)
@@ -904,6 +992,10 @@ def main():
         "sent": sent,
         "failed": failed_count,
     })
+
+    # ── Verify real delivery status with each provider ──────────────────────
+    time.sleep(15)  # give providers a moment to register delivery/bounce events
+    verify_deliveries(datetime.date.today().isoformat())
 
     # ── Generate and upload dashboard to Supabase Storage ────────────────────
     if SUPABASE_URL and SUPABASE_SERVICE_KEY:
