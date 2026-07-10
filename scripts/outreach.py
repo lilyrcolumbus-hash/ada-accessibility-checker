@@ -691,20 +691,55 @@ def _check_resend_status(message_id: str) -> str | None:
         pass
     return None
 
-def _check_brevo_status(message_id: str) -> str | None:
+_BREVO_EVENT_PRIORITY = {
+    # higher number wins when a message has multiple events
+    "hardBounces": 5, "softBounces": 5, "bounces": 5, "blocked": 5, "invalid": 5, "error": 5,
+    "spam": 4, "complaints": 4,
+    "deferred": 3,
+    "delivered": 2, "opened": 2, "clicks": 2, "uniqueOpened": 2, "unsubscribed": 2,
+    "requests": 1,
+}
+_BREVO_EVENT_TO_STATUS = {
+    "hardBounces": "bounced", "softBounces": "bounced", "bounces": "bounced",
+    "blocked": "suppressed", "invalid": "suppressed", "error": "bounced",
+    "spam": "complained", "complaints": "complained",
+    "deferred": "delivery_delayed",
+    "delivered": "delivered", "opened": "delivered", "clicks": "delivered", "uniqueOpened": "delivered",
+    "unsubscribed": "delivered",
+}
+
+def _fetch_brevo_events_for_date(run_date: str) -> dict:
+    """
+    Brevo's events endpoint does NOT support filtering by messageId server-side
+    (confirmed empirically — the messageId query param is silently ignored).
+    Fetch all events for the day once and index them by messageId instead.
+    """
+    events_by_msg: dict[str, str] = {}
     try:
         r = requests.get("https://api.brevo.com/v3/smtp/statistics/events",
                           headers={"api-key": BREVO_API_KEY},
-                          params={"messageId": message_id, "limit": 1}, timeout=10)
-        if r.ok:
-            events = r.json().get("events") or []
-            if events:
-                return events[0].get("event")
+                          params={"startDate": run_date, "endDate": run_date, "limit": 500, "sort": "desc"},
+                          timeout=15)
+        if not r.ok:
+            return events_by_msg
+        for e in r.json().get("events") or []:
+            msg_id, event = e.get("messageId"), e.get("event")
+            if not msg_id or event not in _BREVO_EVENT_PRIORITY:
+                continue
+            prev = events_by_msg.get(msg_id)
+            if not prev or _BREVO_EVENT_PRIORITY[event] > _BREVO_EVENT_PRIORITY.get(prev, 0):
+                events_by_msg[msg_id] = event
     except Exception:
         pass
-    return None
+    return {k: _BREVO_EVENT_TO_STATUS.get(v, v) for k, v in events_by_msg.items()}
 
 def _check_sendgrid_status(message_id: str) -> str | None:
+    # Implemented per SendGrid's documented Email Activity API. In manual testing
+    # (2026-07-10) this account's /v3/messages returned an empty result even 40s+
+    # after a confirmed 202-accepted send — likely Email Activity isn't enabled on
+    # this plan. SendGrid is the last fallback in the cascade, so this only matters
+    # when both Resend and Brevo fail; leaving it in place in case the account gets
+    # Activity access later. Returns None (delivery_status stays "pending") if empty.
     try:
         r = requests.get("https://api.sendgrid.com/v3/messages",
                           headers={"Authorization": f"Bearer {SENDGRID_API_KEY}"},
@@ -732,13 +767,18 @@ def verify_deliveries(run_date: str) -> None:
     if not rows:
         return
     print(f"\n[Verifying delivery status for {len(rows)} sent emails...]")
-    checkers = {"Resend": _check_resend_status, "Brevo": _check_brevo_status, "SendGrid": _check_sendgrid_status}
+    brevo_events = _fetch_brevo_events_for_date(run_date) if any(r.get("provider") == "Brevo" for r in rows) else {}
     verified = 0
     for row in rows:
-        checker = checkers.get(row.get("provider"))
-        if not checker:
-            continue
-        status = checker(row["provider_message_id"])
+        provider, msg_id = row.get("provider"), row["provider_message_id"]
+        if provider == "Resend":
+            status = _check_resend_status(msg_id)
+        elif provider == "Brevo":
+            status = brevo_events.get(msg_id)
+        elif provider == "SendGrid":
+            status = _check_sendgrid_status(msg_id)
+        else:
+            status = None
         if status:
             _sb_patch("outreach_results", f"id=eq.{row['id']}", {"delivery_status": status})
             verified += 1
