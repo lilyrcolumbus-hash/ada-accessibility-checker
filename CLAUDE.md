@@ -142,7 +142,8 @@ ada-accessibility-checker/
 │       ├── stripe-webhook/index.ts  # Handles checkout.session.completed, invoice.paid, customer.subscription.deleted
 │       ├── create-portal/index.ts   # Stripe Customer Portal link
 │       ├── paypal-create-order/index.ts  # Creates PayPal order with server-side price validation
-│       └── paypal-capture-order/index.ts # Captures PayPal payment → updates profile + purchases
+│       ├── paypal-capture-order/index.ts # Captures PayPal payment → updates profile + purchases
+│       └── get-analytics/index.ts        # Cloudflare Zone Analytics + RUM for outreach dashboard traffic tab
 ├── vite.config.ts                  # Custom CORS proxy plugin (HTTP+HTTPS, follows redirects, rejectUnauthorized: false)
 ├── netlify.toml                    # Build config (npm run build → dist/) + SPA redirect (/* → /index.html)
 ├── tsconfig.json                   # Base config: ES2020, bundler resolution, @/* path alias
@@ -407,13 +408,147 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 **⚠️ PENDIENTE MANUAL (1 paso, 30 segundos):** Aplicar migración `supabase/migrations/015_get_leads_function.sql` en Supabase SQL Editor para activar la pestaña "🎯 Leads" del dashboard de outreach. Entrar a supabase.com → proyecto `mvzolbabbkedmlhqhiwi` → SQL Editor → pegar y ejecutar el contenido de ese archivo. Sin esto, la pestaña Leads da error.
 
+**⚠️ SECRET YA EXPUESTO PÚBLICAMENTE — ROTAR EN RESEND (pendiente, solo lo puede hacer la usuaria):** Session 17 hardcodeó la key de Resend en `EmailCapture.tsx`, visible en el bundle JS público de producción desde que se mergeó. **Arreglado 2026-07-10:** el frontend ahora llama a la edge function `send-scan-followup` (ya existía, solo faltaba desplegar) en vez de golpear Resend directo; la key vive como secret `RESEND_API_KEY` en Supabase, fuera del cliente. Pero la key vieja **sigue siendo válida** — cualquiera que la haya copiado del bundle antes del fix puede seguir usándola. Rotar en dashboard.resend.com → API Keys, y actualizar el secret con `supabase secrets set RESEND_API_KEY=<nueva> --project-ref mvzolbabbkedmlhqhiwi`.
+
 **Lo hecho en Session 17 (2026-07-09):**
 - ✅ **UrgencyBanner reactivado:** el countdown de abril 2026 había vencido y el banner se ocultaba para todos. Reemplazado con mensaje permanente sobre récord de demandas en 2025 (commit mergeado a main).
-- ✅ **Email de seguimiento automático:** cuando un visitante pone su email en la página de resultados del scan, le llega automáticamente un correo personalizado con su score, el issue más crítico encontrado, y CTA para comprar los $49. Llama a Resend directamente desde el browser (`re_JLAg1eJ3_3vCaby1f7XPDcsFmWLWKQCBj`). `EmailCapture.tsx` actualizado con copy contextual ("Email me my full report — N issues found").
+- ✅ **Email de seguimiento automático:** cuando un visitante pone su email en la página de resultados del scan, le llega automáticamente un correo personalizado con su score, el issue más crítico encontrado, y CTA para comprar los $49. Copy contextual ("Email me my full report — N issues found").
 - ✅ **Pestaña Leads en /outreach/:** nueva pestaña "🎯 Leads" en el dashboard de outreach mostrando todos los emails capturados con fecha y botón copy. Usa función `get_leads()` SECURITY DEFINER (mismo patrón que `get_shared_report`). **Requiere aplicar migración 015 en Supabase (ver arriba).**
-- ℹ️ Edge function `supabase/functions/send-scan-followup/index.ts` creada pero NO desplegada — no se necesita porque el email se manda directo desde el browser.
+- ✅ **(2026-07-10) Edge function `send-scan-followup` desplegada con `--no-verify-jwt`** — `EmailCapture.tsx` ahora la llama en vez de exponer la key de Resend en el cliente (ver aviso de secret arriba).
 
-Estado al reabrir: **INGENIERÍA TERMINADA + LANZADA. App en su dominio propio `https://adalawsuitcheck.com` (SSL), Google indexando, 3 testimonios reales en vivo, analítica activa con tráfico real (30 visitas/24h). Lo que falta es 100% DISTRIBUCIÓN para traer más tráfico/ventas (Reddit → Product Hunt).** `main` = `a853661`, todo pusheado. App en vivo 200.
+**Lo hecho en Session 19 (2026-06-27) — Email providers + Traffic dashboard (rama paralela, ya mergeada):**
+
+Estado al reabrir: **OUTREACH 50/día ACTIVO + DASHBOARD CON TRÁFICO EN VIVO.** App en `https://adalawsuitcheck.com`. Outreach corre automáticamente L-V 9:30am ET enviando 50 emails reales con 3 proveedores de respaldo. Dashboard en `https://adalawsuitcheck.com/outreach/` muestra outreach + tráfico del sitio web.
+
+**✅ SESIÓN 19 (2026-06-27) — Email providers + Traffic dashboard:**
+
+**Sistema de email con 3 proveedores en cascada (Plan A → B → C):**
+- **Plan A: Resend** — 100/día gratis (ya existía)
+- **Plan B: Brevo** — 300/día gratis. Dominio `adalawsuitcheck.com` verificado. Secret `BREVO_API_KEY` en GitHub + Supabase. Cuenta: `lyhoffllc.info@gmail.com`
+- **Plan C: SendGrid** — 100/día gratis. Dominio verificado. Secret `SENDGRID_API_KEY` en GitHub + Supabase.
+- `send_email()` prueba Resend → Brevo → SendGrid en cascada. Si uno falla (429, error), el siguiente envía automáticamente. Capacidad total: **500 emails/día**
+- Secrets en GitHub: añadidos `BREVO_API_KEY`, `SENDGRID_API_KEY`, `CLOUDFLARE_ANALYTICS_TOKEN`
+
+**Email scraper mejorado (`extract_email()` — commit `70da46f`):**
+- Antes: devolvía el PRIMER email encontrado → capturaba emails de imágenes (`700x400@2x.jpg`), CDN, servicios embebidos
+- Ahora: sistema de scoring — prueba TODOS los candidatos, devuelve el mejor:
+  - Score 2 = dominio del email coincide con el sitio del negocio (preferido)
+  - Score 1 = email personal (gmail/yahoo/outlook) — válido para dueños de pequeños negocios
+  - Score 0 = dominio ajeno (CDN/widget/servicio) — descartado
+  - Score -1 = inválido (TLD es extensión de archivo, blacklist, noreply)
+- `FILE_EXT_TLDS`: rechaza `.jpg`, `.png`, `.2x`, `.js`, `.css`, etc. como "TLDs"
+- Elimina noreply/no-reply/donotreply
+- Strips `<script>` blocks antes de escanear (la mayoría de emails CDN viven ahí)
+
+**Target diario subido de 20 → 50 (commit `138b4ec`):**
+- `--target 50` = "sigue buscando hasta enviar 50 emails REALES" (no procesar 50 negocios)
+- El script revisa ~115 negocios para encontrar 50 con email válido (~44% hit rate)
+- Safety cap: MAX_CHECKED=200 negocios por run
+
+**Alerta 6 meses (`.github/workflows/outreach-6month-alert.yml`):**
+- Corre el 26 de noviembre 2026 a las 10am ET
+- Envía email a `lyhoffllc.info@gmail.com` con checklist: Resend bounces, Supabase status, dominio, Yelp API
+
+**Dashboard `https://adalawsuitcheck.com/outreach/` — 2 pestañas:**
+- **📧 Outreach**: stat cards (sent today/week/month/all-time), run history, calendario
+- **📊 Website Traffic** (nueva): visitantes únicos + page views (hoy/semana/mes), tendencia semana vs semana (▲/▼%), de dónde viene el tráfico (referrers), páginas más visitadas, gráfico de barras 30 días
+
+**Edge Function `get-analytics` (nueva, desplegada con `--no-verify-jwt`):**
+- Consulta Cloudflare Zone Analytics (visitantes/page views diarios) + RUM Web Analytics (top pages + referrers, solo humanos)
+- Cloudflare Zone ID: `db247e1196945180238264b265a63f71`
+- Cloudflare Account ID: `ae34fffdc22f7b4446e782a4188c9946`
+- Token: guardado en Supabase secrets + GitHub secrets como `CLOUDFLARE_ANALYTICS_TOKEN`
+
+**Datos de tráfico actuales (2026-06-27):**
+- 1,702 visitantes únicos este mes (dominio activo 15 días)
+- 13,353 page views este mes
+- Tráfico 98% directo — Google apenas 2 visitas/semana (SEO aún en proceso)
+- Páginas más visitadas: /scan (51), / (43), /register (14)
+- Pico histórico: 15 jun (165 visitantes) — coincide con post de Reddit
+
+**⏳ PENDIENTES (próxima sesión):**
+1. ⏳ **Follow-up + reply handler en n8n** — DISEÑADO, pendiente implementar. Ver spec completa abajo.
+2. ⏳ **Google Search Console check** — pendiente de que la usuaria comparta datos de indexación.
+3. ⏳ **Distribución en plataformas** — Facebook Groups, LinkedIn post-GSC.
+
+---
+
+### 📋 SPEC: Follow-up automático + Reply handler (n8n) — IMPLEMENTAR PRÓXIMA SESIÓN
+
+**Decisiones ya tomadas:**
+- Email Outlook: `codebake.SaaS@outlook.com`
+- n8n: self-hosted en Google Cloud VM (gratis, e2-micro free tier)
+- Proyecto GCP: **crear proyecto NUEVO** llamado "SiteSafe Automation" — proyectos viejos (N8N Automation, CC LeadsFinder, NEXUSLead) no tocar, no se sabe qué tienen
+- IA para clasificar respuestas: **pendiente confirmar** (¿OpenAI o Claude?)
+
+**⚠️ Paso 0 — Cloudflare Email Routing (hacer ANTES de crear VM):**
+- Cambiar reenvío de `lily@adalawsuitcheck.com`: Gmail → `codebake.SaaS@outlook.com`
+- Cloudflare Dashboard → Email → Email Routing → editar destino
+
+**Paso 1 — Crear VM en GCP:**
+- Ir a: console.cloud.google.com/compute/instances?project=superb-garden-483711-g5
+- Create instance → e2-micro → us-central1 → Ubuntu 22.04 → Allow HTTP/HTTPS → Create
+- Conectar via SSH → instalar Docker → correr n8n como contenedor
+
+**Otros proyectos GCP de la usuaria (NO tocar sin revisar primero):**
+- CC LeadsFinder (`cc-leadsfinder`) — posible scraper de leads
+- NEXUSLead (`nexuslead`) — posiblemente relacionado con NEXUS Voice
+- Default Gemini Project + Project March 12 — billing disabled, probablemente vacíos
+
+**Migración SQL (aplicar a `mvzolbabbkedmlhqhiwi` via Management API):**
+```sql
+ALTER TABLE outreach_results
+ADD COLUMN followup_1_sent_at timestamptz,
+ADD COLUMN followup_2_sent_at timestamptz,
+ADD COLUMN replied boolean DEFAULT false;
+```
+
+**2 workflows n8n a crear:**
+
+**Workflow 1 — Follow-up sender** (corre 9:30am diario):
+- Consulta Supabase: `replied=false AND status='sent' AND run_date <= hoy-3 AND followup_1_sent_at IS NULL` → manda Email #2
+- Consulta Supabase: `replied=false AND followup_1_sent_at::date <= hoy-4 AND followup_2_sent_at IS NULL` → manda Email #3
+- Usa misma cascada Resend→Brevo→SendGrid
+- Cap: 50 follow-ups/día
+
+**Workflow 2 — Reply detector** (corre cada hora):
+- Lee Outlook inbox (emails no leídos)
+- Busca remitente en `outreach_results` (Supabase query)
+- Si está en lista → marca `replied=true` → para follow-ups
+- IA clasifica intención del reply:
+  - "interesado / cómo funciona / precio" → responde con link + precio
+  - "remove / unsubscribe / stop" → responde "te removimos" (CAN-SPAM legal)
+  - "no gracias / ahora no" → responde "sin problema, aquí el link"
+- Marca email como leído en Outlook
+
+**Flujo completo:**
+```
+Día 0  → Email #1 (Python script GitHub Action, ya corre)
+Día 3  → Email #2 (n8n workflow 1)
+Día 7  → Email #3 (n8n workflow 1)
+Cada hora → n8n workflow 2 lee Outlook → si responden → replied=true + auto-respuesta
+```
+
+**Setup Cloudflare Email Routing (1 paso antes de arrancar):**
+- Cambiar forwarding de `lily@adalawsuitcheck.com` de Gmail → Outlook de la usuaria
+- Cloudflare Dashboard → Email → Email Routing → editar destino
+
+**🔧 Cómo correr manualmente:**
+```bash
+source ~/.zshenv
+cd /Users/ld/ada-accessibility-checker
+# Preview (emails van a tu bandeja):
+python3 scripts/outreach.py --target 10 --preview --output /tmp/test.csv
+# Envío real:
+python3 scripts/outreach.py --target 50 --send --output /tmp/outreach-$(date +%Y-%m-%d).csv
+# Categoría/ciudad específica:
+python3 scripts/outreach.py --category "dental office" --city "Miami, FL" --target 50 --send
+```
+
+**📊 Resultados reales (2026-06-27):**
+- 100 emails enviados hoy (2 runs: manual sin permiso + automático 9:30am) — error no repetir
+- Run history muestra 50 (último run) pero outreach_results tiene 100 total
+- Tasa email encontrado: ~44% de negocios procesados tienen email válido
 
 **🌐 Dominio (2026-06-12):** `adalawsuitcheck.com` comprado en Cloudflare Registrar (cuenta `lilyrcolumbus@gmail.com`), conectado al proyecto Pages como Custom Domain (Active, SSL). Todo el código y SEO ya apunta ahí (canonical, OG, Schema, `public/sitemap.xml` 78 URLs, `public/robots.txt`). `.pages.dev` sigue activo pero NO es el canónico. `www` NO configurado (opcional). Google Search Console: propiedad verificada vía DNS + `sitemap.xml` enviado/aceptado.
 
@@ -438,7 +573,7 @@ Estado al reabrir: **INGENIERÍA TERMINADA + LANZADA. App en su dominio propio `
 - ✅ **FIX DE PERFORMANCE (commit `a853661`):** CLS en `/scan` bajó de 0.33 → 0.132 (medido en lab con Playwright + PerformanceObserver 'layout-shift'). Causa: el spinner de escaneo usaba `min-h-[60vh]` → al cargar resultados el footer saltaba. Fix: `min-h-screen` en `ScanningProgress` para que el footer quede bajo el pliegue durante el scan. Confirmación de campo (Cloudflare) en días. LCP P99/INP NO tocados (colas pequeñas, no vale el esfuerzo).
 - ✅ **REDDIT ARRANCADO (2026-06-16):** la usuaria usó su cuenta vieja (no nueva) y **posteó en r/smallbusiness**. OJO regla nueva (jun 2026): r/smallbusiness solo permite **PREGUNTAS** (Regla 1) y prohíbe links/menciones de producto/consejos/SEO en posts normales (Regla 2); experiencias solo en el **hilo semanal fijado**. Por eso el post se reformuló como **pregunta** (sin link, sin mencionar el tool). Para posts de valor con link → r/Shopify u otros (revisar reglas de cada sub).
 - 📄 **GUÍA DE POSTS guardada en `~/Desktop/SiteSafe-Posting-Guide.txt`** — brief reutilizable (qué es, para quién, precios, datos verdaderos, diferenciadores, reglas de honestidad FTC, reglas de comunidades, receta value-first). La usuaria lo pega en una IA y pide "write a value-first post for [plataforma]".
-- **➡️ SIGUIENTE (lo que genera VENTAS ya — SEO es lento):** (1) **más testimonios reales** (ya hay 3); (2) seguir **Reddit/comunidades** value-first; (3) **Product Hunt** mar/mié. (Opcional: `www` como 2º Custom Domain.)
+- **➡️ SIGUIENTE (lo que genera VENTAS ya — SEO es lento):** (1) **Activar Resend** para que outreach corra 100% automático (ver sección OUTREACH arriba); (2) **más testimonios reales** (ya hay 3); (3) seguir **Reddit/comunidades** value-first; (4) **Product Hunt** mar/mié. (Opcional: `www` como 2º Custom Domain.)
 
 **✅ FIX DE HERO HECHO (2026-06-17, commit `d27a5af`):** el hero ahora dice QUÉ ES el producto. La usuaria detectó que solo se veía el gancho "Is Your Website Lawsuit-Proof?" sin explicar qué hace. Aplicado en `HeroSection.tsx`: se mantuvo el titular + nueva subheadline *"Free ADA accessibility scanner — we find the issues on your website that get small businesses sued, and show you the exact fixes in plain English."* + el dato de demandas bajó a línea secundaria. Verificado en vivo (screenshot, sin errores JS). Importaba porque ya llega tráfico de Reddit.
 
@@ -694,6 +829,11 @@ The `scan` edge function fetches **raw HTML only** — no JS execution. This mea
 | `supabase/functions/paypal-create-order/index.ts` | Creates PayPal order |
 | `supabase/functions/paypal-capture-order/index.ts` | Captures PayPal payment → updates DB |
 | `supabase/functions/_shared/paypal.ts` | PayPal access token helper |
+| `supabase/functions/get-analytics/index.ts` | Cloudflare analytics for outreach dashboard traffic tab |
+| `scripts/outreach.py` | Cold email outreach: Yelp → score emails → cascade Resend→Brevo→SendGrid |
+| `public/outreach/index.html` | Outreach dashboard (Outreach + Website Traffic tabs) |
+| `.github/workflows/daily-outreach.yml` | GitHub Action: runs outreach L-V 9:30am ET, target 50 emails |
+| `.github/workflows/outreach-6month-alert.yml` | Sends check-in email reminder Nov 26, 2026 |
 | `src/scanner/types.ts` | ScanIssue types + `generateId()` utility (used by all checks) |
 | `src/lib/pdf-report.ts` | Generates print-friendly HTML audit report |
 | `src/pages/BadgeVerifyPage.tsx` | Public badge verification page |
@@ -804,9 +944,9 @@ With infra/payments/scan all working, the real bottleneck is traffic. Order by R
 - **Data API:** Enabled (RESTful API for public schema)
 - **Automatic RLS:** Enabled
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
-- **Edge Functions:** Deployed with `--no-verify-jwt` (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order)
+- **Edge Functions:** Deployed with `--no-verify-jwt` (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order, **get-analytics**)
 - **IMPORTANT:** ALL edge functions MUST be deployed with `--no-verify-jwt` — Supabase gateway rejects user JWTs otherwise
-- **Secrets set:** `STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET` (live), `PAYPAL_CLIENT_ID` (live), `PAYPAL_SECRET` (live), `PAYPAL_API_URL` (api-m.paypal.com)
+- **Secrets set:** `STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET` (live), `PAYPAL_CLIENT_ID` (live), `PAYPAL_SECRET` (live), `PAYPAL_API_URL` (api-m.paypal.com), `CLOUDFLARE_ANALYTICS_TOKEN` (token para get-analytics), `BREVO_API_KEY`, `SENDGRID_API_KEY`, `RESEND_API_KEY` (para `send-scan-followup` — ⚠️ es la key vieja expuesta en el bundle, rotar pendiente, ver Pending)
 - **Auth:** Email confirmation DISABLED, CAPTCHA/bot protection DISABLED
 
 ### Stripe
