@@ -275,7 +275,7 @@ async function init(){
 
 function renderStats(){
   const t=today(),w=new Date(Date.now()-7*864e5).toISOString().slice(0,10),m=t.slice(0,7)+'-01';
-  const c=f=>sent.filter(r=>(r.status==='sent'||r.status==='preview_sent')&&f(r)).length;
+  const c=f=>sent.filter(r=>r.status==='sent'&&f(r)).length;
   document.getElementById('s0').textContent=c(r=>r.run_date===t);
   document.getElementById('s1').textContent=c(r=>r.run_date>=w);
   document.getElementById('s2').textContent=c(r=>r.run_date>=m);
@@ -306,7 +306,7 @@ function openPanel(idx){
   // Highlight active card
   [0,1,2,3].forEach(i=>document.getElementById('sc'+i).className='stat'+(i===idx?' active':''));
   const data=sent.filter(r=>(r.status==='sent'||r.status==='preview_sent'||r.status==='failed')&&filters[idx](r));
-  const ok=data.filter(r=>r.status!=='failed').length;
+  const ok=data.filter(r=>r.status==='sent').length;
   const fail=data.filter(r=>r.status==='failed').length;
   document.getElementById('ptitle').textContent=titles[idx];
   document.getElementById('pmeta').textContent=ok+' sent'+(fail?' · '+fail+' failed':'');
@@ -353,7 +353,7 @@ function renderCal(){
   const dim=new Date(cY,cM+1,0).getDate();
   const dip=new Date(cY,cM,0).getDate();
   const rm={};runs.forEach(r=>{rm[r.run_date]=r;});
-  const sc={};sent.filter(r=>r.status==='sent'||r.status==='preview_sent').forEach(r=>{sc[r.run_date]=(sc[r.run_date]||0)+1;});
+  const sc={};sent.filter(r=>r.status==='sent').forEach(r=>{sc[r.run_date]=(sc[r.run_date]||0)+1;});
   for(let i=fd0-1;i>=0;i--){const e=document.createElement('div');e.className='day';e.textContent=dip-i;g.appendChild(e);}
   for(let d=1;d<=dim;d++){
     const ds=cY+'-'+pad(cM+1)+'-'+pad(d);
@@ -391,7 +391,7 @@ function openDay(ds,run,cnt,el){
 
 function showDayEmails(ds){
   const data=sent.filter(r=>r.run_date===ds);
-  const ok=data.filter(r=>r.status!=='failed').length;
+  const ok=data.filter(r=>r.status==='sent').length;
   const fail=data.filter(r=>r.status==='failed').length;
   openIdx=99;
   [0,1,2,3].forEach(i=>document.getElementById('sc'+i).className='stat');
