@@ -10,3 +10,7 @@ tsconfig.tsbuildinfo
 
 # Supabase CLI local metadata
 supabase/.temp/
+
+# Python
+__pycache__/
+*.pyc
