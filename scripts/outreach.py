@@ -891,20 +891,7 @@ def main():
     print(f"✓ {sent} emails sent")
     print(f"✓ Saved to: {args.output}")
 
-    # ── Save per-email results to Supabase (only sent/failed — no noise) ────────
-    today = datetime.date.today().isoformat()
-    for r in results:
-        if r.get("status") not in ("sent", "preview_sent", "failed"):
-            continue
-        _sb_upsert("outreach_results", {
-            "run_date": today,
-            "name": r.get("name",""), "website": r.get("website",""),
-            "email": r.get("email",""), "phone": r.get("phone",""),
-            "issues": int(r.get("issues") or 0), "critical": int(r.get("critical") or 0),
-            "scan_error": r.get("scan_error",""), "scan_url": r.get("scan_url",""),
-            "subject": r.get("subject",""), "body": r.get("body",""),
-            "status": r.get("status",""),
-        })
+    # (per-email results are already saved to Supabase inline in process_biz())
 
     # ── Save run summary to Supabase ──────────────────────────────────────────
     failed_count = sum(1 for r in results if r.get("status") == "failed")
