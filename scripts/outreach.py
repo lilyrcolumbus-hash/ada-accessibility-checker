@@ -923,6 +923,57 @@ def process_biz(biz: Business, already_contacted: set, results: list,
     return newly_sent
 
 
+def _count_delivered(run_date: str) -> int:
+    rows = _sb_get("outreach_results", f"select=id&run_date=eq.{run_date}&delivery_status=eq.delivered")
+    return len(rows)
+
+
+def _search_and_send(category: str, city: str, args, already_contacted: set,
+                      results: list, state: dict, want: int, max_checked: int) -> int:
+    """
+    Sends up to `want` NEWLY-accepted emails (Yelp first, then Yellow Pages once
+    exhausted), continuing from wherever `state` left off on the previous call —
+    so calling this again for a top-up round doesn't re-search from scratch.
+    Mutates `state` and `results` in place. Returns how many were newly accepted.
+    """
+    got = 0
+    while got < want and state["checked"] < max_checked:
+        if not state["exhausted"]["yelp"]:
+            batch = yelp_search(category, city, limit=50, offset=state["yelp_offset"])
+            state["yelp_offset"] += 50
+            if not batch:
+                state["exhausted"]["yelp"] = True
+                print("  [Yelp exhausted — switching to Yellow Pages]\n")
+            else:
+                for biz in batch:
+                    if got >= want or state["checked"] >= max_checked:
+                        break
+                    state["checked"] += 1
+                    print(f"[Yelp {state['checked']}] {biz.name}")
+                    got += process_biz(biz, already_contacted, results, args, state["checked"])
+                continue
+
+        if not state["exhausted"]["yp"] and not state["yp_done"]:
+            print("\n[Searching Yellow Pages...]\n")
+            yp_batch = yellowpages_search(category, city)
+            state["yp_done"] = True
+            if not yp_batch:
+                state["exhausted"]["yp"] = True
+                print("  [Yellow Pages: no results]\n")
+            else:
+                for biz in yp_batch:
+                    if got >= want or state["checked"] >= max_checked:
+                        break
+                    state["checked"] += 1
+                    print(f"[YP {state['checked']}] {biz.name}")
+                    got += process_biz(biz, already_contacted, results, args, state["checked"])
+            continue
+
+        print(f"\n[Sources exhausted — {state['checked']} businesses checked this run]")
+        break
+    return got
+
+
 def main():
     default_cat, default_city = _daily_defaults()
     parser = argparse.ArgumentParser()
@@ -951,58 +1002,57 @@ def main():
         for i, biz in enumerate(businesses, 1):
             print(f"[{i}/{len(businesses)}] {biz.name}")
             sent += process_biz(biz, already_contacted, results, args, sent)
-    else:
-        # ── Target mode: run until N emails sent ─────────────────────────────
+    elif not args.send:
+        # Preview mode doesn't send real mail, so "delivered" has no meaning —
+        # keep the old accepted-count behavior.
         target = args.target
-        print(f"\nDaily target: {target} emails")
+        print(f"\nPreview target: {target} emails")
+        state = {"exhausted": {"yelp": False, "yp": False}, "yelp_offset": 0, "yp_done": False, "checked": 0}
+        sent = _search_and_send(args.category, args.city, args, already_contacted, results, state, target, MAX_CHECKED)
+        checked = state["checked"]
+    else:
+        # ── Target mode: keep sending — across Resend/Brevo/SendGrid and new
+        # businesses — until N emails are CONFIRMED DELIVERED, not just accepted
+        # by a provider. A provider accepting a send doesn't mean it arrives:
+        # bounces/delays/suppressions only resolve minutes later, after the
+        # instant provider-cascade fallback has already moved on. So instead of
+        # stopping at "accepted", we verify real delivery after each batch and,
+        # if short of target, search for more businesses to make up the gap.
+        target = args.target
+        today_str = datetime.date.today().isoformat()
+        print(f"\nDaily target: {target} CONFIRMED DELIVERED emails")
         print(f"Sources: Yelp → Yellow Pages")
         print(f"Category: {args.category} | City: {args.city}\n")
 
-        sources_exhausted = {"yelp": False, "yp": False}
-        yelp_offset = 0
-        yp_done = False
+        state = {"exhausted": {"yelp": False, "yp": False}, "yelp_offset": 0, "yp_done": False, "checked": 0}
+        delivered = 0
+        MAX_ROUNDS = 5
+        round_num = 0
 
-        while sent < target and checked < MAX_CHECKED:
-            if not sources_exhausted["yelp"]:
-                batch = yelp_search(args.category, args.city, limit=50, offset=yelp_offset)
-                yelp_offset += 50
-                if not batch:
-                    sources_exhausted["yelp"] = True
-                    print("  [Yelp exhausted — switching to Yellow Pages]\n")
-                else:
-                    for biz in batch:
-                        if sent >= target or checked >= MAX_CHECKED:
-                            break
-                        checked += 1
-                        print(f"[Yelp {checked}] {biz.name}")
-                        sent += process_biz(biz, already_contacted, results, args, sent)
-                        if sent >= target:
-                            break
-                    continue
+        while delivered < target and state["checked"] < MAX_CHECKED and round_num < MAX_ROUNDS:
+            round_num += 1
+            shortfall = target - delivered
+            print(f"\n=== Round {round_num}: need {shortfall} more delivered (confirmed so far: {delivered}/{target}) ===")
+            got = _search_and_send(args.category, args.city, args, already_contacted, results, state, shortfall, MAX_CHECKED)
+            if got == 0:
+                print("  No more businesses available — stopping.")
+                break
 
-            if not sources_exhausted["yp"] and not yp_done:
-                print("\n[Searching Yellow Pages...]\n")
-                yp_batch = yellowpages_search(args.category, args.city)
-                yp_done = True
-                if not yp_batch:
-                    sources_exhausted["yp"] = True
-                    print("  [Yellow Pages: no results]\n")
-                else:
-                    for biz in yp_batch:
-                        if sent >= target or checked >= MAX_CHECKED:
-                            break
-                        checked += 1
-                        print(f"[YP {checked}] {biz.name}")
-                        sent += process_biz(biz, already_contacted, results, args, sent)
-                continue
+            print(f"\n[Round {round_num}] Waiting to verify real delivery status...")
+            time.sleep(20)
+            verify_deliveries(today_str)
+            delivered = _count_delivered(today_str)
+            print(f"[Round {round_num}] Confirmed delivered so far: {delivered}/{target}")
 
-            print(f"\nSources exhausted. Sent: {sent}/{target}")
-            break
+        sent = sum(1 for r in results if r.get("status") == "sent")
+        checked = state["checked"]
 
-        if sent >= target:
-            print(f"\n✅ Target reached: {sent} emails sent.")
+        if delivered >= target:
+            print(f"\n✅ Real target reached: {delivered} confirmed delivered ({sent} accepted total, {round_num} round(s)).")
         elif checked >= MAX_CHECKED:
-            print(f"\n⚠ Safety cap hit ({MAX_CHECKED} businesses checked). Sent: {sent}/{target}")
+            print(f"\n⚠ Safety cap hit ({MAX_CHECKED} businesses checked). Delivered: {delivered}/{target}")
+        elif round_num >= MAX_ROUNDS:
+            print(f"\n⚠ Round cap hit ({MAX_ROUNDS} rounds). Delivered: {delivered}/{target} — some emails may still be verifying.")
 
     # ── Save CSV ──────────────────────────────────────────────────────────────
     if not results:
