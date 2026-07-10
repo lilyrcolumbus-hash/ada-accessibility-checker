@@ -296,6 +296,11 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - `idx_scans_user_id` on `scans(user_id)`
 - `idx_scans_domain` on `scans(domain)`
 
+### Outreach tables (not in `schema.sql` — added ad-hoc in Session 19, not part of the 6 above)
+- `outreach_results` — one row per business email attempt. Key columns: `run_date`, `name`, `website`, `email`, `status` (sent/preview_sent/failed/no_email/ready), `provider` (Resend/Brevo/SendGrid — added Session 20), `provider_message_id` (added Session 20), `delivery_status` (pending/delivered/bounced/delivery_delayed/suppressed/complained — added Session 20, verified against each provider's real API). **Unique constraint** `(email, website, run_date)` (added Session 20 after a duplicate-insert bug — see Pending).
+- `outreach_runs` — one row per script run. `run_date`, `category`, `city`, `processed`, `with_email`, `sent` (accepted-by-provider count), `delivered` (confirmed-delivered count, added Session 20, populated by `verify_deliveries()`), `failed`.
+- `outreach_contacted` — dedup registry so the same business email isn't re-contacted across runs.
+
 ## Implementation Status
 
 ### Done
@@ -404,7 +409,22 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-07-09 (Session 17)**
+**▶ RESUME HERE (next session) — updated 2026-07-10 (Session 20)**
+
+**Lo hecho en Session 20 (2026-07-10) — Outreach: integridad de datos + verificación real de entrega:**
+
+- ✅ **Bug de duplicado en `outreach_results` (root cause de "el dashboard miente"):** cada correo se guardaba 2 veces en Supabase — una vez inline en `process_biz()`, otra vez en un loop redundante al final de `main()`. La tabla no tenía restricción única, así que el `Prefer: resolution=ignore-duplicates` no hacía nada. Efecto: el dashboard mostraba 100 en vez de 50 (y todo el histórico —semana/mes/all-time— también estaba inflado ~2x). **Arreglado:** quitado el loop redundante (commit `9c4adb1`), limpiadas 730 filas duplicadas en prod (1413→683), agregada restricción única `(email, website, run_date)`.
+- ✅ **Bug de conteo en el dashboard:** "Sent today/week/month/all-time" y el calendario contaban `status='preview_sent'` (correos de prueba, nunca entregados a un destinatario real) como si fueran envíos reales. Arreglado (commit `cb5f054`) — ahora cuentan solo `status='sent'`.
+- ✅ **Verificación real de entrega contra Resend/Brevo/SendGrid (no solo "el script dice que se envió"):** `outreach_results` ganó columnas `provider`, `provider_message_id`, `delivery_status`. Nueva función `verify_deliveries()` en `outreach.py` consulta la API de cada proveedor después de cada corrida y guarda el estado real (delivered/bounced/delivery_delayed/suppressed). Probado end-to-end con envíos reales a las 3 plataformas (commits `4c76822`, `1ac118d`):
+  - **Resend:** funciona directo, `GET /emails/:id` → `last_event`.
+  - **Brevo:** su filtro `messageId` en `/v3/smtp/statistics/events` es un no-op silencioso (confirmado empíricamente) — hubo que traer todos los eventos del día (`startDate`/`endDate`) y cruzar por `messageId` del lado del cliente.
+  - **SendGrid:** el código funciona (`/v3/messages?query=msg_id="..."`), pero el indexing de su Email Activity API tardó 40-60+ min en un caso real probado — no es un bug, solo lento. Es el último respaldo de la cascada, así que rara vez importa.
+  - Backfill del 2026-07-10: de 50 aceptados por Resend, solo **35 confirmados delivered** (6 bounced, 8 delivery_delayed, 1 suppressed).
+- ✅ **Redefinición de "éxito" en toda la app — a pedido explícito de la usuaria:** el dashboard ahora cuenta como éxito **solo** `delivery_status='delivered'`, no `status='sent'` (que solo significa "el proveedor lo aceptó"). Cambios (commit `1ddabe0`): 4 tarjetas de stats + calendario + paneles de día/período ahora filtran por `delivered`; etiqueta renombrada de "Sent today" → "Delivered today" (para que el cambio de significado sea visible, no silencioso); `outreach_runs` ganó columna `delivered`; Run History y "Last run" muestran ese número.
+- ✅ **Rediseño del loop de `--target` (commit `f22f30e`):** antes, `--target 50` paraba en cuanto 50 correos eran *aceptados* por un proveedor — la cascada Resend→Brevo→SendGrid solo reacciona a un rechazo instantáneo de la API, no puede reaccionar a un bounce (que se sabe minutos después, cuando el script ya siguió). Ahora el objetivo es "50 CONFIRMADOS delivered": después de cada tanda espera 20s, verifica entrega real, y si falta, sigue buscando negocios nuevos (continuando la búsqueda en Yelp/Yellow Pages donde quedó, sin reiniciar) — hasta 5 rondas o el cap de seguridad de 200 negocios revisados. **⚠️ No probado en vivo todavía** (probar significa mandar correos reales) — la primera prueba real es la corrida automática de mañana 9:30am ET, o un dry run manual con `--target` bajo si se quiere confirmar antes.
+- ✅ **Seguridad — key de Resend hardcodeada en `EmailCapture.tsx`** (heredada de Session 17, encontrada y arreglada hoy): ver aviso completo abajo en el bloque de Session 17.
+
+**▶ RESUME HERE (histórico) — updated 2026-07-09 (Session 17)**
 
 **⚠️ PENDIENTE MANUAL (1 paso, 30 segundos):** Aplicar migración `supabase/migrations/015_get_leads_function.sql` en Supabase SQL Editor para activar la pestaña "🎯 Leads" del dashboard de outreach. Entrar a supabase.com → proyecto `mvzolbabbkedmlhqhiwi` → SQL Editor → pegar y ejecutar el contenido de ese archivo. Sin esto, la pestaña Leads da error.
 
@@ -946,7 +966,7 @@ With infra/payments/scan all working, the real bottleneck is traffic. Order by R
 - **Schema:** Applied and verified (6 tables + triggers + functions all live)
 - **Edge Functions:** Deployed with `--no-verify-jwt` (scan, create-checkout, stripe-webhook, create-portal, paypal-create-order, paypal-capture-order, **get-analytics**)
 - **IMPORTANT:** ALL edge functions MUST be deployed with `--no-verify-jwt` — Supabase gateway rejects user JWTs otherwise
-- **Secrets set:** `STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET` (live), `PAYPAL_CLIENT_ID` (live), `PAYPAL_SECRET` (live), `PAYPAL_API_URL` (api-m.paypal.com), `CLOUDFLARE_ANALYTICS_TOKEN` (token para get-analytics), `BREVO_API_KEY`, `SENDGRID_API_KEY`, `RESEND_API_KEY` (para `send-scan-followup` — ⚠️ es la key vieja expuesta en el bundle, rotar pendiente, ver Pending)
+- **Secrets set (Supabase, for edge functions):** `STRIPE_SECRET_KEY` (live), `STRIPE_WEBHOOK_SECRET` (live), `PAYPAL_CLIENT_ID` (live), `PAYPAL_SECRET` (live), `PAYPAL_API_URL` (api-m.paypal.com), `CLOUDFLARE_ANALYTICS_TOKEN` (token para get-analytics), `RESEND_API_KEY` (para `send-scan-followup` — ⚠️ es la key vieja expuesta en el bundle, rotar pendiente, ver Pending). **Nota (verificado 2026-07-10):** `BREVO_API_KEY`/`SENDGRID_API_KEY` NO son secrets de Supabase (`supabase secrets list` no los tiene) — viven solo como GitHub Actions secrets, porque `outreach.py` corre ahí, no en una edge function. Las 3 keys (Resend/Brevo/SendGrid) fueron probadas end-to-end con envíos reales el 2026-07-10 — las 3 funcionan.
 - **Auth:** Email confirmation DISABLED, CAPTCHA/bot protection DISABLED
 
 ### Stripe
