@@ -157,7 +157,7 @@ body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFo
   <div class="stats">
     <div class="stat" id="sc0" onclick="openPanel(0)">
       <div class="stat-num" id="s0" style="color:#22c55e">-</div>
-      <div class="stat-label">Sent today ›</div>
+      <div class="stat-label">Delivered today ›</div>
     </div>
     <div class="stat" id="sc1" onclick="openPanel(1)">
       <div class="stat-num" id="s1" style="color:#60a5fa">-</div>
@@ -268,14 +268,16 @@ async function init(){
   renderCal();
   const last=runs[0];
   document.getElementById('lr').textContent=last
-    ?'Last run: '+fd(last.run_date)+' · '+last.sent+' sent — '+esc(last.category)+', '+esc(last.city)
+    ?'Last run: '+fd(last.run_date)+' · '+(last.delivered!=null?last.delivered+' delivered':last.sent+' sent (verifying…)')+' — '+esc(last.category)+', '+esc(last.city)
     :'No runs yet — automation Mon–Fri 9:30am ET';
   setTimeout(()=>location.reload(),300000);
 }
 
 function renderStats(){
+  // Counts only delivery_status='delivered' — confirmed by the sending platform
+  // itself, not just "our script's API call was accepted" (that's status='sent').
   const t=today(),w=new Date(Date.now()-7*864e5).toISOString().slice(0,10),m=t.slice(0,7)+'-01';
-  const c=f=>sent.filter(r=>r.status==='sent'&&f(r)).length;
+  const c=f=>sent.filter(r=>r.delivery_status==='delivered'&&f(r)).length;
   document.getElementById('s0').textContent=c(r=>r.run_date===t);
   document.getElementById('s1').textContent=c(r=>r.run_date>=w);
   document.getElementById('s2').textContent=c(r=>r.run_date>=m);
@@ -291,13 +293,13 @@ function renderRunHistory(){
       return '<div class="rh-row" onclick="showDayEmails(\''+r.run_date+'\')">'
         +'<div class="rh-date"><div class="rh-day">'+d.getDate()+'</div><div class="rh-mon">'+MS[d.getMonth()]+'</div></div>'
         +'<div class="rh-info"><div class="rh-cat">'+esc(r.category)+'</div><div class="rh-city">'+esc(r.city)+'</div></div>'
-        +'<span class="rh-badge'+(r.sent===0?' zero':'')+'">'+r.sent+' sent</span>'
+        +'<span class="rh-badge'+(r.sent===0?' zero':'')+'">'+(r.delivered!=null?r.delivered+' delivered':r.sent+' sent (verifying…)')+'</span>'
         +'</div>';
     }).join('');
 }
 
 function openPanel(idx){
-  const titles=['Sent today','This week','This month','All time'];
+  const titles=['Delivered today','This week','This month','All time'];
   const t=today(),w=new Date(Date.now()-7*864e5).toISOString().slice(0,10),m=t.slice(0,7)+'-01';
   const filters=[r=>r.run_date===t,r=>r.run_date>=w,r=>r.run_date>=m,()=>true];
   // Toggle off if already open
@@ -306,12 +308,13 @@ function openPanel(idx){
   // Highlight active card
   [0,1,2,3].forEach(i=>document.getElementById('sc'+i).className='stat'+(i===idx?' active':''));
   const data=sent.filter(r=>(r.status==='sent'||r.status==='preview_sent'||r.status==='failed')&&filters[idx](r));
-  const ok=data.filter(r=>r.status==='sent').length;
+  const accepted=data.filter(r=>r.status==='sent').length;
   const fail=data.filter(r=>r.status==='failed').length;
   const delivered=data.filter(r=>r.delivery_status==='delivered').length;
   const bounced=data.filter(r=>r.delivery_status==='bounced'||r.delivery_status==='suppressed').length;
+  const pendingv=accepted-delivered-bounced;
   document.getElementById('ptitle').textContent=titles[idx];
-  document.getElementById('pmeta').textContent=ok+' sent'+(delivered?' · '+delivered+' confirmed delivered':'')+(bounced?' · '+bounced+' bounced':'')+(fail?' · '+fail+' failed':'');
+  document.getElementById('pmeta').textContent=delivered+' delivered'+(bounced?' · '+bounced+' bounced':'')+(pendingv>0?' · '+pendingv+' pending verification':'')+(fail?' · '+fail+' failed':'');
   document.getElementById('plist').innerHTML=data.length?data.map(r=>bizCard(r)).join('')
     :'<div class="empty">No emails for this period</div>';
   document.getElementById('epanel').style.display='block';
@@ -365,7 +368,7 @@ function renderCal(){
   const dim=new Date(cY,cM+1,0).getDate();
   const dip=new Date(cY,cM,0).getDate();
   const rm={};runs.forEach(r=>{rm[r.run_date]=r;});
-  const sc={};sent.filter(r=>r.status==='sent').forEach(r=>{sc[r.run_date]=(sc[r.run_date]||0)+1;});
+  const sc={};sent.filter(r=>r.delivery_status==='delivered').forEach(r=>{sc[r.run_date]=(sc[r.run_date]||0)+1;});
   for(let i=fd0-1;i>=0;i--){const e=document.createElement('div');e.className='day';e.textContent=dip-i;g.appendChild(e);}
   for(let d=1;d<=dim;d++){
     const ds=cY+'-'+pad(cM+1)+'-'+pad(d);
@@ -392,7 +395,7 @@ function openDay(ds,run,cnt,el){
     '<h3>'+fd(ds)+'</h3>'
     +'<div class="sub">'+(run?(esc(run.category)+' &middot; '+esc(run.city)):'—')+'</div>'
     +'<div class="pills">'
-    +'<span class="pill g">&#10003; '+cnt+' sent</span>'
+    +'<span class="pill g">&#10003; '+cnt+' delivered</span>'
     +(run&&run.with_email?'<span class="pill b">'+run.with_email+' with email</span>':'')
     +(run&&run.processed?'<span class="pill n">'+run.processed+' checked</span>':'')
     +(failed?'<span class="pill r">&#10007; '+failed+' failed</span>':'')
@@ -403,15 +406,16 @@ function openDay(ds,run,cnt,el){
 
 function showDayEmails(ds){
   const data=sent.filter(r=>r.run_date===ds);
-  const ok=data.filter(r=>r.status==='sent').length;
+  const accepted=data.filter(r=>r.status==='sent').length;
   const fail=data.filter(r=>r.status==='failed').length;
   const delivered=data.filter(r=>r.delivery_status==='delivered').length;
   const bounced=data.filter(r=>r.delivery_status==='bounced'||r.delivery_status==='suppressed').length;
+  const pendingv=accepted-delivered-bounced;
   openIdx=99;
   [0,1,2,3].forEach(i=>document.getElementById('sc'+i).className='stat');
   const run=runs.find(x=>x.run_date===ds);
   document.getElementById('ptitle').textContent=fd(ds)+(run?' — '+esc(run.category)+', '+esc(run.city):'');
-  document.getElementById('pmeta').textContent=ok+' sent'+(delivered?' · '+delivered+' confirmed delivered':'')+(bounced?' · '+bounced+' bounced':'')+(fail?' · '+fail+' failed':'');
+  document.getElementById('pmeta').textContent=delivered+' delivered'+(bounced?' · '+bounced+' bounced':'')+(pendingv>0?' · '+pendingv+' pending verification':'')+(fail?' · '+fail+' failed':'');
   document.getElementById('plist').innerHTML=data.length?data.map(r=>bizCard(r)).join(''):'<div class="empty">No emails</div>';
   document.getElementById('epanel').style.display='block';
   document.getElementById('epanel').scrollIntoView({behavior:'smooth',block:'start'});

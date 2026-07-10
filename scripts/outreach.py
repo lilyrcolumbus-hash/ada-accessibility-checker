@@ -769,6 +769,7 @@ def verify_deliveries(run_date: str) -> None:
     print(f"\n[Verifying delivery status for {len(rows)} sent emails...]")
     brevo_events = _fetch_brevo_events_for_date(run_date) if any(r.get("provider") == "Brevo" for r in rows) else {}
     verified = 0
+    delivered_count = 0
     for row in rows:
         provider, msg_id = row.get("provider"), row["provider_message_id"]
         if provider == "Resend":
@@ -782,7 +783,10 @@ def verify_deliveries(run_date: str) -> None:
         if status:
             _sb_patch("outreach_results", f"id=eq.{row['id']}", {"delivery_status": status})
             verified += 1
-    print(f"[Verified {verified}/{len(rows)} — real delivery status from providers]")
+            if status == "delivered":
+                delivered_count += 1
+    print(f"[Verified {verified}/{len(rows)} — {delivered_count} confirmed delivered]")
+    _sb_patch("outreach_runs", f"run_date=eq.{run_date}", {"delivered": delivered_count})
 
 def upload_dashboard_html(html: str) -> str:
     """Uploads dashboard HTML to Supabase Storage. Returns the public URL."""
