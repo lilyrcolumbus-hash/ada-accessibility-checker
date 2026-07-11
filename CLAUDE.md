@@ -296,6 +296,9 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - `idx_scans_user_id` on `scans(user_id)`
 - `idx_scans_domain` on `scans(domain)`
 
+### `leads` table (in `schema.sql` since Session 17, but only actually applied to prod 2026-07-11)
+- `id`, `email`, `created_at`. RLS: anyone can insert (anonymous form on `/scan`), only service role / `get_leads()` RPC can read. Populated by `EmailCapture.tsx`. **Was silently broken from launch (2026-07-09) until fixed (2026-07-11)** — see Session 21 in Pending. Read via `public.get_leads()` (SECURITY DEFINER, `supabase/migrations/015_get_leads_function.sql`), surfaced in the outreach dashboard's "🎯 Leads" tab.
+
 ### Outreach tables (not in `schema.sql` — added ad-hoc in Session 19, not part of the 6 above)
 - `outreach_results` — one row per business email attempt. Key columns: `run_date`, `name`, `website`, `email`, `status` (sent/preview_sent/failed/no_email/ready), `provider` (Resend/Brevo/SendGrid — added Session 20), `provider_message_id` (added Session 20), `delivery_status` (pending/delivered/bounced/delivery_delayed/suppressed/complained — added Session 20, verified against each provider's real API). **Unique constraint** `(email, website, run_date)` (added Session 20 after a duplicate-insert bug — see Pending).
 - `outreach_runs` — one row per script run. `run_date`, `category`, `city`, `processed`, `with_email`, `sent` (accepted-by-provider count), `delivered` (confirmed-delivered count, added Session 20, populated by `verify_deliveries()`), `failed`.
@@ -409,7 +412,19 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-07-10 (Session 20)**
+**▶ RESUME HERE (next session) — updated 2026-07-11 (Session 21)**
+
+**Lo hecho en Session 21 (2026-07-11) — Leads table + email deliverability:**
+
+- ✅ **CRÍTICO — la tabla `leads` nunca existió en producción, feature rota desde que se lanzó (Session 17, 2026-07-09):** `EmailCapture.tsx` intenta `supabase.from('leads').insert(...)` dentro de un `try/catch` que traga el error a propósito (para no bloquear el envío del correo de seguimiento). La tabla estaba definida en `schema.sql` pero ese cambio nunca se aplicó a la DB real — confirmado con `select * from pg_tables` en prod, `leads` no aparecía. **Efecto real: todo lead capturado entre el 9 y el 11 de julio se perdió** — el visitante sí recibía su correo de seguimiento, pero el registro nunca se guardaba. No es recuperable retroactivamente. **Arreglado (2026-07-11):** aplicada la tabla + RLS policies + la migración pendiente `015_get_leads_function.sql`, verificado end-to-end con un insert anónimo real vía REST (igual que lo haría el formulario del sitio) → confirmado que `get_leads()` lo devuelve → fila de prueba borrada.
+- ✅ **Rediseño de `EmailCapture.tsx`** (a pedido — "que resalte más para que el cliente le den más ganas de dar click"): tarjeta más grande con fondo degradado y borde de 2px, badge "Free · No signup required", título más grande y en negrita, botón más grande con flecha ("Email Me My Report →"). Sin cambios de comportamiento (commit `d1e4f7e`).
+- ✅ **Investigación de por qué el correo de seguimiento caía en spam** — verificado con datos reales, no solo teoría:
+  - SPF y DKIM: ✅ verificados (confirmado vía Resend API + `dig` directo al DNS)
+  - DMARC: existe pero en `p=none` (solo monitorea, no protege activamente) — la usuaria compartió un reporte DMARC real de Google: **21/22 correos pasaron autenticación limpio**, 1 falló ambas (probable intento de spoofing del dominio, que con `p=none` se entregó igual en vez de bloquearse). Confirma que la config técnica funciona bien para el tráfico real; el problema de spam es más por reputación de dominio nuevo.
+  - **Gap real encontrado y arreglado:** ningún correo (ni outreach ni el de seguimiento) mandaba el header `List-Unsubscribe` — señal fuerte que Gmail/Yahoo/Outlook usan para filtrar spam. Agregado en los 3 proveedores de `outreach.py` + en `send-scan-followup` (commit `7f1e5f8`), probado con envíos reales en Resend/Brevo/SendGrid antes de subir.
+  - **Pendiente, requiere acción manual de la usuaria (no lo puedo hacer yo, es DNS de su Cloudflare):** subir DMARC de `p=none` a `p=quarantine` — instrucción exacta ya dada (cambiar el registro TXT `_dmarc.adalawsuitcheck.com`).
+  - **Sin solución de código:** el dominio `adalawsuitcheck.com` tiene ~1 mes (registrado 2026-06-12) — la reputación de dominio nuevo con Gmail/Outlook mejora sola con tiempo y envíos consistentes, no hay atajo técnico.
+  - **Recomendado para medir progreso:** correr un test en mail-tester.com cuando se quiera confirmar mejora real (no ejecutado todavía).
 
 **Lo hecho en Session 20 (2026-07-10) — Outreach: integridad de datos + verificación real de entrega:**
 
