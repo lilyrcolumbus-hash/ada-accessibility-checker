@@ -129,6 +129,10 @@ Deno.serve(async (req) => {
         to: [email],
         subject: `Your ${domain} accessibility report: score ${score}/100 (${totalIssues} issues found)`,
         html,
+        headers: {
+          'List-Unsubscribe': '<mailto:codebake.SaaS@outlook.com?subject=unsubscribe>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       }),
     })
 
