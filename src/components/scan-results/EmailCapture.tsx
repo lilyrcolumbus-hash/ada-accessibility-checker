@@ -88,24 +88,27 @@ export default function EmailCapture({ result }: Props) {
 
   const issueCount = result?.totalIssues ?? 0;
   const headline = issueCount > 0
-    ? `Email me my full report (${issueCount} issues found)`
-    : 'Email me my accessibility report';
+    ? `Get your full report — all ${issueCount} issues + fixes`
+    : 'Get your full accessibility report';
 
   return (
-    <div className="rounded-xl border border-primary-200 bg-primary-50 p-5 shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="rounded-lg bg-primary-100 p-2 flex-shrink-0">
-            <Mail className="h-5 w-5 text-primary-600" />
+    <div className="relative overflow-hidden rounded-2xl border-2 border-primary-400 bg-gradient-to-br from-primary-50 via-primary-50 to-blue-100 p-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="flex items-start gap-4 flex-1 min-w-0">
+          <div className="rounded-xl bg-primary-600 p-3 flex-shrink-0 shadow-sm">
+            <Mail className="h-6 w-6 text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{headline}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Get your top issue + the exact code fix sent to your inbox.
+            <span className="inline-block rounded-full bg-primary-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-primary-700 mb-1.5">
+              Free · No signup required
+            </span>
+            <p className="text-lg sm:text-xl font-extrabold text-gray-900 leading-tight">{headline}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Your top issue + the exact copy-paste code fix, sent straight to your inbox in seconds.
             </p>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="flex gap-2 w-full sm:w-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <input
             type="email"
             value={email}
@@ -115,17 +118,17 @@ export default function EmailCapture({ result }: Props) {
             }}
             placeholder="you@company.com"
             aria-label="Email address"
-            className="flex-1 sm:w-56 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+            className="flex-1 sm:w-60 rounded-lg border-2 border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
           />
-          <Button type="submit" size="sm" loading={saving} disabled={saving}>
-            {saving ? 'Sending...' : 'Send Report'}
+          <Button type="submit" size="lg" loading={saving} disabled={saving} className="whitespace-nowrap shadow-md">
+            {saving ? 'Sending...' : 'Email Me My Report →'}
           </Button>
         </form>
       </div>
       {error && (
         <p className="mt-2 text-xs text-danger-600">{error}</p>
       )}
-      <div className="mt-3 flex items-center gap-2 border-t border-primary-100 pt-3">
+      <div className="mt-4 flex items-center gap-2 border-t border-primary-200 pt-3">
         <UserPlus className="h-3.5 w-3.5 text-gray-400" />
         <Link to="/register" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
           Create a free account to save your results
