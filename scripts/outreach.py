@@ -539,6 +539,11 @@ SiteSafe · adalawsuitcheck.com"""
 
 # ── Envío de email — Plan A: Resend / Plan B: Brevo / Plan C: SendGrid ───────
 
+UNSUBSCRIBE_HEADERS = {
+    "List-Unsubscribe": "<mailto:codebake.SaaS@outlook.com?subject=unsubscribe>",
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+}
+
 def _try_resend(to: str, subject: str, body: str) -> tuple[bool, str | None]:
     if not RESEND_API_KEY:
         return False, None
@@ -550,6 +555,7 @@ def _try_resend(to: str, subject: str, body: str) -> tuple[bool, str | None]:
                 "from": f"{SENDER_NAME} <{FROM_EMAIL}>",
                 "reply_to": "codebake.SaaS@outlook.com",
                 "to": to, "subject": subject, "text": body,
+                "headers": UNSUBSCRIBE_HEADERS,
             },
             timeout=10,
         )
@@ -574,6 +580,7 @@ def _try_brevo(to: str, subject: str, body: str) -> tuple[bool, str | None]:
                 "to": [{"email": to}],
                 "subject": subject,
                 "textContent": body,
+                "headers": UNSUBSCRIBE_HEADERS,
             },
             timeout=10,
         )
@@ -600,6 +607,7 @@ def _try_sendgrid(to: str, subject: str, body: str) -> tuple[bool, str | None]:
                 "reply_to": {"email": "codebake.SaaS@outlook.com"},
                 "subject": subject,
                 "content": [{"type": "text/plain", "value": body}],
+                "headers": UNSUBSCRIBE_HEADERS,
             },
             timeout=10,
         )
