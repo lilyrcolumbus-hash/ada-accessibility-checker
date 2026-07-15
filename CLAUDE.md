@@ -412,7 +412,20 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-07-11 (Session 21)**
+**▶ RESUME HERE (next session) — updated 2026-07-15 (Session 22)**
+
+**Lo hecho en Session 22 (2026-07-15) — Verificación del loop de rondas en vivo + fix de datos atrasados:**
+
+- ✅ **El loop de rondas de Session 20 (target = confirmados delivered) SÍ corrió en vivo estos días — resultado real:**
+  | Día | Aceptados | Delivered confirmado | Meta |
+  |---|---|---|---|
+  | 13 jul | 81 | 49 | 50 |
+  | 14 jul | 85 | **50 ✅** | 50 |
+  | 15 jul | 83 | 45 | 50 |
+
+  Mejora clara vs. el ~35/50 de antes de Session 20, aunque no siempre toca el número exacto (para eso está el cap de 5 rondas / 200 negocios — evita que corra sin límite si el bounce rate de un día es alto).
+- ✅ **Bug encontrado y arreglado: la verificación de entrega se quedaba "congelada".** `verify_deliveries()` solo espera ~20s tras enviar — insuficiente para que Resend resuelva el estado final de todos los correos, así que algunas filas quedaban guardadas con `delivery_status='sent'` (el estado inicial de Resend, antes de saber qué pasó) o `delivery_status='delivery_delayed'` para siempre, porque nada las volvía a consultar después. **Arreglado (commit `e833082`):** nueva función `reverify_stale_deliveries(days_back=7)`, se corre automáticamente al inicio de cada `--send` run — re-chequea cualquier fila de los últimos 7 días que no esté en un estado final (`delivered`/`bounced`/`suppressed`/`complained`) y recalcula `outreach_runs.delivered` si cambia.
+- ✅ **Validado con datos reales de producción antes de escribir el código:** encontré 51 filas atascadas (10, 13, 14, 15 de julio), las verifiqué a mano contra la API real de Resend → 33 resultaron `bounced`, 18 siguen `delivery_delayed` — **ninguna resultó ser `delivered`**, confirmando que los números de "delivered" ya mostrados (35/49/50/45) eran correctos; solo la clasificación bounced/pendiente estaba desactualizada. Corregido en prod directamente, luego escrito el código para que pase solo de aquí en adelante.
 
 **Lo hecho en Session 21 (2026-07-11) — Leads table + email deliverability:**
 
