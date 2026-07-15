@@ -796,6 +796,60 @@ def verify_deliveries(run_date: str) -> None:
     print(f"[Verified {verified}/{len(rows)} — {delivered_count} confirmed delivered]")
     _sb_patch("outreach_runs", f"run_date=eq.{run_date}", {"delivered": delivered_count})
 
+FINAL_DELIVERY_STATUSES = ("delivered", "bounced", "suppressed", "complained")
+
+def reverify_stale_deliveries(days_back: int = 7) -> None:
+    """
+    Re-checks delivery_status for rows a previous run left in a NON-final state
+    (still 'sent', or 'delivery_delayed') — verify_deliveries() only waits ~20s
+    after sending, which is often too soon for Resend/Brevo/SendGrid to have
+    resolved a message's real fate. Once that one-shot check writes a
+    transient snapshot, nothing ever asked again — so those rows could stay
+    stuck showing a stale status forever. This re-checks up to `days_back` of
+    history (real time has passed since those sends, so providers usually
+    have a final answer by now) and updates outreach_runs.delivered for any
+    day whose confirmed count changed as a result.
+    """
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return
+    cutoff = (datetime.date.today() - datetime.timedelta(days=days_back)).isoformat()
+    final_list = ",".join(FINAL_DELIVERY_STATUSES)
+    rows = _sb_get(
+        "outreach_results",
+        f"select=id,run_date,provider,provider_message_id,delivery_status"
+        f"&status=eq.sent&provider_message_id=not.is.null&run_date=gte.{cutoff}"
+        f"&delivery_status=not.in.({final_list})",
+    )
+    if not rows:
+        return
+    print(f"\n[Re-verifying {len(rows)} stale delivery statuses from the last {days_back} days...]")
+
+    brevo_dates = {r["run_date"] for r in rows if r.get("provider") == "Brevo"}
+    brevo_events_by_date = {d: _fetch_brevo_events_for_date(d) for d in brevo_dates}
+
+    updated = 0
+    affected_dates = set()
+    for row in rows:
+        provider, msg_id = row.get("provider"), row["provider_message_id"]
+        if provider == "Resend":
+            status = _check_resend_status(msg_id)
+        elif provider == "Brevo":
+            status = brevo_events_by_date.get(row["run_date"], {}).get(msg_id)
+        elif provider == "SendGrid":
+            status = _check_sendgrid_status(msg_id)
+        else:
+            status = None
+        if status and status != row.get("delivery_status"):
+            _sb_patch("outreach_results", f"id=eq.{row['id']}", {"delivery_status": status})
+            updated += 1
+            affected_dates.add(row["run_date"])
+
+    print(f"[Re-verify] {updated}/{len(rows)} statuses changed")
+    for run_date in sorted(affected_dates):
+        delivered = _count_delivered(run_date)
+        _sb_patch("outreach_runs", f"run_date=eq.{run_date}", {"delivered": delivered})
+        print(f"[Re-verify] {run_date}: delivered now {delivered}")
+
 def upload_dashboard_html(html: str) -> str:
     """Uploads dashboard HTML to Supabase Storage. Returns the public URL."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
@@ -995,6 +1049,9 @@ def main():
     parser.add_argument("--send", action="store_true")
     parser.add_argument("--preview", action="store_true")
     args = parser.parse_args()
+
+    if args.send:
+        reverify_stale_deliveries()
 
     already_contacted = load_contacted()
     results: list[dict] = []
