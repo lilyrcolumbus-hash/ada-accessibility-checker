@@ -412,7 +412,17 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-07-15 (Session 22)**
+**▶ RESUME HERE (next session) — updated 2026-07-15**
+
+**🎯 DIAGNÓSTICO REAL DE CONVERSIÓN (2026-07-15) — por qué "0 conversiones" pese a haber tráfico:**
+
+Verificado con datos reales, no teoría: **1,889 visitas/mes, pero solo 1 compra en toda la vida del proyecto (10 jun, $49), 1 solo usuario registrado (el mismo), 0 leads reales desde que se arregló esa tabla.** El tráfico existe pero casi todo llega como "Direct/Unknown" (424 de las visitas) — consistente con clicks desde los correos de outreach frío, no con gente que buscó la solución activamente.
+
+**Plan priorizado (en este orden, por impacto):**
+1. **🔴 EN PROGRESO — Secuencia de seguimiento multi-touch para outreach.** Un correo frío casi nunca convierte al primer intento. Spec original (ver abajo, sección n8n) requería levantar una VM + n8n + acceso a Outlook — **decisión pendiente de confirmar con la usuaria: construir una versión más simple usando la infraestructura que ya funciona** (extender `outreach.py` + Supabase + el cascade Resend/Brevo/SendGrid ya probado), en vez de depender de n8n/GCP que no tengo forma de configurar yo mismo. La parte de "leer respuestas en Outlook y clasificarlas con IA" sigue necesitando n8n o algo similar — eso no se puede reemplazar solo con outreach.py.
+2. **⚪ Falta medir si la gente que llega a `/scan` completa un escaneo.** Solo tengo dato de *visitas a la página*, no de "escaneo completado" — sería agregar un evento de analítica para saber si el problema es desconfianza al poner la URL, o algo más.
+3. **⚪ Verificar que los testimonios reales sigan visibles/bien puestos** en la landing — no revisado en esta sesión.
+4. **⚪ Confirmar si Google ya indexó las 78 páginas de SEO programático** — enviado a Search Console en sesiones pasadas, resultado nunca confirmado.
 
 **Lo hecho en Session 22 (2026-07-15) — Verificación del loop de rondas en vivo + fix de datos atrasados:**
 
