@@ -423,6 +423,7 @@ Verificado con datos reales, no teoría: **1,889 visitas/mes, pero solo 1 compra
 2. **⚪ Falta medir si la gente que llega a `/scan` completa un escaneo.** Solo tengo dato de *visitas a la página*, no de "escaneo completado" — sería agregar un evento de analítica para saber si el problema es desconfianza al poner la URL, o algo más.
 3. **⚪ Verificar que los testimonios reales sigan visibles/bien puestos** en la landing — no revisado en esta sesión.
 4. **⚪ Confirmar si Google ya indexó las 78 páginas de SEO programático** — enviado a Search Console en sesiones pasadas, resultado nunca confirmado.
+5. **⚪ Canal nuevo, nunca probado — partners/agencias en vez de venta directa.** Investigación real (con fuentes) de cómo convierten accessiBe/UserWay/AudioEye: los 3 usan programas de partners con agencias web y freelancers (comisión por referido), no outreach frío directo al negocio. Ver sección "Competitor distribution research" más abajo. La usuaria pidió que quede recordado para retomarlo — aún no se decidió si se construye.
 
 **Lo hecho en Session 22 (2026-07-15) — Verificación del loop de rondas en vivo + fix de datos atrasados:**
 
@@ -947,6 +948,17 @@ BrowserRouter
 2. **Local service business** — dentist, restaurant, salon, hotel, law firm. Website built with Wix/Squarespace/WordPress
 3. **Marketing agency** — manages 10-50 client websites, needs multi-site scanning, uses reports to upsell fixes
 4. **Government entity** — must comply by April 2026 deadline, needs documentation for audits
+
+## Competitor distribution research (verified via web search, 2026-07-15)
+All 3 major competitors (accessiBe, UserWay, AudioEye) rely heavily on a **partner/reseller program targeting web agencies and freelance developers** — not direct cold outreach to end businesses like SiteSafe currently does:
+- **UserWay:** affiliate program, 15% commission per referred sale. Avg ticket $490 (SMB) up to $100K+/yr (agencies).
+- **AudioEye:** "Reseller Partners" — agency resells to their own clients, sets their own price, owns the client relationship.
+- **accessiBe:** publicly announced partnerships with marketing agencies (Meraki & Co., Vested Marketing, Team Velocity) who bundle ADA compliance into their existing client services.
+- Both accessiBe and UserWay also use a **free-trial-then-paid** SaaS motion (7-10 days), unlike SiteSafe's free-scan-then-pay-$49-upfront model.
+
+**Why this matters:** an agency/freelancer who already built a small business's site has pre-existing trust — a client is far more likely to buy accessibility compliance recommended by their own web person than from a cold email from a stranger. **This channel has never been tried for SiteSafe** (only cold outreach, SEO, and one Reddit post exist so far). Real option: offer WordPress/Wix/Squarespace freelancers a referral commission per client they bring.
+
+Sources: userway.org/partner, audioeye.com/partners/agency, help.userway.org partner program article, einnews.com accessiBe/Meraki & Co. partnership announcement.
 
 ## Distribution Strategy ($0 budget)
 - **Programmatic SEO:** "ADA compliance checker for [industry]", "Is my website ADA compliant [state]" — 50 states × 10+ industries = 500+ pages
