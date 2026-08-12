@@ -423,7 +423,13 @@ Verificado con datos reales, no teoría: **1,889 visitas/mes, pero solo 1 compra
 2. **⚪ Falta medir si la gente que llega a `/scan` completa un escaneo.** Solo tengo dato de *visitas a la página*, no de "escaneo completado" — sería agregar un evento de analítica para saber si el problema es desconfianza al poner la URL, o algo más.
 3. **⚪ Verificar que los testimonios reales sigan visibles/bien puestos** en la landing — no revisado en esta sesión.
 4. **⚪ Confirmar si Google ya indexó las 78 páginas de SEO programático** — enviado a Search Console en sesiones pasadas, resultado nunca confirmado.
-5. **⚪ Canal nuevo, nunca probado — partners/agencias en vez de venta directa.** Investigación real (con fuentes) de cómo convierten accessiBe/UserWay/AudioEye: los 3 usan programas de partners con agencias web y freelancers (comisión por referido), no outreach frío directo al negocio. Ver sección "Competitor distribution research" más abajo. La usuaria pidió que quede recordado para retomarlo — aún no se decidió si se construye.
+5. **🔴 Canal nuevo, aprobado por la usuaria — partners/agencias en vez de venta directa.** Investigación real (con fuentes) de cómo convierten accessiBe/UserWay/AudioEye: los 3 usan programas de partners con agencias web y freelancers (comisión por referido), no outreach frío directo al negocio. Ver sección "Competitor distribution research" más abajo. **La usuaria dijo que sí, pero pidió auditar primero el sitio contra los competidores** — auditoría ya hecha (2026-07-15), ver siguiente punto. Todavía no se decidió/construyó el canal en sí (falta definir: cómo reclutar agencias, qué comisión ofrecer, landing page para partners, etc.) — **RETOMAR AQUÍ.**
+
+**✅ Auditoría de brecha vs. competidores (2026-07-15) — hecha ANTES de abrir el canal, a pedido de la usuaria.** Comparé el código real de la landing (no el HTML vacío de la SPA — usar los componentes fuente, no WebFetch, para este sitio) contra accessiBe/UserWay:
+- **Ya a la par:** 3 testimonios reales (verificado en `src/config/testimonials.ts`), precios transparentes, disclaimer legal.
+- **Falta y es arreglable ahora:** garantía de devolución (no existe, fácil de agregar, baja fricción justo para el tipo de cliente que traería un partner) — **PENDIENTE, no implementada todavía, la usuaria no confirmó si seguimos con esto o con el canal directo.**
+- **Falta pero NO tiene sentido perseguir todavía** (requiere volumen/tiempo/dinero que no aplica a un proyecto solo con 1 venta): logos de clientes reconocidos, ratings en G2/Trustpilot/Capterra, certificaciones SOC2/ISO 27001, chat en vivo/demo agendable.
+- **Conclusión:** el sitio no tiene un hueco técnico grande — la diferencia real es volumen/tiempo en el mercado. Único quick-win real: la garantía de devolución.
 
 **Lo hecho en Session 22 (2026-07-15) — Verificación del loop de rondas en vivo + fix de datos atrasados:**
 
