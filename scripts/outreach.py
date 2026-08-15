@@ -567,30 +567,30 @@ def generate_partner_email(biz: Business) -> dict:
     es = biz.lang == "es"
 
     if es:
-        subject = f"Idea para {domain or biz.name} — comisión por referir clientes"
+        subject = f"Idea para tus clientes de {domain or biz.name}"
         body = f"""Hola,
 
-Vi que ustedes diseñan sitios para negocios chicos — justo el tipo de cliente al que, desde abril 2026, la ley federal exige cumplir con accesibilidad ADA/WCAG (la mayoría no cumple, y es una fuente común de demandas de $5,000–$20,000).
+Vi que ustedes diseñan sitios para negocios chicos — justo el público al que hoy se le exige cumplir con accesibilidad ADA/WCAG. La mayoría de esos sitios no cumple, y suele salir caro para el dueño cuando se vuelve un problema real.
 
-Armé SiteSafe (adalawsuitcheck.com): escanea el sitio, encuentra los problemas y da el código de arreglo en español simple. $49 pago único o $199/año con monitoreo.
+Armé SiteSafe (adalawsuitcheck.com): escanea el sitio, marca los problemas y da el arreglo en español simple, algo que puede aplicar alguien sin ser desarrollador.
 
-Te propongo ofrecérselo a tus clientes con tu marca por delante — vos ya tenés su confianza — y te pago comisión por cada uno que compre. Sin costo ni trabajo extra de tu parte, solo compartir el link.
+Te propongo ofrecérselo a tus clientes con tu marca por delante — vos ya tenés su confianza — y compartir contigo lo que genere cada uno que se sume. Sin trabajo extra de tu parte, solo compartir un link.
 
-¿Te interesa? Respondeme y vemos los detalles.
+¿Te interesa? Respondeme y te paso los detalles.
 
 Lily
 SiteSafe · adalawsuitcheck.com"""
     else:
-        subject = f"Idea for {domain or biz.name} — commission for client referrals"
+        subject = f"Idea for your {domain or biz.name} clients"
         body = f"""Hi,
 
-I noticed you build websites for small businesses — exactly the kind of client that, as of April 2026, is legally required to meet ADA/WCAG accessibility standards (most don't, and it's a common source of $5,000–$20,000 lawsuits).
+I noticed you build websites for small businesses — exactly the audience that's now expected to meet ADA/WCAG accessibility standards. Most of those sites don't, and it tends to turn into a costly problem for the owner later on.
 
-I built SiteSafe (adalawsuitcheck.com): it scans a site, finds the issues, and hands over plain-English code fixes. $49 one-time, or $199/year with monitoring.
+I built SiteSafe (adalawsuitcheck.com) — it scans a site, flags the issues, and hands over a plain-English fix, something a non-developer can apply.
 
-I'd like to offer it to your clients through you — they already trust you — and pay you a commission on every one that buys. No cost or extra work on your end beyond sharing the link.
+I'd like to offer it to your clients through you, since they already trust you, and share the upside with you for every one who signs up. No extra work on your end beyond passing along a link.
 
-Interested? Reply and we'll work out the details.
+Interested? Reply and I'll send the details.
 
 Lily
 SiteSafe · adalawsuitcheck.com"""
