@@ -18,6 +18,11 @@ Env vars requeridas:
 Uso:
   python3 scripts/outreach.py --category "dental office" --city "Miami, FL" --limit 20
   python3 scripts/outreach.py --category restaurant --city "Chicago, IL" --limit 30
+
+  # Partner outreach a agencias/freelancers web (pitch de comisión, no venta directa).
+  # Guarda en outreach_agency_results / outreach_agency_runs — nunca toca las
+  # tablas ni el dashboard del outreach a negocios.
+  python3 scripts/outreach.py --audience agency --category "web design agency" --city "Austin, TX" --target 10 --send
 """
 
 import os, csv, sys, time, re, json, argparse, requests, socket, smtplib, datetime
@@ -58,10 +63,19 @@ CITIES = [
     "Indianapolis, IN", "Columbus, OH", "Raleigh, NC", "Salt Lake City, UT", "New Orleans, LA",
 ]
 
-def _daily_defaults() -> tuple[str, str]:
+# Agency/freelancer partner-outreach pool — used when --audience agency.
+# These are the people who ALREADY built the website for the same small
+# businesses SiteSafe targets, so a referral pitch to them borrows trust
+# a cold pitch to the end business doesn't have.
+AGENCY_CATEGORIES = [
+    "web design agency", "web designer", "wordpress developer",
+    "shopify expert", "digital marketing agency",
+]
+
+def _daily_defaults(categories: list[str] = CATEGORIES) -> tuple[str, str]:
     """Returns (category, city) based on day-of-year for automatic rotation."""
     day = int(datetime.date.today().strftime("%j"))
-    return CATEGORIES[day % len(CATEGORIES)], CITIES[(day * 7) % len(CITIES)]
+    return categories[day % len(categories)], CITIES[(day * 7) % len(CITIES)]
 
 BROWSER_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -537,6 +551,51 @@ Lily
 SiteSafe · adalawsuitcheck.com"""
     return {"subject": subject, "body": body, "scan_url": scan_link}
 
+def generate_partner_email(biz: Business) -> dict:
+    """
+    Partner pitch for web design agencies / freelancers — NOT the direct-sale
+    pitch used for end businesses. These people already have the trust of the
+    same small-business clients SiteSafe targets, so the offer is a referral
+    commission, not a fix-your-site sale.
+
+    Deliberately does NOT promise a live tracking link or an automated payout
+    system — that infrastructure doesn't exist yet. This is a demand-validation
+    message: does anyone reply at all? Building tracking is only worth it once
+    that's confirmed. Never promise a mechanism you can't yet deliver.
+    """
+    domain = urlparse(biz.website).netloc.replace("www.", "") if biz.website else ""
+    es = biz.lang == "es"
+
+    if es:
+        subject = f"Idea para {domain or biz.name} — comisión por referir clientes"
+        body = f"""Hola,
+
+Vi que ustedes diseñan sitios para negocios chicos — justo el tipo de cliente al que, desde abril 2026, la ley federal exige cumplir con accesibilidad ADA/WCAG (la mayoría no cumple, y es una fuente común de demandas de $5,000–$20,000).
+
+Armé SiteSafe (adalawsuitcheck.com): escanea el sitio, encuentra los problemas y da el código de arreglo en español simple. $49 pago único o $199/año con monitoreo.
+
+Te propongo ofrecérselo a tus clientes con tu marca por delante — vos ya tenés su confianza — y te pago comisión por cada uno que compre. Sin costo ni trabajo extra de tu parte, solo compartir el link.
+
+¿Te interesa? Respondeme y vemos los detalles.
+
+Lily
+SiteSafe · adalawsuitcheck.com"""
+    else:
+        subject = f"Idea for {domain or biz.name} — commission for client referrals"
+        body = f"""Hi,
+
+I noticed you build websites for small businesses — exactly the kind of client that, as of April 2026, is legally required to meet ADA/WCAG accessibility standards (most don't, and it's a common source of $5,000–$20,000 lawsuits).
+
+I built SiteSafe (adalawsuitcheck.com): it scans a site, finds the issues, and hands over plain-English code fixes. $49 one-time, or $199/year with monitoring.
+
+I'd like to offer it to your clients through you — they already trust you — and pay you a commission on every one that buys. No cost or extra work on your end beyond sharing the link.
+
+Interested? Reply and we'll work out the details.
+
+Lily
+SiteSafe · adalawsuitcheck.com"""
+    return {"subject": subject, "body": body, "scan_url": f"{SITESAFE_URL}"}
+
 # ── Envío de email — Plan A: Resend / Plan B: Brevo / Plan C: SendGrid ───────
 
 UNSUBSCRIBE_HEADERS = {
@@ -760,7 +819,8 @@ def _check_sendgrid_status(message_id: str) -> str | None:
         pass
     return None
 
-def verify_deliveries(run_date: str) -> None:
+def verify_deliveries(run_date: str, results_table: str = "outreach_results",
+                       runs_table: str = "outreach_runs") -> None:
     """
     Consulta a cada proveedor real (Resend/Brevo/SendGrid) el estado de entrega
     de cada correo enviado hoy, usando el provider_message_id guardado al enviar.
@@ -769,7 +829,7 @@ def verify_deliveries(run_date: str) -> None:
     """
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         return
-    rows = _sb_get("outreach_results",
+    rows = _sb_get(results_table,
                     f"select=id,provider,provider_message_id&run_date=eq.{run_date}"
                     f"&status=eq.sent&provider_message_id=not.is.null")
     if not rows:
@@ -789,16 +849,17 @@ def verify_deliveries(run_date: str) -> None:
         else:
             status = None
         if status:
-            _sb_patch("outreach_results", f"id=eq.{row['id']}", {"delivery_status": status})
+            _sb_patch(results_table, f"id=eq.{row['id']}", {"delivery_status": status})
             verified += 1
             if status == "delivered":
                 delivered_count += 1
     print(f"[Verified {verified}/{len(rows)} — {delivered_count} confirmed delivered]")
-    _sb_patch("outreach_runs", f"run_date=eq.{run_date}", {"delivered": delivered_count})
+    _sb_patch(runs_table, f"run_date=eq.{run_date}", {"delivered": delivered_count})
 
 FINAL_DELIVERY_STATUSES = ("delivered", "bounced", "suppressed", "complained")
 
-def reverify_stale_deliveries(days_back: int = 7) -> None:
+def reverify_stale_deliveries(days_back: int = 7, results_table: str = "outreach_results",
+                               runs_table: str = "outreach_runs") -> None:
     """
     Re-checks delivery_status for rows a previous run left in a NON-final state
     (still 'sent', or 'delivery_delayed') — verify_deliveries() only waits ~20s
@@ -815,7 +876,7 @@ def reverify_stale_deliveries(days_back: int = 7) -> None:
     cutoff = (datetime.date.today() - datetime.timedelta(days=days_back)).isoformat()
     final_list = ",".join(FINAL_DELIVERY_STATUSES)
     rows = _sb_get(
-        "outreach_results",
+        results_table,
         f"select=id,run_date,provider,provider_message_id,delivery_status"
         f"&status=eq.sent&provider_message_id=not.is.null&run_date=gte.{cutoff}"
         f"&delivery_status=not.in.({final_list})",
@@ -840,14 +901,14 @@ def reverify_stale_deliveries(days_back: int = 7) -> None:
         else:
             status = None
         if status and status != row.get("delivery_status"):
-            _sb_patch("outreach_results", f"id=eq.{row['id']}", {"delivery_status": status})
+            _sb_patch(results_table, f"id=eq.{row['id']}", {"delivery_status": status})
             updated += 1
             affected_dates.add(row["run_date"])
 
     print(f"[Re-verify] {updated}/{len(rows)} statuses changed")
     for run_date in sorted(affected_dates):
-        delivered = _count_delivered(run_date)
-        _sb_patch("outreach_runs", f"run_date=eq.{run_date}", {"delivered": delivered})
+        delivered = _count_delivered(run_date, results_table)
+        _sb_patch(runs_table, f"run_date=eq.{run_date}", {"delivered": delivered})
         print(f"[Re-verify] {run_date}: delivered now {delivered}")
 
 def upload_dashboard_html(html: str) -> str:
@@ -907,7 +968,7 @@ def mark_contacted(email: str, biz_name: str, website: str, issues: int = 0) -> 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def process_biz(biz: Business, already_contacted: set, results: list,
-                args, sent_count: int) -> int:
+                args, sent_count: int, results_table: str = "outreach_results") -> int:
     """Processes one business. Returns 1 if email was sent, 0 otherwise."""
 
     # 1. Find website (Yellow Pages sometimes includes it directly)
@@ -934,8 +995,8 @@ def process_biz(biz: Business, already_contacted: set, results: list,
         lang_tag = " 🇪🇸 spanish site" if biz.lang == "es" else ""
         print(f"  → {biz.issues} issues ({biz.critical} critical){lang_tag}")
 
-    # 4. Generate email
-    email_data = generate_email(biz)
+    # 4. Generate email — partner pitch for agencies, direct-sale pitch for businesses
+    email_data = generate_partner_email(biz) if args.audience == "agency" else generate_email(biz)
     row = {
         "name": biz.name, "website": biz.website, "email": biz.email,
         "phone": biz.phone, "issues": biz.issues, "critical": biz.critical,
@@ -967,7 +1028,7 @@ def process_biz(biz: Business, already_contacted: set, results: list,
 
     # Save to Supabase immediately — dashboard updates in real-time
     if row["status"] in ("sent", "preview_sent", "failed"):
-        _sb_upsert("outreach_results", {
+        _sb_upsert(results_table, {
             "run_date": datetime.date.today().isoformat(),
             "name": row.get("name",""), "website": row.get("website",""),
             "email": row.get("email",""), "phone": row.get("phone",""),
@@ -985,13 +1046,14 @@ def process_biz(biz: Business, already_contacted: set, results: list,
     return newly_sent
 
 
-def _count_delivered(run_date: str) -> int:
-    rows = _sb_get("outreach_results", f"select=id&run_date=eq.{run_date}&delivery_status=eq.delivered")
+def _count_delivered(run_date: str, results_table: str = "outreach_results") -> int:
+    rows = _sb_get(results_table, f"select=id&run_date=eq.{run_date}&delivery_status=eq.delivered")
     return len(rows)
 
 
 def _search_and_send(category: str, city: str, args, already_contacted: set,
-                      results: list, state: dict, want: int, max_checked: int) -> int:
+                      results: list, state: dict, want: int, max_checked: int,
+                      results_table: str = "outreach_results") -> int:
     """
     Sends up to `want` NEWLY-accepted emails (Yelp first, then Yellow Pages once
     exhausted), continuing from wherever `state` left off on the previous call —
@@ -1012,7 +1074,7 @@ def _search_and_send(category: str, city: str, args, already_contacted: set,
                         break
                     state["checked"] += 1
                     print(f"[Yelp {state['checked']}] {biz.name}")
-                    got += process_biz(biz, already_contacted, results, args, state["checked"])
+                    got += process_biz(biz, already_contacted, results, args, state["checked"], results_table)
                 continue
 
         if not state["exhausted"]["yp"] and not state["yp_done"]:
@@ -1028,7 +1090,7 @@ def _search_and_send(category: str, city: str, args, already_contacted: set,
                         break
                     state["checked"] += 1
                     print(f"[YP {state['checked']}] {biz.name}")
-                    got += process_biz(biz, already_contacted, results, args, state["checked"])
+                    got += process_biz(biz, already_contacted, results, args, state["checked"], results_table)
             continue
 
         print(f"\n[Sources exhausted — {state['checked']} businesses checked this run]")
@@ -1037,10 +1099,14 @@ def _search_and_send(category: str, city: str, args, already_contacted: set,
 
 
 def main():
-    default_cat, default_city = _daily_defaults()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--category", default=default_cat)
-    parser.add_argument("--city", default=default_city)
+    parser.add_argument("--audience", choices=["business", "agency"], default="business",
+                        help="business = direct pitch to end businesses (default, unchanged). "
+                             "agency = partner/referral pitch to web design agencies & freelancers, "
+                             "tracked in separate outreach_agency_* tables so it never mixes into "
+                             "the business outreach KPIs.")
+    parser.add_argument("--category", default=None)
+    parser.add_argument("--city", default=None)
     parser.add_argument("--target", type=int, default=20,
                         help="Target emails to send (keeps searching until reached)")
     parser.add_argument("--limit", type=int, default=0,
@@ -1050,8 +1116,19 @@ def main():
     parser.add_argument("--preview", action="store_true")
     args = parser.parse_args()
 
+    # Defaults depend on --audience, so they're resolved after parsing rather
+    # than baked into argparse's `default=` (which would need audience first).
+    if args.category is None or args.city is None:
+        pool = AGENCY_CATEGORIES if args.audience == "agency" else CATEGORIES
+        default_cat, default_city = _daily_defaults(pool)
+        args.category = args.category or default_cat
+        args.city = args.city or default_city
+
+    RESULTS_TABLE = "outreach_results" if args.audience == "business" else "outreach_agency_results"
+    RUNS_TABLE = "outreach_runs" if args.audience == "business" else "outreach_agency_runs"
+
     if args.send:
-        reverify_stale_deliveries()
+        reverify_stale_deliveries(results_table=RESULTS_TABLE, runs_table=RUNS_TABLE)
 
     already_contacted = load_contacted()
     results: list[dict] = []
@@ -1066,14 +1143,14 @@ def main():
         print(f"Yelp found {len(businesses)} businesses\n")
         for i, biz in enumerate(businesses, 1):
             print(f"[{i}/{len(businesses)}] {biz.name}")
-            sent += process_biz(biz, already_contacted, results, args, sent)
+            sent += process_biz(biz, already_contacted, results, args, sent, RESULTS_TABLE)
     elif not args.send:
         # Preview mode doesn't send real mail, so "delivered" has no meaning —
         # keep the old accepted-count behavior.
         target = args.target
         print(f"\nPreview target: {target} emails")
         state = {"exhausted": {"yelp": False, "yp": False}, "yelp_offset": 0, "yp_done": False, "checked": 0}
-        sent = _search_and_send(args.category, args.city, args, already_contacted, results, state, target, MAX_CHECKED)
+        sent = _search_and_send(args.category, args.city, args, already_contacted, results, state, target, MAX_CHECKED, RESULTS_TABLE)
         checked = state["checked"]
     else:
         # ── Target mode: keep sending — across Resend/Brevo/SendGrid and new
@@ -1098,15 +1175,15 @@ def main():
             round_num += 1
             shortfall = target - delivered
             print(f"\n=== Round {round_num}: need {shortfall} more delivered (confirmed so far: {delivered}/{target}) ===")
-            got = _search_and_send(args.category, args.city, args, already_contacted, results, state, shortfall, MAX_CHECKED)
+            got = _search_and_send(args.category, args.city, args, already_contacted, results, state, shortfall, MAX_CHECKED, RESULTS_TABLE)
             if got == 0:
                 print("  No more businesses available — stopping.")
                 break
 
             print(f"\n[Round {round_num}] Waiting to verify real delivery status...")
             time.sleep(20)
-            verify_deliveries(today_str)
-            delivered = _count_delivered(today_str)
+            verify_deliveries(today_str, RESULTS_TABLE, RUNS_TABLE)
+            delivered = _count_delivered(today_str, RESULTS_TABLE)
             print(f"[Round {round_num}] Confirmed delivered so far: {delivered}/{target}")
 
         sent = sum(1 for r in results if r.get("status") == "sent")
@@ -1142,7 +1219,7 @@ def main():
 
     # ── Save run summary to Supabase ──────────────────────────────────────────
     failed_count = sum(1 for r in results if r.get("status") == "failed")
-    _sb_upsert("outreach_runs", {
+    _sb_upsert(RUNS_TABLE, {
         "run_date": datetime.date.today().isoformat(),
         "category": args.category,
         "city": args.city,
@@ -1154,10 +1231,15 @@ def main():
 
     # ── Verify real delivery status with each provider ──────────────────────
     time.sleep(15)  # give providers a moment to register delivery/bounce events
-    verify_deliveries(datetime.date.today().isoformat())
+    verify_deliveries(datetime.date.today().isoformat(), RESULTS_TABLE, RUNS_TABLE)
 
     # ── Generate and upload dashboard to Supabase Storage ────────────────────
-    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+    # Business-audience only: this uploads to a FIXED path (outreach/latest.html)
+    # that IS the live business outreach dashboard. Agency runs must never touch
+    # it — overwriting it with agency-only data would corrupt the daily numbers
+    # you actually check. Agency results live only in outreach_agency_* tables
+    # for now (query directly; no dashboard tab built yet).
+    if args.audience == "business" and SUPABASE_URL and SUPABASE_SERVICE_KEY:
         try:
             sys.path.insert(0, str(Path(__file__).parent))
             from generate_report import generate_html

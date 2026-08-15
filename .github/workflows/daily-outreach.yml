@@ -7,8 +7,14 @@ on:
     - cron: '30 13 * * 1-5'
   workflow_dispatch:
     inputs:
+      audience:
+        description: 'business = direct pitch (default, what the schedule runs). agency = partner/referral pitch to web design agencies — separate tables, never touches the business dashboard.'
+        required: false
+        type: choice
+        options: ['business', 'agency']
+        default: 'business'
       category:
-        description: 'Business category (e.g. restaurant, dental office)'
+        description: 'Category (e.g. "dental office" for business, "web design agency" for agency)'
         required: false
         default: ''
       city:
@@ -19,6 +25,11 @@ on:
         description: 'Number of emails to send'
         required: false
         default: '50'
+      preview:
+        description: 'Preview only — sends the composed email to your own inbox, never to real recipients'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   outreach:
@@ -49,6 +60,11 @@ jobs:
         run: |
           DATE=$(date +%Y-%m-%d)
           TARGET="${{ github.event.inputs.target || '50' }}"
+          AUDIENCE="${{ github.event.inputs.audience || 'business' }}"
+          SEND_FLAG="--send"
+          if [[ "${{ github.event.inputs.preview }}" == "true" ]]; then
+            SEND_FLAG="--preview"
+          fi
 
           EXTRA_ARGS=""
           if [[ -n "${{ github.event.inputs.category }}" ]]; then
@@ -59,11 +75,12 @@ jobs:
           fi
 
           echo "=== SiteSafe Outreach — $DATE ==="
-          echo "Target: $TARGET emails"
+          echo "Audience: $AUDIENCE | Target: $TARGET emails | Mode: $SEND_FLAG"
 
           python3 scripts/outreach.py \
+            --audience "$AUDIENCE" \
             --target "$TARGET" \
-            --send \
+            $SEND_FLAG \
             --output /tmp/outreach-$DATE.csv \
             $EXTRA_ARGS
 
