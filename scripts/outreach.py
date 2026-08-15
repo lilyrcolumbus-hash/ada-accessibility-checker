@@ -67,8 +67,15 @@ CITIES = [
 # These are the people who ALREADY built the website for the same small
 # businesses SiteSafe targets, so a referral pitch to them borrows trust
 # a cold pitch to the end business doesn't have.
+#
+# Deliberately avoids generic "developer"/"development" wording — live-tested
+# 2026-08-15 and confirmed it collides with real estate/construction
+# "[Something] Development" companies on Yellow Pages' free-text search
+# (e.g. "Neville Development", "Downtown Development Group" showed up for
+# "wordpress developer"). Terms below anchor on "design"/"studio"/"expert"/
+# "agency" instead, which don't share that collision.
 AGENCY_CATEGORIES = [
-    "web design agency", "web designer", "wordpress developer",
+    "web design agency", "web design company", "website design studio",
     "shopify expert", "digital marketing agency",
 ]
 
