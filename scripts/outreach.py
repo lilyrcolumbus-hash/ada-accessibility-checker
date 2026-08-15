@@ -1017,7 +1017,7 @@ def process_biz(biz: Business, already_contacted: set, results: list,
     provider = None
     provider_message_id = None
     if args.preview and biz.email:
-        ok, _, _ = send_email("codebake.SaaS@outlook.com",
+        ok, _, _ = send_email(args.preview_to,
                    f"[PREVIEW] {email_data['subject']}",
                    f"--- PREVIEW for: {biz.email} ---\n\n{email_data['body']}")
         row["status"] = "preview_sent"
@@ -1123,6 +1123,8 @@ def main():
     parser.add_argument("--output", default="outreach.csv")
     parser.add_argument("--send", action="store_true")
     parser.add_argument("--preview", action="store_true")
+    parser.add_argument("--preview-to", default="codebake.SaaS@outlook.com",
+                        help="Where --preview sends composed emails (default: codebake.SaaS@outlook.com)")
     args = parser.parse_args()
 
     # Defaults depend on --audience, so they're resolved after parsing rather
