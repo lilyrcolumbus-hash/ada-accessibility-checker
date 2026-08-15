@@ -1010,10 +1010,12 @@ def process_biz(biz: Business, already_contacted: set, results: list,
     provider = None
     provider_message_id = None
     if args.preview and biz.email:
-        send_email("codebake.SaaS@outlook.com",
+        ok, _, _ = send_email("codebake.SaaS@outlook.com",
                    f"[PREVIEW] {email_data['subject']}",
                    f"--- PREVIEW for: {biz.email} ---\n\n{email_data['body']}")
         row["status"] = "preview_sent"
+        if ok:
+            newly_sent = 1
     elif args.send and biz.email:
         ok, provider, provider_message_id = send_email(biz.email, email_data["subject"], email_data["body"])
         row["status"] = "sent" if ok else "failed"
