@@ -17,7 +17,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-async function activatePlan(userId: string, planId: string, paymentId: string, amount: number | null) {
+async function activatePlan(userId: string, planId: string, paymentId: string, amount: number | null, referredBy?: string) {
   if (!VALID_PLANS.includes(planId)) {
     console.error(`Invalid plan ID received: ${planId}`)
     return
@@ -37,6 +37,7 @@ async function activatePlan(userId: string, planId: string, paymentId: string, a
     plan: planId,
     stripe_payment_id: paymentId,
     amount,
+    referred_by: referredBy || null,
   })
 
   if (purchaseError) {
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
           planId,
           (session.payment_intent as string) || session.subscription as string || session.id,
           session.amount_total,
+          session.metadata?.referred_by,
         )
         break
       }
@@ -112,7 +114,7 @@ Deno.serve(async (req) => {
 
         // Re-activate plan on renewal
         const paymentIntent = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent?.id || `invoice_${invoice.id}`
-        await activatePlan(userId, planId, paymentIntent, invoice.amount_paid)
+        await activatePlan(userId, planId, paymentIntent, invoice.amount_paid, sub.metadata?.referred_by)
         break
       }
 
