@@ -558,6 +558,15 @@ Lily
 SiteSafe · adalawsuitcheck.com"""
     return {"subject": subject, "body": body, "scan_url": scan_link}
 
+def _ref_slug(domain: str) -> str:
+    """Turns a business domain into a referral code, e.g. 'goodworkmarketing.com'
+    -> 'goodworkmarketing'. Must match REF_CODE_PATTERN in useReferralCapture.ts
+    and create-checkout/index.ts (alphanumeric + dash, max 40 chars)."""
+    root = domain.split(".")[0] if domain else "partner"
+    slug = re.sub(r"[^a-zA-Z0-9-]", "", root).lower()
+    return (slug or "partner")[:40]
+
+
 def generate_partner_email(biz: Business) -> dict:
     """
     Partner pitch for web design agencies / freelancers — NOT the direct-sale
@@ -565,13 +574,16 @@ def generate_partner_email(biz: Business) -> dict:
     same small-business clients SiteSafe targets, so the offer is a referral
     commission, not a fix-your-site sale.
 
-    Deliberately does NOT promise a live tracking link or an automated payout
-    system — that infrastructure doesn't exist yet. This is a demand-validation
-    message: does anyone reply at all? Building tracking is only worth it once
-    that's confirmed. Never promise a mechanism you can't yet deliver.
+    Includes a real, working referral link (?ref=<slug>) — the tracking
+    system now exists (purchases.referred_by, set on both first purchase and
+    every subscription renewal via Stripe metadata), so there's no reason to
+    hedge with "reply and I'll send you a link" anymore. Commission: 40%
+    one-time on Fix My Site ($49), 20% recurring on Compliance Shield
+    ($199/yr) for as long as the referred customer stays subscribed.
     """
     domain = urlparse(biz.website).netloc.replace("www.", "") if biz.website else ""
     es = biz.lang == "es"
+    ref_link = f"{SITESAFE_URL}/?ref={_ref_slug(domain or biz.name)}"
 
     if es:
         subject = f"Idea para tus clientes de {domain or biz.name}"
@@ -581,9 +593,13 @@ Vi que ustedes diseñan sitios para negocios chicos — justo el público al que
 
 Armé SiteSafe (adalawsuitcheck.com): escanea el sitio, marca los problemas y da el arreglo en español simple, algo que puede aplicar alguien sin ser desarrollador.
 
-Te propongo ofrecérselo a tus clientes con tu marca por delante — vos ya tenés su confianza — y compartir contigo lo que genere cada uno que se sume. Sin trabajo extra de tu parte, solo compartir un link.
+Este es tu link — compartilo con cualquier cliente y te quedás con una parte de lo que paguen, mientras sigan siendo clientes:
 
-¿Te interesa? Respondeme y te paso los detalles.
+    {ref_link}
+
+Arreglo de $49 (pago único): te quedás con 40%. Monitoreo de $199/año: te quedás con 20%, cada año que renueven.
+
+Sin registro, sin trabajo extra de tu parte.
 
 Lily
 SiteSafe · adalawsuitcheck.com"""
@@ -595,13 +611,17 @@ I noticed you build websites for small businesses — exactly the audience that'
 
 I built SiteSafe (adalawsuitcheck.com) — it scans a site, flags the issues, and hands over a plain-English fix, something a non-developer can apply.
 
-I'd like to offer it to your clients through you, since they already trust you, and share the upside with you for every one who signs up. No extra work on your end beyond passing along a link.
+Here's your link — share it with any client and you keep a share of whatever they pay, for as long as they stay a customer:
 
-Interested? Reply and I'll send the details.
+    {ref_link}
+
+$49 one-time fix: you keep 40%. $199/year monitoring: you keep 20%, every year they renew.
+
+No signup, no extra work on your end.
 
 Lily
 SiteSafe · adalawsuitcheck.com"""
-    return {"subject": subject, "body": body, "scan_url": f"{SITESAFE_URL}"}
+    return {"subject": subject, "body": body, "scan_url": ref_link}
 
 # ── Envío de email — Plan A: Resend / Plan B: Brevo / Plan C: SendGrid ───────
 
