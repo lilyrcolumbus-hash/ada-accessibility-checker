@@ -342,7 +342,7 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - Register/Login with pending plan → go to Checkout; without → go to Dashboard
 - Dashboard has "Your Plan" section (checks/locks for all features) + upgrade cards
 - All CTAs persist plan to sessionStorage for coherent auth flow
-- Compliance Shield marked as "Coming Soon" (visible but not purchasable)
+- ~~Compliance Shield marked as "Coming Soon" (visible but not purchasable)~~ — **reactivated Session 23 (2026-08-17)**, now purchasable; see Pending for what changed first
 - URL inputs auto-add `https://` — user can type just `example.com`
 - **ALL 6 Supabase edge functions deployed with `--no-verify-jwt`** — required because gateway rejects user JWTs
 - Origin fallback URL fixed from Netlify to Cloudflare Pages in create-checkout + create-portal
@@ -383,7 +383,8 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - `useScan.ts` propagates server error verbatim instead of falling through to dev-proxy fallback (which only exists in Vite dev mode and was masking real reasons in production)
 - Discovered SPA scanning limitation (see Known Limitations below)
 - Discovered "Your Current Plan" UX confusion: Supabase Auth restores session from localStorage on revisit, so users who paid don't realize they're still logged in. Pricing UI correctly shows their plan as current — but they think it's a bug. Header shows "My Dashboard" (auth indicator) but no email displayed (see Future improvements)
-- **Payment flow verified end-to-end via DB query (2026-05-10):** `purchases` table has 2 real successful transactions — Fix My Site $49 one-time (`pi_3TDCgoFfYL1pGw0o1JQVN1YK`) + Compliance Shield $199 subscription (`sub_1TDChaFfYL1pGw0odsh76ABY`), both from 2026-03-20. Confirms Stripe Checkout → webhook signature → plan activation → purchase recording all work for both `mode: 'payment'` and `mode: 'subscription'`
+- **⚠️ CORRECTION (2026-08-17): the claim below was never true — re-verified directly against the `purchases` table and found only ONE row ever, a Fix My Site $49 one-time sale from 2026-06-10 (`pi_3TgamzFfYL1pGw0o0EVT56HX`). No Compliance Shield subscription sale exists or ever existed in the DB. The `sub_1TDChaFfYL1pGw0odsh76ABY` ID below could not be corroborated. Subscription mode (`mode: 'subscription'`) has NEVER been proven with a completed real transaction — only verified indirectly by creating (not completing) a live Stripe Checkout Session for compliance-shield, which Stripe accepted (confirms the price is valid and configured), see Session 23. Do not repeat the claim below as fact.**
+- ~~Payment flow verified end-to-end via DB query (2026-05-10): `purchases` table has 2 real successful transactions — Fix My Site $49 one-time (`pi_3TDCgoFfYL1pGw0o1JQVN1YK`) + Compliance Shield $199 subscription (`sub_1TDChaFfYL1pGw0odsh76ABY`), both from 2026-03-20. Confirms Stripe Checkout → webhook signature → plan activation → purchase recording all work for both `mode: 'payment'` and `mode: 'subscription'`~~
 - **Stripe payouts unblocked (2026-05-10):** "required task" banner gone from dashboard. User completed KYC/banking task. Payouts to bank can now flow when sales come in. USD balance still -$9.28 from earlier refund — self-resolves with first new sale (the deficit gets covered before any net payout)
 - **Session 13: Multi-page crawl shipped (2026-05-15)**
 - **Discovery:** "Up to 50 pages" was advertised in 4 marketing files (DashboardPage, IndustryLandingPage, StateLandingPage, IndustryStateLandingPage) + CLAUDE.md but **the backend never implemented crawl** — only single-page fetch. Pure marketing claim with no code behind it. Risk: chargeback / false-advertising / 1-star reviews
@@ -412,7 +413,43 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 
 ### Pending (to launch)
 
-**▶ RESUME HERE (next session) — updated 2026-07-15**
+**▶ RESUME HERE (next session) — updated 2026-08-17**
+
+**Session 23 (2026-08-15→17) — Agency/partner channel built + shipped, Yelp fixed, Compliance Shield reactivated with a real monthly re-scan:**
+
+- ✅ **CRITICAL bug found and fixed: `YELP_API_KEY` trial had expired ~2026-07-27.** Confirmed via real production GitHub Actions logs: daily business outreach silently degraded from 100-128 businesses/day (via Yelp) to a flat 30/day (Yellow Pages fallback only) for **18 straight days**, with runs still showing green "success" the whole time — no error surfaced. Renewed by the user (new Base-tier Yelp app), key verified live and updated in the GitHub secret.
+- ✅ **New `--audience agency` mode in `scripts/outreach.py`** — reuses all existing outreach infra (search, email cascade, delivery verification) to pitch web design agencies/freelancers a referral partnership instead of direct-selling to end businesses. Tracked in separate `outreach_agency_results`/`outreach_agency_runs` tables (RLS enabled) so it never mixes into the business-outreach KPIs. `daily-outreach.yml` got `audience`/`preview` manual-dispatch inputs; the scheduled cron is unaffected (still defaults to `business`).
+- ✅ **Real bugs found and fixed while live-testing the new channel:**
+  - Agency search terms ("wordpress developer") collided with real-estate/construction "[X] Development" listings on Yellow Pages — swapped to design/agency/studio-anchored terms.
+  - `--preview` mode ignored `--target` entirely (pre-existing bug, not agency-specific) — a `--preview --target 3` test actually sent previews to *every* business found with an email (25, not 3) in ~5 minutes. All landed in Junk (Outlook first, confirmed independently in Gmail too with a single clean send) — domain reputation issue, not a code bug at that point. Fixed the target-respecting bug; DMARC raised from `p=none` to `p=quarantine` on `_dmarc.adalawsuitcheck.com` (user did this in Cloudflare).
+- ✅ **Partner commission structure decided:** 40% one-time on Fix My Site ($49 → ~$20/sale), 20% recurring on Compliance Shield ($199/yr → ~$40/yr per referral, every renewal). Built for real, not just documented:
+  - `useReferralCapture.ts` captures `?ref=CODE` anywhere on the site into sessionStorage (mirrors the existing `sitesafe_pending_plan` pattern).
+  - `create-checkout`/`stripe-webhook` thread `referred_by` through Stripe metadata (including `subscription_data.metadata`, so it survives renewals) into a new `purchases.referred_by` column.
+  - No partner portal/dashboard — commissions computed manually via SQL against `referred_by`, paid via PayPal. Same MVP-first approach as the agency-outreach tables.
+  - `generate_partner_email()` now sends a real, working `?ref=<slug>` link and states both percentages concretely — no more "reply and I'll send you a link."
+- ✅ **Compliance Shield reactivated** (`comingSoon` removed from `plans.ts`) — but only *after* closing a real gap first: the plan promises "monthly automated re-scans," which never existed. Built `scripts/scanner_full.py`, a faithful line-by-line port of all 11 TS WCAG checks + the exact `scoring.ts` formula to Python (BeautifulSoup), specifically because the *lighter* 6-check scanner already used for outreach teasers would have shown false "improvement" in monthly reports just from checking less thoroughly — not from sites actually getting better. Verified against a real production URL: fresh re-scan score matched the originally stored score exactly (99 == 99). `scripts/monthly_rescan.py` + `.github/workflows/monthly-rescan.yml` (1st of each month) re-scan each Compliance Shield subscriber's up to 5 most-recent domains (reuses `scans` table — no new table) and email an alert on score drop / critical increase.
+- ✅ **Verified the $199 Stripe price is actually valid without spending money**: signed up a throwaway test account, called the real deployed `create-checkout` for `compliance-shield`, Stripe returned a live Checkout Session URL (`cs_live_...`) — proves the price is correctly configured (an invalid/archived price would have been rejected at session-creation, before any payment). Did **not** complete the checkout (would have charged $199 for real). Test account deleted afterward.
+- ⚠️ **CORRECTION to a false claim that was in this file for months:** "Compliance Shield $199 subscription verified 2026-03-20" was never true — re-checked the `purchases` table directly, it has exactly ONE row ever (Fix My Site, 2026-06-10). Subscription mode has never been proven with a real completed transaction. See the struck-through note further down (Session 9 section) — left in place rather than deleted, so the correction has a paper trail.
+- 🟡 **Manual QA still needed (real money, only the user can do this):** one real $199 Compliance Shield purchase with a test `?ref=` code, to confirm the webhook actually fires on a *completed* payment (not just session creation) and the subscription activates + records `referred_by` correctly. Stripe is LIVE-mode only on this account, no test-mode keys configured — same refund-after precedent as the Session 13 $49 test charge.
+- ⏳ **Still not done:** the day 0/3/7 follow-up sequence for business outreach (flagged pending since Session 19) — real diagnosis still points to this as the most likely lever for the "1 sale despite traffic" problem, independent of everything built this session.
+
+---
+
+**Sesión 2026-08-14 (conversación separada, sobre "cómo conseguir clientes para SiteSafe") — decisión de la usuaria: avanzar en DOS canales en paralelo, no elegir uno:**
+
+1. **Track 1 — terminar el outreach directo que ya existe.** Extender `scripts/outreach.py` + Supabase con:
+   - **La secuencia de follow-up (día 0/3/7) que sigue pendiente desde Session 19** — sigue siendo la causa raíz más probable de por qué solo hubo 1 venta con 1,889 visitas/mes. Decisión técnica pendiente: versión simple (extender `outreach.py`, sin VM/n8n) para MANDAR follow-ups; leer y clasificar respuestas de un inbox sí puede necesitar algo tipo poller IMAP/Graph API o n8n.
+   - **Targeting corregido con datos reales (investigación con fuentes, no Reddit, 2026-08-14):** restaurantes (34.6% de demandas) y retail/moda (26%) — no dental como en los ejemplos viejos de `--category`. Estados: NY, FL, IL — no genérico.
+   - **Regla de copy:** nunca prometer "compliance" ni protección legal (accessiBe fue multado $1M por FTC en 2025 por esto) — solo citar el hallazgo específico y verificable, mismo criterio ya aplicado a los testimonios.
+   - **Modelos IA para el copy/scoring:** la usuaria tiene keys de Gemini y GPT (OpenAI) — no agregar Claude API. Gemini para scoring barato, GPT para redactar mensajes (mayor impacto en reply rate real).
+   - **Evaluar (no decidido):** separar el dominio de cold-outreach del dominio del producto — el correo de seguimiento a leads reales ya tuvo problemas de spam (Session 21), y mandar outreach frío + correo transaccional real desde el mismo dominio puede estar empeorándolo.
+2. **Track 2 — retomar el canal de partners/agencias** aprobado antes (punto 5 más abajo, "Canal nuevo") — sigue sin construirse: falta definir comisión, reclutamiento, landing de partners.
+
+Detalle completo de la investigación (benchmarks de cold email, demandas ADA reales, legal, competencia) en memoria `sitesafe_ada_outreach_research.md`.
+
+---
+
+**▶ RESUME HERE (histórico) — updated 2026-07-15**
 
 **🎯 DIAGNÓSTICO REAL DE CONVERSIÓN (2026-07-15) — por qué "0 conversiones" pese a haber tráfico:**
 
