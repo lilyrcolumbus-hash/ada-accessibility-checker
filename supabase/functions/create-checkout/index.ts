@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
       customer: customerId,
       mode: isSubscription ? 'subscription' : 'payment',
       line_items: [{ price: priceId, quantity: 1 }],
+      // Separate program from partner referrals: lets a customer type a
+      // Stripe-native promotion code (created in the Stripe Dashboard for
+      // ad campaigns) directly on the hosted checkout page. No custom
+      // tracking needed — Stripe validates and applies the discount itself.
+      allow_promotion_codes: true,
       success_url: `${origin}/dashboard?payment=success&plan=${planId}`,
       cancel_url: `${origin}/#pricing`,
       metadata: {
