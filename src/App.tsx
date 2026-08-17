@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useReferralCapture } from '@/hooks/useReferralCapture'
 import { Layout } from '@/components/layout/Layout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { LandingPage } from '@/pages/LandingPage'
@@ -19,6 +20,8 @@ import BlogPage from '@/pages/BlogPage'
 import BlogPostPage from '@/pages/BlogPostPage'
 
 export default function App() {
+  useReferralCapture()
+
   return (
     <Routes>
       {/* Public routes with Layout (Header + Footer) */}

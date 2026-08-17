@@ -64,6 +64,7 @@ create table if not exists public.purchases (
   plan text not null,
   stripe_payment_id text,
   amount integer,
+  referred_by text, -- partner ref code, set on both first purchase and each subscription renewal
   created_at timestamptz not null default now()
 );
 

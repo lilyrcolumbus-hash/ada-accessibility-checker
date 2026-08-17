@@ -1,0 +1,47 @@
+name: Monthly Compliance Shield Re-scan
+
+on:
+  schedule:
+    # 9:00am UTC on the 1st of each month
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — query + scan + compare only, no writes or emails'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  rescan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run monthly re-scan
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          DRY_RUN_FLAG=""
+          # Only the explicit "true" from a manual run triggers dry-run.
+          # The scheduled monthly run has no `inputs` at all, so it always does a real run.
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          echo "=== Monthly Compliance Shield Re-scan — $(date +%Y-%m-%d) ==="
+          python3 scripts/monthly_rescan.py $DRY_RUN_FLAG
