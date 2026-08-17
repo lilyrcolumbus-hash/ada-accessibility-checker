@@ -10,13 +10,21 @@ A self-service web tool that scans any website for ADA/WCAG 2.1 AA accessibility
 |---|---|---|---|---|
 | **Free Scan** | `free` | $0 | Free | 1 page, score, risk, all issues visible, 1 code fix free |
 | **Fix My Site** | `fix-my-site` | $49 one-time | One-time payment | Up to 25 pages, all code fixes, action plan, shareable report, 1 re-scan |
-| **Compliance Shield** | `compliance-shield` | $199/year | Annual subscription | Everything in Fix My Site + up to 5 sites, unlimited re-scans, monthly auto-scans, email alerts, compliance badge |
+| **Compliance Shield** | `compliance-shield` | $199/year | Annual subscription | Everything in Fix My Site + up to 5 sites*, unlimited re-scans, monthly auto-scans, email alerts, compliance badge |
+
+*"Up to 5 sites" is marketing copy only — `multiSite: 5` exists in `plans.ts` but is never read/enforced anywhere in the code (found 2026-08-17). No plan actually limits how many domains a user can scan. Doesn't hurt anyone (nothing blocks a paid user), but there's no real feature behind the claim yet.
 
 Old plan IDs (`full-report`, `agency`, `starter`, `pro`, `business`) no longer exist.
 
 Stripe Price IDs (LIVE):
 - Fix My Site: `price_1TAdnSFfYL1pGw0o7zQs4NdX`
 - Compliance Shield: `price_1TAdnUFfYL1pGw0oGAqWfMTa`
+
+### Partner referral program (added 2026-08-17)
+Separate from the pricing table above — a partner (web agency/freelancer) shares a link `adalawsuitcheck.com/?ref=<code>`; the referred customer always pays full price (no customer discount in this program — see the separate ad-discount-coupon mechanism via `allow_promotion_codes` in `create-checkout`, which IS a customer discount, for a different use case). Commission is computed and stored at time of sale (doesn't retroactively change if the rate changes later):
+- **Fix My Site ($49 one-time): 40% commission** (~$20/sale) — higher % because the dollar amount is small, needs to feel worth a partner's time.
+- **Compliance Shield ($199/yr): 20% commission, recurring** (~$40/yr) — paid again on every renewal, since `referred_by` persists in the Stripe subscription metadata.
+No partner portal exists — partner codes are just strings assigned manually (e.g. their business name slug), there's no registry validating them. Track/pay via **`https://adalawsuitcheck.com/commissions/`** (read-only report) + Supabase Table Editor (`purchases.paid` checkbox) to mark paid. See `src/hooks/useReferralCapture.ts`, `supabase/functions/create-checkout/index.ts`, `supabase/functions/stripe-webhook/index.ts`, `supabase/migrations/016_partner_commissions.sql`.
 
 ## Tech Stack
 - **Frontend:** React 19 + Vite 7 + TypeScript + Tailwind CSS v4 (uses `@theme` for custom colors)
@@ -270,6 +278,9 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - **Edge function response shape:** `{ pages: [{url, html, error?}], finalUrl, html }`. Top-level `html` is kept for backwards compat with old frontend builds during the deploy window — DO NOT remove until you're sure no cached SPA bundles still expect it.
 - **Rate limit (`scan_usage` table) records ONE entry per request**, not per page. A 25-page crawl counts as 1 of the 20 scans/hour quota.
 
+### 18. Deleting a user PERMANENTLY erases their purchase/commission history — no soft delete
+`purchases.user_id` has `references profiles(id) on delete cascade`. Deleting a row from `auth.users` (e.g. via Supabase Dashboard → Authentication → Users → Delete, NOT the same as a browser sign-out) cascades and deletes every `purchases` row tied to that user, including `referred_by`/`commission_amount` data needed for paying partners. Discovered 2026-08-17 when a real $199 test purchase (with `referred_by` set) vanished entirely after the user deleted the test account directly in Supabase. **Before deleting any user for cleanup, check first whether they have real purchase/commission rows worth preserving** — there's no undo.
+
 ## DB Schema (supabase/schema.sql)
 
 ### Tables (6)
@@ -430,8 +441,17 @@ For paid users, `useScan` runs the scanner on up to 25 pages and aggregates the 
 - ✅ **Compliance Shield reactivated** (`comingSoon` removed from `plans.ts`) — but only *after* closing a real gap first: the plan promises "monthly automated re-scans," which never existed. Built `scripts/scanner_full.py`, a faithful line-by-line port of all 11 TS WCAG checks + the exact `scoring.ts` formula to Python (BeautifulSoup), specifically because the *lighter* 6-check scanner already used for outreach teasers would have shown false "improvement" in monthly reports just from checking less thoroughly — not from sites actually getting better. Verified against a real production URL: fresh re-scan score matched the originally stored score exactly (99 == 99). `scripts/monthly_rescan.py` + `.github/workflows/monthly-rescan.yml` (1st of each month) re-scan each Compliance Shield subscriber's up to 5 most-recent domains (reuses `scans` table — no new table) and email an alert on score drop / critical increase.
 - ✅ **Verified the $199 Stripe price is actually valid without spending money**: signed up a throwaway test account, called the real deployed `create-checkout` for `compliance-shield`, Stripe returned a live Checkout Session URL (`cs_live_...`) — proves the price is correctly configured (an invalid/archived price would have been rejected at session-creation, before any payment). Did **not** complete the checkout (would have charged $199 for real). Test account deleted afterward.
 - ⚠️ **CORRECTION to a false claim that was in this file for months:** "Compliance Shield $199 subscription verified 2026-03-20" was never true — re-checked the `purchases` table directly, it has exactly ONE row ever (Fix My Site, 2026-06-10). Subscription mode has never been proven with a real completed transaction. See the struck-through note further down (Session 9 section) — left in place rather than deleted, so the correction has a paper trail.
-- 🟡 **Manual QA still needed (real money, only the user can do this):** one real $199 Compliance Shield purchase with a test `?ref=` code, to confirm the webhook actually fires on a *completed* payment (not just session creation) and the subscription activates + records `referred_by` correctly. Stripe is LIVE-mode only on this account, no test-mode keys configured — same refund-after precedent as the Session 13 $49 test charge.
+- ✅ **Manual QA done for real (2026-08-17):** the user completed a real $199 Compliance Shield purchase with `?ref=test-partner`. Confirmed via direct DB query: webhook fired on the *completed* payment, `profiles.plan` activated, `purchases.referred_by = 'test-partner'` recorded correctly. Subscription-mode Stripe is now proven end-to-end with a real transaction (not just session creation).
+- ⚠️ **Then the user deleted that test account directly in Supabase (not just browser logout)** — `purchases.user_id` has `ON DELETE CASCADE`, so deleting the user erased the purchase row along with it. **Real gotcha, now documented below in Gotchas** — deleting *any* user wipes their purchase/commission history permanently, no soft-delete. She also refunded the Stripe charge; **unconfirmed whether she also cancelled the Stripe *subscription* itself** (refund ≠ cancel — an un-cancelled subscription still renews and charges again in a year even with the Supabase account gone). ⚠️ **Check this first thing next session**: Stripe Dashboard → Customers → `cus_V5c1zL9zT48X7r` → Subscriptions.
+- ✅ **Live QA of 6 existing paid features, done with real Playwright browser automation, not just code review** (the user reported re-scan/share-link/badge all hanging or 404ing — investigated each independently rather than trusting the report or the code at face value, per this project's standing rule):
+  - Re-scan and badge verification: could NOT reproduce any hang — both completed correctly in live testing (real login, real click, `rescans_used` incremented, badge RPC returned correct data).
+  - Share link: **found and fixed a real bug** — `navigator.clipboard.writeText()` in `EmbedWidget.tsx`'s `handleCreateShareLink` had no timeout; a hung clipboard permission (headless/some browser contexts) could block the `finally` that resets the loading state forever, even though the link itself was already created server-side. Added a 3s timeout race (`writeToClipboardWithTimeout`) around all 3 clipboard calls in that file. User re-verified all 6 points pass after the fix.
+  - Also verified the *full realistic partner-referral user journey* via Playwright, not just a shortcut: land on `/?ref=CODE` (unauthenticated) → browse → register a new account → navigate to checkout with no `ref` in the URL → click Pay → captured the actual `create-checkout` request body → `refCode` was present, sourced purely from sessionStorage set on landing. Confirms the mechanism works for a real partner link, not just when `?ref=` is manually appended to the checkout URL itself.
+- ✅ **Two more real gaps found and closed, same session:**
+  1. **No customer discount program existed** — the partner commission system only ever benefits the *referrer*, never the end customer. Clarified in conversation this is intentional (matches UserWay's affiliate-only model) but the user separately wants a **second, independent program** for her own ad campaigns where the *customer* gets a discount, no partner/commission involved. Built via Stripe's native `allow_promotion_codes: true` on `create-checkout` — she creates the actual coupons in Stripe Dashboard when a campaign launches (business decision, needs her judgment + the Stripe secret key I don't have).
+  2. **No notification or report existed for partner commissions** — a sale would get recorded but nothing surfaced it. Added: `purchases` gained `commission_amount` (computed once at sale time — 40%/20% — and stored, so a future rate change doesn't rewrite history), `paid`, `paid_at`. `stripe-webhook` now emails a commission alert (via direct Resend `fetch`, no new secret needed) on every referred sale/renewal. New read-only report at **`/commissions/`** (`public/commissions/index.html` + `get_commissions()` SECURITY DEFINER RPC, same pattern as `get_leads()` — deliberately excludes user_id/email/stripe_payment_id so nothing PII-sensitive sits on an unauthenticated URL). Marking something paid = toggle the `paid` checkbox in Supabase Table Editor directly, no new write UI built (same MVP-first reasoning as everything else in this program).
 - ⏳ **Still not done:** the day 0/3/7 follow-up sequence for business outreach (flagged pending since Session 19) — real diagnosis still points to this as the most likely lever for the "1 sale despite traffic" problem, independent of everything built this session.
+- **▶ Next session, in order:** (1) confirm/cancel the Stripe subscription loose end above, (2) actually start recruiting real partners now that commission tracking + alerts + the `/commissions/` report all exist — engineering for this program is done, the bottleneck is now distribution again, same as it's been all along.
 
 ---
 
@@ -941,6 +961,12 @@ The `scan` edge function fetches **raw HTML only** — no JS execution. This mea
 | `src/pages/BadgeVerifyPage.tsx` | Public badge verification page |
 | `src/config/blog-posts.ts` | Blog post content for SEO |
 | `src/config/sitemap.ts` | Sitemap config for programmatic SEO pages |
+| `src/hooks/useReferralCapture.ts` | Captures `?ref=CODE` anywhere on the site into sessionStorage for partner attribution |
+| `scripts/scanner_full.py` | Faithful Python port of all 11 WCAG checks + real scoring formula (for the monthly re-scan — NOT the lighter 6-check teaser scanner in outreach.py) |
+| `scripts/monthly_rescan.py` | Re-scans each Compliance Shield subscriber's monitored domains monthly, emails alert on score drop |
+| `.github/workflows/monthly-rescan.yml` | Runs monthly_rescan.py on the 1st of each month |
+| `public/commissions/index.html` | Read-only partner commissions report (owed/paid per partner) |
+| `supabase/migrations/016_partner_commissions.sql` | `purchases.commission_amount/paid/paid_at` + `get_commissions()` RPC |
 
 ## App Architecture
 - **AuthContext exports `refreshProfile()`** — used by PayPalCheckoutButton after successful capture
