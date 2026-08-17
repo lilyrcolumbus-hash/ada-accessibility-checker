@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Button from '@/components/ui/Button'
+import { REF_CODE_STORAGE_KEY } from '@/hooks/useReferralCapture'
 
 interface StripeCheckoutButtonProps {
   planId: string
@@ -59,7 +60,11 @@ export default function StripeCheckoutButton({ planId, priceId }: StripeCheckout
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ priceId, planId }),
+          body: JSON.stringify({
+            priceId,
+            planId,
+            refCode: sessionStorage.getItem(REF_CODE_STORAGE_KEY) || undefined,
+          }),
           signal: controller.signal,
         }
       )

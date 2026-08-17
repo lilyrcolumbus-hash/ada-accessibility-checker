@@ -7,6 +7,8 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!)
 // Plans that use subscription mode in Stripe
 const SUBSCRIPTION_PLANS = ['compliance-shield']
 
+const REF_CODE_PATTERN = /^[a-zA-Z0-9-]{1,40}$/
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -35,7 +37,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { priceId, planId } = await req.json()
+    const { priceId, planId, refCode } = await req.json()
     const VALID_PLANS = ['fix-my-site', 'compliance-shield']
     if (!priceId || !planId || !VALID_PLANS.includes(planId)) {
       return new Response(
@@ -43,6 +45,8 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    // Client-supplied — validate rather than trust, same pattern as the frontend capture
+    const referredBy = typeof refCode === 'string' && REF_CODE_PATTERN.test(refCode) ? refCode : undefined
 
     // Get or create Stripe customer
     const { data: profile } = await supabase
@@ -78,12 +82,14 @@ Deno.serve(async (req) => {
       metadata: {
         supabase_user_id: user.id,
         plan_id: planId || 'fix-my-site',
+        ...(referredBy && { referred_by: referredBy }),
       },
       ...(isSubscription && {
         subscription_data: {
           metadata: {
             supabase_user_id: user.id,
             plan_id: planId,
+            ...(referredBy && { referred_by: referredBy }),
           },
         },
       }),
