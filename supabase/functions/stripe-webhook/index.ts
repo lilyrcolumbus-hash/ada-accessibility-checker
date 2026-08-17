@@ -3,6 +3,39 @@ import Stripe from 'https://esm.sh/stripe@14?target=deno'
 
 const VALID_PLANS = ['free', 'fix-my-site', 'compliance-shield']
 
+// Partner commission rates — 40% one-time on Fix My Site (higher % because the
+// dollar amount is small), 20% recurring on Compliance Shield (paid again on
+// every renewal, since referred_by persists in the Stripe subscription metadata).
+const COMMISSION_RATES: Record<string, number> = {
+  'fix-my-site': 0.40,
+  'compliance-shield': 0.20,
+}
+
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const COMMISSION_ALERT_EMAIL = 'codebake.SaaS@outlook.com'
+
+async function sendCommissionAlert(referredBy: string, planId: string, amountCents: number, commissionCents: number, isRenewal: boolean) {
+  if (!RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured — skipping commission alert email')
+    return
+  }
+  const dollars = (n: number) => (n / 100).toFixed(2)
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'SiteSafe <outreach@adalawsuitcheck.com>',
+        to: COMMISSION_ALERT_EMAIL,
+        subject: `Commission owed: $${dollars(commissionCents)} to "${referredBy}"`,
+        text: `Partner: ${referredBy}\nPlan: ${planId}\nType: ${isRenewal ? 'renewal' : 'new sale'}\nCustomer paid: $${dollars(amountCents)}\nCommission owed: $${dollars(commissionCents)}\n\nMark it paid once sent: Supabase Table Editor -> purchases -> find this row -> toggle "paid".`,
+      }),
+    })
+  } catch (e) {
+    console.error('Failed to send commission alert email:', e)
+  }
+}
+
 const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
 const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
 
@@ -17,7 +50,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-async function activatePlan(userId: string, planId: string, paymentId: string, amount: number | null, referredBy?: string) {
+async function activatePlan(userId: string, planId: string, paymentId: string, amount: number | null, referredBy?: string, isRenewal = false) {
   if (!VALID_PLANS.includes(planId)) {
     console.error(`Invalid plan ID received: ${planId}`)
     return
@@ -32,18 +65,29 @@ async function activatePlan(userId: string, planId: string, paymentId: string, a
     console.error('Failed to update profile:', profileError)
   }
 
+  // Computed and stored at the time of sale, not recalculated later — if the
+  // commission rate changes in the future, past sales keep showing what was
+  // actually owed at the time.
+  const commissionAmount = referredBy && amount != null
+    ? Math.round(amount * (COMMISSION_RATES[planId] ?? 0))
+    : null
+
   const { error: purchaseError } = await supabase.from('purchases').insert({
     user_id: userId,
     plan: planId,
     stripe_payment_id: paymentId,
     amount,
     referred_by: referredBy || null,
+    commission_amount: commissionAmount,
   })
 
   if (purchaseError) {
     console.error('Failed to record purchase:', purchaseError)
   }
 
+  if (referredBy && amount != null && commissionAmount != null) {
+    await sendCommissionAlert(referredBy, planId, amount, commissionAmount, isRenewal)
+  }
 }
 
 Deno.serve(async (req) => {
@@ -94,6 +138,7 @@ Deno.serve(async (req) => {
           (session.payment_intent as string) || session.subscription as string || session.id,
           session.amount_total,
           session.metadata?.referred_by,
+          false,
         )
         break
       }
@@ -114,7 +159,7 @@ Deno.serve(async (req) => {
 
         // Re-activate plan on renewal
         const paymentIntent = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent?.id || `invoice_${invoice.id}`
-        await activatePlan(userId, planId, paymentIntent, invoice.amount_paid, sub.metadata?.referred_by)
+        await activatePlan(userId, planId, paymentIntent, invoice.amount_paid, sub.metadata?.referred_by, true)
         break
       }
 
