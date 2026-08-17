@@ -13,6 +13,18 @@ interface EmbedWidgetProps {
   badgeError?: boolean
 }
 
+// navigator.clipboard.writeText() can hang indefinitely (never resolve OR
+// reject) in some browser/permission contexts instead of failing fast — if
+// awaited directly inside a try/finally, a hung write blocks the finally
+// block forever, leaving a loading button stuck. Race it against a timeout
+// so a stuck clipboard permission can never freeze the UI.
+async function writeToClipboardWithTimeout(text: string, timeoutMs = 3000): Promise<void> {
+  await Promise.race([
+    navigator.clipboard.writeText(text),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('clipboard write timed out')), timeoutMs)),
+  ])
+}
+
 export default function EmbedWidget({ domain, score, badgeToken, scanId, scanSaveError, badgeError }: EmbedWidgetProps) {
   const [copiedHtml, setCopiedHtml] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
@@ -41,10 +53,10 @@ export default function EmbedWidget({ domain, score, badgeToken, scanId, scanSav
   const handleCopyHtml = async () => {
     if (!embedCode) return
     try {
-      await navigator.clipboard.writeText(embedCode)
+      await writeToClipboardWithTimeout(embedCode)
       setCopiedHtml(true)
       setTimeout(() => setCopiedHtml(false), 2000)
-    } catch { /* clipboard not available */ }
+    } catch { /* clipboard not available or timed out */ }
   }
 
   const handleCreateShareLink = async () => {
@@ -62,10 +74,10 @@ export default function EmbedWidget({ domain, score, badgeToken, scanId, scanSav
       }
       setShareToken(data)
       try {
-        await navigator.clipboard.writeText(`${origin}/shared/${data}`)
+        await writeToClipboardWithTimeout(`${origin}/shared/${data}`)
         setCopiedLink(true)
         setTimeout(() => setCopiedLink(false), 2000)
-      } catch { /* clipboard not available */ }
+      } catch { /* clipboard not available or timed out — link is already created and shown */ }
     } catch (e) {
       setShareError(e instanceof Error ? e.message : 'Could not create share link')
     } finally {
@@ -76,10 +88,10 @@ export default function EmbedWidget({ domain, score, badgeToken, scanId, scanSav
   const handleCopyShareLink = async () => {
     if (!shareUrl) return
     try {
-      await navigator.clipboard.writeText(shareUrl)
+      await writeToClipboardWithTimeout(shareUrl)
       setCopiedLink(true)
       setTimeout(() => setCopiedLink(false), 2000)
-    } catch { /* clipboard not available */ }
+    } catch { /* clipboard not available or timed out */ }
   }
 
   return (
