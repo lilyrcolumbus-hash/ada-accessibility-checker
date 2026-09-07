@@ -9,12 +9,15 @@ const TOP_INDUSTRIES = [
   { slug: 'healthcare', label: 'Healthcare' },
 ]
 
+// Kept in sync with the real top-5 by lawsuit count in TOP_LAWSUIT_STATES
+// (src/config/constants.ts) — refreshed 2026-08-18, Minnesota replaced
+// Pennsylvania after both surged in verified 2025 filing data.
 const TOP_STATES = [
   { slug: 'new-york', label: 'New York' },
   { slug: 'florida', label: 'Florida' },
   { slug: 'california', label: 'California' },
   { slug: 'illinois', label: 'Illinois' },
-  { slug: 'pennsylvania', label: 'Pennsylvania' },
+  { slug: 'minnesota', label: 'Minnesota' },
 ]
 
 export function Footer() {

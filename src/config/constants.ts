@@ -10,20 +10,28 @@ export const LAWSUIT_STATS = {
   deadline: '2026-04-26',
 }
 
+// 2025 counts for California, Florida, Illinois, Minnesota, New York, and
+// Pennsylvania were refreshed 2026-08-18 against real 2025 filing data
+// (adatitleiii.com "Federal Court Website Accessibility Lawsuit Filings
+// Bounce Back in 2025" + EcomBack's 2025 annual report) — the old numbers
+// were stale enough to misrepresent which states are actually surging
+// (Illinois 5x'd, Florida nearly doubled, Minnesota entered the top 5) vs.
+// saturated (New York). The other 44 states are untouched — not verified
+// against a 2025 source, left as prior placeholder estimates.
 export const TOP_LAWSUIT_STATES: Record<string, { lawsuits: number; riskLevel: 'extreme' | 'high' | 'medium' | 'low' }> = {
   'Alabama': { lawsuits: 32, riskLevel: 'low' },
   'Alaska': { lawsuits: 8, riskLevel: 'low' },
   'Arizona': { lawsuits: 54, riskLevel: 'low' },
   'Arkansas': { lawsuits: 18, riskLevel: 'low' },
-  'California': { lawsuits: 645, riskLevel: 'high' },
+  'California': { lawsuits: 787, riskLevel: 'extreme' },
   'Colorado': { lawsuits: 62, riskLevel: 'medium' },
   'Connecticut': { lawsuits: 78, riskLevel: 'medium' },
   'Delaware': { lawsuits: 22, riskLevel: 'low' },
-  'Florida': { lawsuits: 982, riskLevel: 'extreme' },
+  'Florida': { lawsuits: 961, riskLevel: 'extreme' },
   'Georgia': { lawsuits: 98, riskLevel: 'medium' },
   'Hawaii': { lawsuits: 12, riskLevel: 'low' },
   'Idaho': { lawsuits: 10, riskLevel: 'low' },
-  'Illinois': { lawsuits: 234, riskLevel: 'high' },
+  'Illinois': { lawsuits: 576, riskLevel: 'extreme' },
   'Indiana': { lawsuits: 42, riskLevel: 'low' },
   'Iowa': { lawsuits: 20, riskLevel: 'low' },
   'Kansas': { lawsuits: 24, riskLevel: 'low' },
@@ -33,7 +41,7 @@ export const TOP_LAWSUIT_STATES: Record<string, { lawsuits: number; riskLevel: '
   'Maryland': { lawsuits: 68, riskLevel: 'medium' },
   'Massachusetts': { lawsuits: 132, riskLevel: 'medium' },
   'Michigan': { lawsuits: 72, riskLevel: 'medium' },
-  'Minnesota': { lawsuits: 58, riskLevel: 'medium' },
+  'Minnesota': { lawsuits: 162, riskLevel: 'high' },
   'Mississippi': { lawsuits: 16, riskLevel: 'low' },
   'Missouri': { lawsuits: 44, riskLevel: 'low' },
   'Montana': { lawsuits: 8, riskLevel: 'low' },
@@ -42,13 +50,13 @@ export const TOP_LAWSUIT_STATES: Record<string, { lawsuits: number; riskLevel: '
   'New Hampshire': { lawsuits: 12, riskLevel: 'low' },
   'New Jersey': { lawsuits: 143, riskLevel: 'medium' },
   'New Mexico': { lawsuits: 16, riskLevel: 'low' },
-  'New York': { lawsuits: 2387, riskLevel: 'extreme' },
+  'New York': { lawsuits: 1021, riskLevel: 'extreme' },
   'North Carolina': { lawsuits: 64, riskLevel: 'medium' },
   'North Dakota': { lawsuits: 6, riskLevel: 'low' },
   'Ohio': { lawsuits: 87, riskLevel: 'medium' },
   'Oklahoma': { lawsuits: 26, riskLevel: 'low' },
   'Oregon': { lawsuits: 52, riskLevel: 'low' },
-  'Pennsylvania': { lawsuits: 178, riskLevel: 'medium' },
+  'Pennsylvania': { lawsuits: 137, riskLevel: 'medium' },
   'Rhode Island': { lawsuits: 18, riskLevel: 'low' },
   'South Carolina': { lawsuits: 34, riskLevel: 'low' },
   'South Dakota': { lawsuits: 6, riskLevel: 'low' },
