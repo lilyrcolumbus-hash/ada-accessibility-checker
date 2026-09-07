@@ -82,7 +82,7 @@ export default function IndustryStateLandingPage() {
     },
     {
       question: `What accessibility issues are most common on ${industryLabel.toLowerCase()} websites in ${stateName}?`,
-      answer: `${industryLabel} websites commonly fail on: missing alt text on product/service images, poor color contrast, inaccessible forms and booking systems, missing form labels, broken keyboard navigation, and improper heading structure. SiteSafe scans for 11 critical WCAG 2.1 AA violations and provides copy-paste code fixes for each issue — with platform-specific guides for Shopify, WordPress, Wix, and Squarespace.`,
+      answer: `${industryLabel} websites commonly fail on: missing alt text on product/service images, poor color contrast, inaccessible forms and booking systems, missing form labels, broken keyboard navigation, and improper heading structure. SiteSafe scans for 11 critical WCAG 2.1 AA violations and provides copy-paste code fixes for each issue — with platform-specific guides for Shopify, WooCommerce, WordPress, Wix, and Squarespace.`,
     },
   ]
 

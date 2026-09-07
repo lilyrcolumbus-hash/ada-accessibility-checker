@@ -21,6 +21,7 @@ export function getAllSitemapUrls(): SitemapEntry[] {
   urls.push({ url: `${BASE_URL}/scan`, priority: 0.9, changefreq: 'weekly' })
   urls.push({ url: `${BASE_URL}/privacy`, priority: 0.3, changefreq: 'monthly' })
   urls.push({ url: `${BASE_URL}/terms`, priority: 0.3, changefreq: 'monthly' })
+  urls.push({ url: `${BASE_URL}/for-agencies`, priority: 0.8, changefreq: 'monthly' })
 
   // Blog pages
   urls.push({ url: `${BASE_URL}/blog`, priority: 0.7, changefreq: 'weekly' })
