@@ -76,11 +76,11 @@ export default function ForAgenciesPage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </a>
-            <a href="#contact">
+            <Link to="/contact">
               <Button variant="outline" size="lg" className="w-full sm:w-auto">
                 Get Started
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </section>
