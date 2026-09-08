@@ -37,7 +37,7 @@ const SEVERITY_BG: Record<string, string> = {
   minor: 'bg-blue-50/30',
 }
 
-type Platform = 'shopify' | 'wordpress' | 'wix' | 'squarespace' | 'html'
+type Platform = 'shopify' | 'woocommerce' | 'wordpress' | 'wix' | 'squarespace' | 'html'
 
 const IMAGE_CHECKS = ['alt-text-missing', 'alt-text-missing-input-image', 'alt-text-missing-area']
 
@@ -52,6 +52,16 @@ const IMAGE_GUIDES: GuideSet = {
       'For blog images: go to Blog posts → select the post → click the image → add alt text',
       'Describe what the image shows (e.g., "Red leather handbag on white background")',
       'Click Save — changes go live instantly',
+    ],
+  },
+  woocommerce: {
+    label: 'WooCommerce',
+    steps: [
+      'Go to Products → select the product → click the image in the "Product gallery" section',
+      'In the Media Library panel that opens, fill in the "Alt Text" field',
+      'For store-wide images (logo, banners), go to Media → Library and do the same',
+      'Describe what the image shows (e.g., "Red leather handbag on white background")',
+      'Click Update on the product (or Save in the Media Library) — changes go live instantly',
     ],
   },
   wordpress: {
@@ -105,6 +115,16 @@ const CODE_GUIDES: GuideSet = {
       'Click the file that appears in the results → it will open with the code highlighted',
       'Replace the broken code with the green "Fixed" version above',
       'Click Save — changes go live instantly',
+    ],
+  },
+  woocommerce: {
+    label: 'WooCommerce',
+    steps: [
+      'Go to Appearance → Theme File Editor (or better, a child theme, so updates don\'t wipe your changes)',
+      'WooCommerce-specific templates usually live in a "woocommerce" folder inside your theme — check Plugins → WooCommerce → Status → Templates for any that override the defaults',
+      'Copy a unique part of the red "Current (broken)" code above and search for it across theme files (Ctrl+F / Cmd+F in each)',
+      'Replace it with the green "Fixed" version above',
+      'Click Update File — clear your cache if using a caching plugin',
     ],
   },
   wordpress: {

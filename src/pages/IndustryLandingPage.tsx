@@ -90,7 +90,7 @@ export default function IndustryLandingPage() {
     },
     {
       question: `How long does it take to fix a ${label.toLowerCase()} website?`,
-      answer: `Most ${label.toLowerCase()} websites can address critical accessibility issues within 1-5 hours using SiteSafe's copy-paste code fixes. Our $49 Fix My Site report provides exact code changes for every issue found, with step-by-step instructions for Shopify, WordPress, Wix, and other platforms.`,
+      answer: `Most ${label.toLowerCase()} websites can address critical accessibility issues within 1-5 hours using SiteSafe's copy-paste code fixes. Our $49 Fix My Site report provides exact code changes for every issue found, with step-by-step instructions for Shopify, WooCommerce, WordPress, Wix, and other platforms.`,
     },
     {
       question: 'Is an accessibility overlay enough for ADA compliance?',
