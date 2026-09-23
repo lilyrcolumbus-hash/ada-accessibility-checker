@@ -382,7 +382,11 @@ export function ScanPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => generatePdfReport(result, domain)}
+              onClick={() =>
+                generatePdfReport(result, domain).catch(() =>
+                  toast.error('Could not generate the PDF report. Please try again.')
+                )
+              }
               className="gap-1.5"
             >
               <FileDown className="w-3.5 h-3.5" />

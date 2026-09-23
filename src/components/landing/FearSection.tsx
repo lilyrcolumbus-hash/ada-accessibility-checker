@@ -6,11 +6,11 @@ import Button from '@/components/ui/Button';
 const riskFactors = [
   'You sell products or services online',
   'Your website was built before 2022',
-  'You use Wix, Squarespace, or WordPress without accessibility plugins',
+  'You use Wix, Squarespace, WordPress, Shopify, or WooCommerce without accessibility plugins',
   'You have never tested your site with a screen reader',
   'Your images have no alt text',
   'Your contact form has no labels',
-  'You operate in New York, California, or Florida',
+  'You operate in New York, California, Florida, Illinois, or Minnesota',
   'Your business has fewer than 50 employees',
 ];
 
@@ -87,6 +87,10 @@ export function FearSection() {
                   </li>
                 ))}
               </ol>
+              <p className="mt-4 text-xs text-gray-400">
+                California businesses face added exposure under the Unruh Civil Rights Act, which allows
+                statutory damages of $4,000 per violation on top of federal ADA claims.
+              </p>
             </div>
 
             {/* Industry risk */}

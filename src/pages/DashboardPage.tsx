@@ -45,7 +45,7 @@ const ALL_FEATURES = [
   { label: 'Accessibility Audit Report (PDF)', plans: ['fix-my-site', 'compliance-shield'] },
   { label: '"ADA Tested" badge for your site', plans: ['fix-my-site', 'compliance-shield'] },
   { label: 'Shareable report link', plans: ['fix-my-site', 'compliance-shield'] },
-  { label: '1 re-scan to verify fixes', plans: ['fix-my-site', 'compliance-shield'] },
+  { label: '1 re-scan to verify fixes', plans: ['fix-my-site'] },
   { label: 'Up to 5 websites', plans: ['compliance-shield'] },
   { label: 'Unlimited re-scans', plans: ['compliance-shield'] },
   { label: 'Monthly automated re-scans', plans: ['compliance-shield'] },

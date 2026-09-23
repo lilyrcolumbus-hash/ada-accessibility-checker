@@ -2,205 +2,342 @@ import type { ScanResult, ScanIssue, Severity } from '@/scanner/types'
 import { getScoreLabel } from '@/scanner/scoring'
 import { ALL_CHECKS } from '@/scanner/checks'
 
-const SEVERITY_COLORS: Record<Severity, string> = {
-  critical: '#ef4444',
-  serious: '#f97316',
-  moderate: '#f59e0b',
-  minor: '#60a5fa',
+type RGB = [number, number, number]
+
+const SEVERITY_COLOR: Record<Severity, RGB> = {
+  critical: [220, 38, 38],
+  serious: [234, 88, 12],
+  moderate: [217, 119, 6],
+  minor: [37, 99, 235],
 }
 
-const SEVERITY_BG: Record<Severity, string> = {
-  critical: '#fef2f2',
-  serious: '#fff7ed',
-  moderate: '#fffbeb',
-  minor: '#eff6ff',
+const SEVERITY_BG: Record<Severity, RGB> = {
+  critical: [254, 242, 242],
+  serious: [255, 247, 237],
+  moderate: [255, 251, 235],
+  minor: [239, 246, 255],
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+const MARGIN = 54
+const FOOTER_SPACE = 30
+
+function getScoreColor(score: number): RGB {
+  if (score >= 90) return [34, 197, 94]
+  if (score >= 70) return [132, 204, 22]
+  if (score >= 50) return [245, 158, 11]
+  if (score >= 30) return [249, 115, 22]
+  return [239, 68, 68]
 }
 
-function renderIssue(issue: ScanIssue, index: number): string {
-  const color = SEVERITY_COLORS[issue.severity]
-  const bg = SEVERITY_BG[issue.severity]
+export async function generatePdfReport(result: ScanResult, domain: string): Promise<void> {
+  const { default: jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' })
 
-  return `
-    <div style="border:1px solid #e5e7eb;border-left:4px solid ${color};border-radius:8px;padding:16px;margin-bottom:12px;page-break-inside:avoid;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-        <h3 style="margin:0;font-size:14px;font-weight:600;color:#111827;">${index + 1}. ${escapeHtml(issue.title)}</h3>
-        <span style="background:${bg};color:${color};padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;text-transform:uppercase;white-space:nowrap;">
-          ${issue.severity}
-        </span>
-      </div>
-      <p style="margin:0 0 8px;font-size:12px;color:#6b7280;">${escapeHtml(issue.description)}</p>
-      <p style="margin:0 0 4px;font-size:11px;color:#9ca3af;">WCAG ${issue.wcagCriteria} (Level ${issue.wcagLevel}) · Est. fix: ${issue.estimatedFixMinutes} min</p>
-      ${issue.codeBefore ? `
-        <div style="margin-top:8px;">
-          <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#dc2626;">Before:</p>
-          <pre style="background:#fef2f2;padding:8px;border-radius:4px;font-size:11px;overflow-x:auto;margin:0 0 8px;white-space:pre-wrap;word-break:break-all;">${escapeHtml(issue.codeBefore)}</pre>
-        </div>
-      ` : ''}
-      ${issue.codeAfter ? `
-        <div>
-          <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#16a34a;">After:</p>
-          <pre style="background:#f0fdf4;padding:8px;border-radius:4px;font-size:11px;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all;">${escapeHtml(issue.codeAfter)}</pre>
-        </div>
-      ` : ''}
-      ${issue.fixDescription ? `
-        <p style="margin:8px 0 0;font-size:12px;color:#374151;"><strong>How to fix:</strong> ${escapeHtml(issue.fixDescription)}</p>
-      ` : ''}
-    </div>
-  `
-}
+  const PAGE_W = doc.internal.pageSize.getWidth()
+  const PAGE_H = doc.internal.pageSize.getHeight()
+  const CONTENT_W = PAGE_W - MARGIN * 2
 
-export function generatePdfReport(result: ScanResult, domain: string): void {
   const scoreLabel = getScoreLabel(result.score)
-  const scoreColor = result.score >= 90 ? '#22c55e' : result.score >= 70 ? '#84cc16' : result.score >= 50 ? '#f59e0b' : result.score >= 30 ? '#f97316' : '#ef4444'
+  const scoreColor = getScoreColor(result.score)
   const scanDate = new Date(result.scannedAt).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
   })
 
-  const issuesBySeverity = (severity: Severity) =>
-    result.issues.filter(i => i.severity === severity)
+  const cursor = { y: MARGIN }
 
-  const sortedIssues = [
-    ...issuesBySeverity('critical'),
-    ...issuesBySeverity('serious'),
-    ...issuesBySeverity('moderate'),
-    ...issuesBySeverity('minor'),
+  const ensureSpace = (height: number) => {
+    if (cursor.y + height > PAGE_H - MARGIN - FOOTER_SPACE) {
+      doc.addPage()
+      cursor.y = MARGIN
+    }
+  }
+
+  // Header
+  doc.setFillColor(37, 99, 235)
+  doc.roundedRect(MARGIN, cursor.y, 28, 28, 6, 6, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.text('S', MARGIN + 14, cursor.y + 18, { align: 'center' })
+
+  doc.setTextColor(17, 24, 39)
+  doc.setFontSize(17)
+  doc.text('ADA Accessibility Audit Report', MARGIN + 38, cursor.y + 13)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(107, 114, 128)
+  doc.text(`Generated by SiteSafe · ${scanDate}`, MARGIN + 38, cursor.y + 26)
+
+  cursor.y += 42
+  doc.setDrawColor(229, 231, 235)
+  doc.line(MARGIN, cursor.y, PAGE_W - MARGIN, cursor.y)
+  cursor.y += 20
+
+  // Score box + severity stat boxes
+  const scoreBoxW = 150
+  const statsW = CONTENT_W - scoreBoxW - 14
+  const rowH = 88
+
+  doc.setFillColor(249, 250, 251)
+  doc.setDrawColor(229, 231, 235)
+  doc.roundedRect(MARGIN, cursor.y, scoreBoxW, rowH, 8, 8, 'FD')
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(107, 114, 128)
+  doc.text('COMPLIANCE SCORE', MARGIN + scoreBoxW / 2, cursor.y + 18, { align: 'center' })
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(30)
+  doc.setTextColor(...scoreColor)
+  doc.text(String(result.score), MARGIN + scoreBoxW / 2, cursor.y + 52, { align: 'center' })
+  doc.setFontSize(11)
+  doc.setTextColor(55, 65, 81)
+  doc.text(scoreLabel, MARGIN + scoreBoxW / 2, cursor.y + 70, { align: 'center' })
+
+  const stats: { label: string; value: number; color: RGB; bg: RGB }[] = [
+    { label: 'CRITICAL', value: result.criticalCount, color: SEVERITY_COLOR.critical, bg: SEVERITY_BG.critical },
+    { label: 'SERIOUS', value: result.seriousCount, color: SEVERITY_COLOR.serious, bg: SEVERITY_BG.serious },
+    { label: 'MODERATE', value: result.moderateCount, color: SEVERITY_COLOR.moderate, bg: SEVERITY_BG.moderate },
+    { label: 'MINOR', value: result.minorCount, color: SEVERITY_COLOR.minor, bg: SEVERITY_BG.minor },
+  ]
+  const statBoxW = (statsW - 8) / 2
+  const statBoxH = (rowH - 8) / 2
+  stats.forEach((stat, i) => {
+    const col = i % 2
+    const row = Math.floor(i / 2)
+    const bx = MARGIN + scoreBoxW + 14 + col * (statBoxW + 8)
+    const by = cursor.y + row * (statBoxH + 8)
+    doc.setFillColor(...stat.bg)
+    doc.roundedRect(bx, by, statBoxW, statBoxH, 6, 6, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(15)
+    doc.setTextColor(...stat.color)
+    doc.text(String(stat.value), bx + statBoxW / 2, by + statBoxH / 2 - 3, { align: 'center' })
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.text(stat.label, bx + statBoxW / 2, by + statBoxH - 8, { align: 'center' })
+  })
+
+  cursor.y += rowH + 20
+
+  // Site info bar
+  const infoH = 46
+  doc.setFillColor(249, 250, 251)
+  doc.setDrawColor(229, 231, 235)
+  doc.roundedRect(MARGIN, cursor.y, CONTENT_W, infoH, 6, 6, 'FD')
+  const infoItems = [
+    { label: 'Website', value: domain },
+    { label: 'URL Scanned', value: result.url },
+    { label: 'Total Issues', value: String(result.totalIssues) },
+    { label: 'Checks Passed', value: `${result.passedChecks.length} of ${ALL_CHECKS.length}` },
+  ]
+  const infoColW = CONTENT_W / 4
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9.5)
+  infoItems.forEach((item, i) => {
+    const ix = MARGIN + 14 + i * infoColW
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(107, 114, 128)
+    doc.text(item.label, ix, cursor.y + 17)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9.5)
+    doc.setTextColor(17, 24, 39)
+    const wrapped: string[] = doc.splitTextToSize(item.value, infoColW - 20)
+    const displayValue = wrapped.length > 1 ? `${wrapped[0].trimEnd()}…` : (wrapped[0] ?? item.value)
+    doc.text(displayValue, ix, cursor.y + 33)
+  })
+
+  cursor.y += infoH + 28
+
+  // Issues section
+  const sortedIssues: ScanIssue[] = [
+    ...result.issues.filter(i => i.severity === 'critical'),
+    ...result.issues.filter(i => i.severity === 'serious'),
+    ...result.issues.filter(i => i.severity === 'moderate'),
+    ...result.issues.filter(i => i.severity === 'minor'),
   ]
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>ADA Accessibility Audit Report — ${escapeHtml(domain)}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: #111827;
-      margin: 0;
-      padding: 40px;
-      font-size: 13px;
-      line-height: 1.5;
+  ensureSpace(30)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(17, 24, 39)
+  doc.text(`Issues Found (${result.totalIssues})`, MARGIN, cursor.y)
+  cursor.y += 8
+  doc.setDrawColor(229, 231, 235)
+  doc.line(MARGIN, cursor.y, PAGE_W - MARGIN, cursor.y)
+  cursor.y += 18
+
+  const CODE_FONT_SIZE = 8
+  const BODY_FONT_SIZE = 9.5
+  const innerW = CONTENT_W - 24
+
+  function renderIssue(issue: ScanIssue, index: number) {
+    const color = SEVERITY_COLOR[issue.severity]
+    const bg = SEVERITY_BG[issue.severity]
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(BODY_FONT_SIZE)
+    const descLines: string[] = doc.splitTextToSize(issue.description, innerW)
+    const metaLine = `WCAG ${issue.wcagCriteria} (Level ${issue.wcagLevel}) · Est. fix: ${issue.estimatedFixMinutes} min`
+
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(CODE_FONT_SIZE)
+    const beforeLines: string[] = issue.codeBefore ? doc.splitTextToSize(issue.codeBefore, innerW - 16) : []
+    const afterLines: string[] = issue.codeAfter ? doc.splitTextToSize(issue.codeAfter, innerW - 16) : []
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(BODY_FONT_SIZE)
+    const fixLines: string[] = issue.fixDescription
+      ? doc.splitTextToSize(`How to fix: ${issue.fixDescription}`, innerW)
+      : []
+
+    let contentH = 14 // gap after title/badge row
+    contentH += descLines.length * 12 + 4
+    contentH += 12 // meta line
+    if (beforeLines.length) contentH += beforeLines.length * 10 + 18
+    if (afterLines.length) contentH += afterLines.length * 10 + 18
+    contentH += fixLines.length * 12
+    const blockH = 18 + contentH + 14
+
+    ensureSpace(blockH + 12)
+
+    const boxY = cursor.y
+    doc.setDrawColor(229, 231, 235)
+    doc.setLineWidth(1)
+    doc.roundedRect(MARGIN, boxY, CONTENT_W, blockH, 4, 4, 'D')
+    doc.setFillColor(...color)
+    doc.rect(MARGIN, boxY, 3, blockH, 'F')
+
+    let iy = boxY + 18
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10.5)
+    doc.setTextColor(17, 24, 39)
+    doc.text(`${index + 1}. ${issue.title}`, MARGIN + 12, iy)
+
+    const badgeText = issue.severity.toUpperCase()
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7.5)
+    const badgeW = doc.getTextWidth(badgeText) + 14
+    doc.setFillColor(...bg)
+    doc.roundedRect(PAGE_W - MARGIN - 12 - badgeW, iy - 10, badgeW, 14, 7, 7, 'F')
+    doc.setTextColor(...color)
+    doc.text(badgeText, PAGE_W - MARGIN - 12 - badgeW / 2, iy - 1, { align: 'center' })
+
+    iy += 14
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(BODY_FONT_SIZE)
+    doc.setTextColor(107, 114, 128)
+    descLines.forEach((line) => { doc.text(line, MARGIN + 12, iy); iy += 12 })
+    iy += 4
+    doc.setFontSize(8)
+    doc.setTextColor(156, 163, 175)
+    doc.text(metaLine, MARGIN + 12, iy)
+    iy += 12
+
+    if (beforeLines.length) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(220, 38, 38)
+      doc.text('Before:', MARGIN + 12, iy)
+      iy += 10
+      doc.setFillColor(254, 242, 242)
+      doc.rect(MARGIN + 12, iy - 8, innerW - 16, beforeLines.length * 10 + 8, 'F')
+      doc.setFont('courier', 'normal')
+      doc.setFontSize(CODE_FONT_SIZE)
+      doc.setTextColor(153, 27, 27)
+      beforeLines.forEach((line) => { doc.text(line, MARGIN + 18, iy); iy += 10 })
+      iy += 8
     }
-    @media print {
-      body { padding: 20px; }
-      .no-print { display: none !important; }
+
+    if (afterLines.length) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(22, 163, 74)
+      doc.text('After:', MARGIN + 12, iy)
+      iy += 10
+      doc.setFillColor(240, 253, 244)
+      doc.rect(MARGIN + 12, iy - 8, innerW - 16, afterLines.length * 10 + 8, 'F')
+      doc.setFont('courier', 'normal')
+      doc.setFontSize(CODE_FONT_SIZE)
+      doc.setTextColor(21, 128, 61)
+      afterLines.forEach((line) => { doc.text(line, MARGIN + 18, iy); iy += 10 })
+      iy += 8
     }
-    @page { margin: 0.75in; }
-  </style>
-</head>
-<body>
-  <!-- Print button -->
-  <div class="no-print" style="position:fixed;top:20px;right:20px;z-index:100;">
-    <button onclick="window.print()" style="background:#2563eb;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">
-      Save as PDF
-    </button>
-  </div>
 
-  <!-- Header -->
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;padding-bottom:16px;border-bottom:2px solid #e5e7eb;">
-    <div style="width:36px;height:36px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    </div>
-    <div>
-      <h1 style="margin:0;font-size:20px;font-weight:700;">ADA Accessibility Audit Report</h1>
-      <p style="margin:0;font-size:13px;color:#6b7280;">Generated by SiteSafe · ${scanDate}</p>
-    </div>
-  </div>
+    if (fixLines.length) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(BODY_FONT_SIZE)
+      doc.setTextColor(55, 65, 81)
+      fixLines.forEach((line) => { doc.text(line, MARGIN + 12, iy); iy += 12 })
+    }
 
-  <!-- Summary -->
-  <div style="display:flex;gap:24px;margin-bottom:32px;flex-wrap:wrap;">
-    <!-- Score -->
-    <div style="flex:1;min-width:200px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;">
-      <p style="margin:0 0 4px;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;">Compliance Score</p>
-      <p style="margin:0;font-size:48px;font-weight:800;color:${scoreColor};">${result.score}</p>
-      <p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#374151;">${scoreLabel}</p>
-    </div>
-
-    <!-- Stats -->
-    <div style="flex:2;min-width:280px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;text-align:center;">
-        <p style="margin:0;font-size:24px;font-weight:700;color:#dc2626;">${result.criticalCount}</p>
-        <p style="margin:0;font-size:11px;color:#dc2626;font-weight:600;">CRITICAL</p>
-      </div>
-      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px;text-align:center;">
-        <p style="margin:0;font-size:24px;font-weight:700;color:#ea580c;">${result.seriousCount}</p>
-        <p style="margin:0;font-size:11px;color:#ea580c;font-weight:600;">SERIOUS</p>
-      </div>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">
-        <p style="margin:0;font-size:24px;font-weight:700;color:#d97706;">${result.moderateCount}</p>
-        <p style="margin:0;font-size:11px;color:#d97706;font-weight:600;">MODERATE</p>
-      </div>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;text-align:center;">
-        <p style="margin:0;font-size:24px;font-weight:700;color:#2563eb;">${result.minorCount}</p>
-        <p style="margin:0;font-size:11px;color:#2563eb;font-weight:600;">MINOR</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Site info -->
-  <div style="margin-bottom:32px;padding:16px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
-    <div style="display:flex;gap:32px;flex-wrap:wrap;">
-      <div><span style="font-size:11px;color:#6b7280;">Website:</span><br><strong>${escapeHtml(domain)}</strong></div>
-      <div><span style="font-size:11px;color:#6b7280;">URL Scanned:</span><br><strong>${escapeHtml(result.url)}</strong></div>
-      <div><span style="font-size:11px;color:#6b7280;">Total Issues:</span><br><strong>${result.totalIssues}</strong></div>
-      <div><span style="font-size:11px;color:#6b7280;">Checks Passed:</span><br><strong>${result.passedChecks.length} of ${ALL_CHECKS.length}</strong></div>
-    </div>
-  </div>
-
-  <!-- Issues -->
-  <h2 style="font-size:16px;font-weight:700;margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">
-    Issues Found (${result.totalIssues})
-  </h2>
-
-  ${sortedIssues.map((issue, i) => renderIssue(issue, i)).join('')}
-
-  ${result.passedChecks.length > 0 ? `
-    <h2 style="font-size:16px;font-weight:700;margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">
-      Checks Passed (${result.passedChecks.length})
-    </h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      ${result.passedChecks.map(check => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-          <span style="font-size:12px;color:#15803d;">${escapeHtml(check)}</span>
-        </div>
-      `).join('')}
-    </div>
-  ` : ''}
-
-  <!-- Disclaimer -->
-  <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;">
-    <p style="font-size:10px;color:#9ca3af;text-align:center;margin:0;">
-      This report is generated by SiteSafe (adalawsuitcheck.com) for informational purposes only and does not constitute legal advice.
-      Automated scans may not detect all accessibility issues. Consult a qualified accessibility specialist or attorney for full compliance assurance.
-      WCAG 2.1 AA is the standard referenced. Report generated on ${scanDate}.
-    </p>
-  </div>
-</body>
-</html>`
-
-  const printWindow = window.open('', '_blank')
-  if (printWindow) {
-    printWindow.document.write(html)
-    printWindow.document.close()
-  } else {
-    // Fallback: download as HTML file if popup is blocked
-    const blob = new Blob([html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ada-audit-report-${domain}.html`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    cursor.y = boxY + blockH + 12
   }
+
+  sortedIssues.forEach((issue, index) => renderIssue(issue, index))
+
+  // Checks passed
+  if (result.passedChecks.length > 0) {
+    ensureSpace(30)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(13)
+    doc.setTextColor(17, 24, 39)
+    doc.text(`Checks Passed (${result.passedChecks.length})`, MARGIN, cursor.y)
+    cursor.y += 8
+    doc.setDrawColor(229, 231, 235)
+    doc.line(MARGIN, cursor.y, PAGE_W - MARGIN, cursor.y)
+    cursor.y += 16
+
+    const colW = (CONTENT_W - 8) / 2
+    const rowH2 = 22
+    result.passedChecks.forEach((check, i) => {
+      const col = i % 2
+      if (col === 0) ensureSpace(rowH2)
+      const bx = MARGIN + col * (colW + 8)
+      const by = cursor.y
+      doc.setFillColor(240, 253, 244)
+      doc.setDrawColor(187, 247, 208)
+      doc.roundedRect(bx, by, colW, rowH2 - 6, 5, 5, 'FD')
+      doc.setDrawColor(22, 163, 74)
+      doc.setLineWidth(1.4)
+      doc.line(bx + 10, by + 9, bx + 13, by + 12)
+      doc.line(bx + 13, by + 12, bx + 19, by + 5)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8.5)
+      doc.setTextColor(21, 128, 61)
+      const wrapped: string[] = doc.splitTextToSize(check, colW - 32)
+      doc.text(wrapped[0] ?? check, bx + 26, by + 11)
+      if (col === 1) cursor.y += rowH2
+    })
+    if (result.passedChecks.length % 2 === 1) cursor.y += rowH2
+    cursor.y += 12
+  }
+
+  // Disclaimer
+  ensureSpace(40)
+  doc.setDrawColor(229, 231, 235)
+  doc.line(MARGIN, cursor.y, PAGE_W - MARGIN, cursor.y)
+  cursor.y += 16
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7.5)
+  doc.setTextColor(156, 163, 175)
+  const disclaimer = `This report is generated by SiteSafe (adalawsuitcheck.com) for informational purposes only and does not constitute legal advice. Automated scans may not detect all accessibility issues. Consult a qualified accessibility specialist or attorney for full compliance assurance. WCAG 2.1 AA is the standard referenced. Report generated on ${scanDate}.`
+  const disclaimerLines: string[] = doc.splitTextToSize(disclaimer, CONTENT_W)
+  disclaimerLines.forEach((line) => {
+    ensureSpace(11)
+    doc.text(line, PAGE_W / 2, cursor.y, { align: 'center' })
+    cursor.y += 11
+  })
+
+  // Page numbers on every page
+  const pageCount = doc.getNumberOfPages()
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(156, 163, 175)
+    doc.text(`Page ${p} of ${pageCount}`, PAGE_W / 2, PAGE_H - 20, { align: 'center' })
+  }
+
+  doc.save(`ada-audit-report-${domain}.pdf`)
 }

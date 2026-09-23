@@ -12,6 +12,7 @@ import { PrivacyPage } from '@/pages/PrivacyPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { ContactPage } from '@/pages/ContactPage'
 import ForAgenciesPage from '@/pages/ForAgenciesPage'
+import CommissionsPage from '@/pages/CommissionsPage'
 import SharedReportPage from '@/pages/SharedReportPage'
 import BadgeVerifyPage from '@/pages/BadgeVerifyPage'
 import IndustryLandingPage from '@/pages/IndustryLandingPage'
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/for-agencies" element={<ForAgenciesPage />} />
+        <Route path="/commissions/:code" element={<CommissionsPage />} />
         <Route path="/industry/:slug" element={<IndustryLandingPage />} />
         <Route path="/industry/:industrySlug/:stateSlug" element={<IndustryStateLandingPage />} />
         <Route path="/state/:slug" element={<StateLandingPage />} />

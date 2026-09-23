@@ -4,11 +4,12 @@ import Stripe from 'https://esm.sh/stripe@14?target=deno'
 const VALID_PLANS = ['free', 'fix-my-site', 'compliance-shield']
 
 // Partner commission rates — 40% one-time on Fix My Site (higher % because the
-// dollar amount is small), 20% recurring on Compliance Shield (paid again on
-// every renewal, since referred_by persists in the Stripe subscription metadata).
+// dollar amount is small), 30% recurring on Compliance Shield (paid again on
+// every renewal, since referred_by persists in the Stripe subscription metadata) —
+// matches/beats accessiBe and UserWay top-tier recurring rates.
 const COMMISSION_RATES: Record<string, number> = {
   'fix-my-site': 0.40,
-  'compliance-shield': 0.20,
+  'compliance-shield': 0.30,
 }
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
