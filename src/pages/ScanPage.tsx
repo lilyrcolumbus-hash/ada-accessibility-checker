@@ -497,6 +497,11 @@ export function ScanPage() {
                     <p className="text-sm font-bold text-gray-700">{riskAssessment.lawsuitProbability}</p>
                   </div>
                 </div>
+                <p className="mt-3 text-xs text-gray-400 leading-relaxed">
+                  This reflects how often businesses in your industry and state get sued —
+                  it doesn't move with your score. Even a site with no issues carries this baseline
+                  exposure; fixing issues lowers your score-based risk, not your industry's lawsuit volume.
+                </p>
               </div>
 
               <RiskBreakdown
