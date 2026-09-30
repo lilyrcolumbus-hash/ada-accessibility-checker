@@ -48,6 +48,10 @@ export interface ScanResult {
   pagesScanned?: number
   pagesAttempted?: number
   pageErrors?: PageScanError[]
+  // True when the fetched HTML looks like an unrendered JavaScript app shell
+  // (React/Vue/Angular etc.) rather than real page content — the scanner
+  // only reads raw HTML, so results for a page like this may be inaccurate.
+  isLikelySPA?: boolean
 }
 
 export interface RiskAssessment {

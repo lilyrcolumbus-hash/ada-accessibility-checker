@@ -411,6 +411,21 @@ export function ScanPage() {
         </div>
       </div>
 
+      {result.isLikelySPA && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 flex gap-3 items-start">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">This site may use JavaScript to build its content</p>
+            <p className="mt-0.5 text-amber-800">
+              We scan the raw HTML a browser first receives. Sites built with React, Vue, or
+              similar tools generate most of their content after that with JavaScript, so some
+              results below may be inaccurate — for example, a heading that exists on the real
+              page but isn't in the HTML we saw yet.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Score hero section with gradient */}
       <div
         className="rounded-2xl border border-gray-200 shadow-sm overflow-hidden"

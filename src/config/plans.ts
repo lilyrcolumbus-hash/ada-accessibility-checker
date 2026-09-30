@@ -14,6 +14,9 @@ export interface Plan {
     rescansAllowed: number | 'unlimited'
     monthlyAutoScan: boolean
     emailAlerts: boolean
+    // Documentation only — the frontend never reads this. The real cap on
+    // monitored domains for monthly auto-rescans is MAX_MONITORED_DOMAINS
+    // in scripts/monthly_rescan.py. Keep both numbers in sync by hand.
     multiSite: number
   }
   popular?: boolean

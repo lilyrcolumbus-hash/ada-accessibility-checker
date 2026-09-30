@@ -161,6 +161,8 @@ function aggregateScans(
     pagesScanned: pageScans.length,
     pagesAttempted: pages.length,
     pageErrors: errors.length > 0 ? errors : undefined,
+    // Flag from the seed page only — that's the one the user actually typed in.
+    isLikelySPA: pageScans[0]?.result.isLikelySPA,
   }
 }
 

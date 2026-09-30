@@ -129,26 +129,41 @@ export function HeroSection() {
 
 const INITIAL_COUNT = 0;
 
-function ScanCounter() {
-  const [targetCount, setTargetCount] = useState(INITIAL_COUNT);
-  const [displayCount, setDisplayCount] = useState(0);
-
-
-  useEffect(() => {
-    // Try to fetch real scan count from Supabase
-    (async () => {
+// Module-level cache so the scan count is fetched at most once per page
+// load, no matter how many times ScanCounter mounts (was firing a second,
+// self-cancelling request on every load — harmless but wasteful).
+let scanCountPromise: Promise<number | null> | null = null;
+function getScanCount(): Promise<number | null> {
+  if (!scanCountPromise) {
+    scanCountPromise = (async () => {
       try {
         const { supabase } = await import('@/lib/supabase');
         const { count } = await supabase
           .from('scans')
           .select('*', { count: 'exact', head: true });
-        if (typeof count === 'number') {
-          setTargetCount(INITIAL_COUNT + count);
-        }
+        return typeof count === 'number' ? count : null;
       } catch {
-        // Supabase unavailable — keep base count
+        return null;
       }
     })();
+  }
+  return scanCountPromise;
+}
+
+function ScanCounter() {
+  const [targetCount, setTargetCount] = useState(INITIAL_COUNT);
+  const [displayCount, setDisplayCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getScanCount().then((count) => {
+      if (!cancelled && count !== null) {
+        setTargetCount(INITIAL_COUNT + count);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

@@ -164,6 +164,53 @@ Deno.serve(async (req) => {
         break
       }
 
+      // One-time purchase refunded (e.g. Fix My Site) — downgrade back to
+      // free so a refunded customer doesn't keep paid access indefinitely.
+      // Subscription refunds are handled separately by
+      // customer.subscription.deleted, which fires when the subscription
+      // itself is cancelled.
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+        const paymentIntentId = typeof charge.payment_intent === 'string'
+          ? charge.payment_intent
+          : charge.payment_intent?.id
+
+        if (!paymentIntentId) break
+
+        const { data: purchase, error: findError } = await supabase
+          .from('purchases')
+          .select('user_id, plan')
+          .eq('stripe_payment_id', paymentIntentId)
+          .maybeSingle()
+
+        if (findError || !purchase) {
+          console.warn('No matching purchase for refunded charge:', paymentIntentId)
+          break
+        }
+
+        // Only one-time plans downgrade here.
+        if (purchase.plan !== 'fix-my-site') break
+
+        // Don't clobber a plan the user has since upgraded to.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', purchase.user_id)
+          .maybeSingle()
+
+        if (profile?.plan !== 'fix-my-site') break
+
+        const { error } = await supabase
+          .from('profiles')
+          .update({ plan: 'free' })
+          .eq('id', purchase.user_id)
+
+        if (error) {
+          console.error('Failed to downgrade profile after refund:', error)
+        }
+        break
+      }
+
       // Subscription cancelled or expired
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription

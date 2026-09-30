@@ -3,6 +3,19 @@ import { parseHTML } from './parser'
 import { ALL_CHECKS } from './checks'
 import { calculateScore } from './scoring'
 
+// Detects an unrendered JavaScript app shell (React/Vue/Angular/Next/Gatsby)
+// rather than real page content: almost no visible text, and either a known
+// framework mount point or a body with barely any elements in it. The
+// scanner only reads raw HTML (no JS execution — see Known Limitations in
+// CLAUDE.md), so results for a page like this can be misleading.
+function detectLikelySPA(doc: Document): boolean {
+  const bodyText = doc.body?.textContent?.trim() ?? ''
+  const hasMinimalContent = bodyText.length < 100
+  const hasFrameworkRoot = !!doc.querySelector('#root, #app, #__next, #___gatsby, [data-reactroot]')
+  const bodyElementCount = doc.body?.querySelectorAll('*').length ?? 0
+  return hasMinimalContent && (hasFrameworkRoot || bodyElementCount <= 3)
+}
+
 export async function runScan(html: string, url: string): Promise<ScanResult> {
   const startTime = performance.now()
   const doc = parseHTML(html)
@@ -42,5 +55,6 @@ export async function runScan(html: string, url: string): Promise<ScanResult> {
     issues: allIssues,
     passedChecks,
     scanDurationMs: Math.round(performance.now() - startTime),
+    isLikelySPA: detectLikelySPA(doc),
   }
 }
