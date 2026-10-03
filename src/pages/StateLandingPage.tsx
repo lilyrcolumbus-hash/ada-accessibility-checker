@@ -21,7 +21,7 @@ export default function StateLandingPage() {
     if (!stateName || !stateData) return
     document.title = `ADA Website Compliance in ${stateName} | SiteSafe`
     const meta = document.querySelector('meta[name="description"]')
-    const desc = `${stateName} had ${stateData.lawsuits.toLocaleString()}+ ADA website lawsuits. Check if your ${stateName} business website is WCAG 2.1 AA compliant before the April 2026 deadline.`
+    const desc = `${stateName} had ${stateData.lawsuits.toLocaleString()}+ ADA website lawsuits. Check if your ${stateName} business website is WCAG 2.1 AA compliant before a demand letter finds the problems first.`
     if (meta) {
       meta.setAttribute('content', desc)
     } else {
@@ -42,7 +42,6 @@ export default function StateLandingPage() {
   }
 
   const riskColors = getRiskColor(stateData.riskLevel)
-  const daysUntilDeadline = Math.max(0, Math.ceil((new Date('2026-04-26').getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
   const stateRanking = getStateRanking(stateName)
   const isHighVolume = stateData.lawsuits >= 100
   const percentOfTotal = ((stateData.lawsuits / LAWSUIT_STATS.totalLawsuits2023) * 100).toFixed(1)
@@ -50,7 +49,7 @@ export default function StateLandingPage() {
   const faqs = [
     {
       question: `Does the ADA apply to websites in ${stateName}?`,
-      answer: `Yes. The ADA is a federal law that applies to all 50 states, including ${stateName}. Any business in ${stateName} that serves the public must make their website accessible under Title III of the ADA. The DOJ confirmed in 2024 that WCAG 2.1 Level AA is the standard, with a mandatory compliance deadline of April 26, 2026.`,
+      answer: `Yes. The ADA is a federal law that applies to all 50 states, including ${stateName}. Any business in ${stateName} that serves the public must make their website accessible under Title III of the ADA. Courts and the DOJ increasingly treat WCAG 2.1 Level AA as the standard for accessible websites.`,
     },
     {
       question: `How many ADA website lawsuits were filed in ${stateName}?`,
@@ -58,7 +57,7 @@ export default function StateLandingPage() {
     },
     {
       question: `Does ${stateName} have additional accessibility laws?`,
-      answer: `In addition to the federal ADA requirements, ${stateName} may have state-level disability rights laws that provide additional protections. Regardless of state law, all ${stateName} businesses must comply with the federal ADA Title III and the April 2026 WCAG 2.1 AA deadline. Some states impose additional penalties for non-compliance.`,
+      answer: `In addition to the federal ADA requirements, ${stateName} may have state-level disability rights laws that provide additional protections. Regardless of state law, all ${stateName} businesses that serve the public are subject to the federal ADA Title III, and courts increasingly look to WCAG 2.1 AA. Some states impose additional penalties for non-compliance.`,
     },
     {
       question: `What types of businesses get sued in ${stateName}?`,
@@ -96,7 +95,7 @@ export default function StateLandingPage() {
 
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
             {stateName} businesses face {stateData.riskLevel} risk for ADA website lawsuits.
-            With {stateData.lawsuits.toLocaleString()} lawsuits filed and a federal deadline of April 26, 2026,
+            With {stateData.lawsuits.toLocaleString()} lawsuits filed and courts treating WCAG 2.1 AA as the standard,
             {stateName} businesses need to act now.
           </p>
 
@@ -149,8 +148,8 @@ export default function StateLandingPage() {
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-100">
                 <Clock className="h-5 w-5 text-primary-600" />
               </div>
-              <p className="text-3xl font-extrabold text-gray-900">{daysUntilDeadline}</p>
-              <p className="mt-1 text-sm text-gray-500">Days until deadline</p>
+              <p className="text-3xl font-extrabold text-gray-900">{stateData.lawsuits.toLocaleString()}</p>
+              <p className="mt-1 text-sm text-gray-500">ADA website lawsuits filed</p>
             </div>
           </div>
         </div>
@@ -167,7 +166,7 @@ export default function StateLandingPage() {
             accessibility lawsuits, with <strong className="text-gray-900">{stateData.lawsuits.toLocaleString()} cases filed</strong>.
             {isHighVolume
               ? ` This makes ${stateName} one of the most dangerous states for businesses with non-compliant websites.`
-              : ` While ${stateName} has fewer lawsuits than states like New York and Florida, the federal ADA deadline applies equally to all states.`
+              : ` While ${stateName} has fewer lawsuits than states like New York and Florida, ADA lawsuit risk applies in every state.`
             }
           </p>
 
@@ -175,12 +174,12 @@ export default function StateLandingPage() {
             <div className="rounded-xl border border-danger-200 bg-danger-50 p-5">
               <div className="flex items-center gap-3 mb-3">
                 <FileWarning className="h-5 w-5 text-danger-600" />
-                <h3 className="font-bold text-danger-800">Federal Deadline: April 26, 2026</h3>
+                <h3 className="font-bold text-danger-800">Courts Set the Standard</h3>
               </div>
               <p className="text-sm text-gray-700">
-                The DOJ rule applies to every business in {stateName}. After this date, WCAG 2.1 Level AA
-                compliance is mandatory. Non-compliant websites can face lawsuits, fines, and injunctions.
-                You have <strong>{daysUntilDeadline} days</strong> to comply.
+                Courts increasingly treat WCAG 2.1 Level AA as the benchmark for businesses in {stateName}.
+                Non-compliant websites can face lawsuits, settlements, and injunctions.
+                <strong>Don't wait for a demand letter</strong> to find out where you stand.
               </p>
             </div>
 
@@ -230,7 +229,7 @@ export default function StateLandingPage() {
             {stateName} Businesses: The Clock Is Ticking
           </h2>
           <p className="mt-3 text-lg text-primary-100">
-            {daysUntilDeadline} days until the April 2026 federal deadline. Scan your website
+            Don't wait for a demand letter. Scan your website
             in 30 seconds and get your compliance score — free.
           </p>
           <div className="mt-8">

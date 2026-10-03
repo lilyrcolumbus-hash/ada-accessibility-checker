@@ -48,7 +48,7 @@ export default function IndustryLandingPage() {
     if (!slug || !industry) return
     document.title = `ADA Compliance for ${label} | SiteSafe`
     const meta = document.querySelector('meta[name="description"]')
-    const desc = `${label} businesses faced ${industry.lawsuitCount}+ ADA website lawsuits. Check your ${label.toLowerCase()} website for WCAG 2.1 AA compliance before the April 2026 deadline.`
+    const desc = `${label} businesses faced ${industry.lawsuitCount}+ ADA website lawsuits. Check your ${label.toLowerCase()} website for WCAG 2.1 AA compliance before a demand letter finds the problems first.`
     if (meta) {
       meta.setAttribute('content', desc)
     } else {
@@ -69,12 +69,11 @@ export default function IndustryLandingPage() {
   }
 
   const riskColors = getRiskColor(industry.riskLevel)
-  const daysUntilDeadline = Math.max(0, Math.ceil((new Date('2026-04-26').getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
   const faqs = [
     {
       question: `Are ${label.toLowerCase()} websites required to be ADA compliant?`,
-      answer: `Yes. Under the Americans with Disabilities Act (ADA), any business that serves the public — including ${label.toLowerCase()} businesses — must make their website accessible. The DOJ has confirmed that websites are "places of public accommodation" under Title III. Starting April 26, 2026, WCAG 2.1 Level AA compliance becomes the explicit standard.`,
+      answer: `Yes. Under the Americans with Disabilities Act (ADA), any business that serves the public — including ${label.toLowerCase()} businesses — must make their website accessible. The DOJ has confirmed that websites are "places of public accommodation" under Title III. Courts increasingly treat WCAG 2.1 Level AA as the standard.`,
     },
     {
       question: `How many ADA lawsuits target ${label.toLowerCase()} businesses?`,
@@ -172,8 +171,8 @@ export default function IndustryLandingPage() {
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-100">
                 <Clock className="h-5 w-5 text-primary-600" />
               </div>
-              <p className="text-3xl font-extrabold text-gray-900">{daysUntilDeadline}</p>
-              <p className="mt-1 text-sm text-gray-500">Days until federal deadline</p>
+              <p className="text-3xl font-extrabold text-gray-900">{industry.lawsuitCount.toLocaleString()}</p>
+              <p className="mt-1 text-sm text-gray-500">Lawsuits filed in this industry</p>
             </div>
           </div>
         </div>
@@ -206,11 +205,11 @@ export default function IndustryLandingPage() {
             <div className="rounded-xl border border-warning-200 bg-warning-50 p-5">
               <div className="flex items-center gap-3 mb-3">
                 <Clock className="h-5 w-5 text-warning-600" />
-                <h3 className="font-bold text-warning-800">April 2026 Deadline</h3>
+                <h3 className="font-bold text-warning-800">Courts Set the Standard</h3>
               </div>
               <p className="text-sm text-gray-700">
-                The DOJ's new rule makes WCAG 2.1 AA compliance mandatory by April 26, 2026.
-                After this date, every {label.toLowerCase()} website is expected to be fully accessible — no excuses.
+                Courts increasingly treat WCAG 2.1 AA as the benchmark for an accessible website.
+                Every {label.toLowerCase()} website that serves the public is expected to meet it.
               </p>
             </div>
 

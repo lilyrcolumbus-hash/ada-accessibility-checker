@@ -41,13 +41,12 @@ export default function IndustryStateLandingPage() {
     ? getSettlementRange(industry.multiplier, stateData.riskLevel)
     : '$5,000–$20,000'
 
-  const daysUntilDeadline = Math.max(0, Math.ceil((new Date(LAWSUIT_STATS.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
   useEffect(() => {
     if (!industrySlug || !industry || !stateName || !stateData) return
     document.title = `ADA Compliance for ${industryLabel} in ${stateName} | SiteSafe`
     const meta = document.querySelector('meta[name="description"]')
-    const desc = `${industryLabel} businesses in ${stateName} face ${combinedRisk} risk for ADA lawsuits. ${industry.lawsuitCount}+ industry lawsuits, ${stateData.lawsuits}+ state lawsuits. Scan your site before the April 2026 deadline.`
+    const desc = `${industryLabel} businesses in ${stateName} face ${combinedRisk} risk for ADA lawsuits. ${industry.lawsuitCount}+ industry lawsuits, ${stateData.lawsuits}+ state lawsuits. Scan your site before a demand letter finds the problems first.`
     if (meta) {
       meta.setAttribute('content', desc)
     } else {
@@ -172,15 +171,15 @@ export default function IndustryStateLandingPage() {
         </div>
       </section>
 
-      {/* Deadline Countdown */}
+      {/* Lawsuit risk */}
       <section className="bg-gray-900 px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Clock className="h-5 w-5 text-danger-400" />
-            <p className="text-sm font-semibold uppercase tracking-wider text-danger-400">Federal Compliance Deadline</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-danger-400">Lawsuit Risk Is Already Here</p>
           </div>
-          <p className="text-5xl font-extrabold text-white sm:text-6xl">{daysUntilDeadline}</p>
-          <p className="mt-2 text-lg text-gray-400">days until April 26, 2026</p>
+          <p className="text-5xl font-extrabold text-white sm:text-6xl">{stateData.lawsuits.toLocaleString()}</p>
+          <p className="mt-2 text-lg text-gray-400">ADA website lawsuits filed in {stateName}</p>
           <p className="mt-4 text-sm text-gray-500 max-w-xl mx-auto">
             After this date, every {industryLabel.toLowerCase()} website in {stateName} must meet WCAG 2.1 Level AA standards.
             Non-compliance means lawsuits, fines, and injunctions — with no grace period.
@@ -224,7 +223,7 @@ export default function IndustryStateLandingPage() {
                 accounting for {((stateData.lawsuits / LAWSUIT_STATS.totalLawsuits2023) * 100).toFixed(1)}% of
                 all US cases. {stateData.riskLevel === 'extreme' || stateData.riskLevel === 'high'
                   ? `${stateName} is a top target state for serial ADA filers.`
-                  : `The federal deadline applies equally to all ${stateName} businesses.`}
+                  : `ADA lawsuit risk applies to ${stateName} businesses of any size.`}
               </p>
             </div>
 

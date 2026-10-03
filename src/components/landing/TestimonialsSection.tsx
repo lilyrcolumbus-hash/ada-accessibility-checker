@@ -98,7 +98,7 @@ function FoundingState() {
             Be one of the first to get lawsuit-ready
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-lg text-gray-500">
-            SiteSafe is brand new — get ahead of the April 2026 ADA deadline before your competitors
+            SiteSafe is brand new — get ahead of the next ADA demand letter before your competitors
             do. Here’s exactly what every scan gives you.
           </p>
         </div>

@@ -37,11 +37,12 @@ export function FearSection() {
             Urgent
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            The ADA Deadline Is Coming
+            The Risk Is Already Here
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-            Starting <strong className="text-danger-700">April 26, 2026</strong>, all public-facing
-            websites must comply with WCAG 2.1 AA. Non-compliance means lawsuits.
+            ADA website lawsuits are filed against small businesses every day, and courts increasingly
+            treat <strong className="text-danger-700">WCAG 2.1 AA</strong> as the standard.
+            Non-compliance means lawsuits.
           </p>
         </div>
 

@@ -7,7 +7,6 @@ export const LAWSUIT_STATS = {
   typicalSettlement: { min: 5000, max: 20000 },
   defenseCosts: { min: 50000, max: 100000 },
   websitesNonCompliant: 98,
-  deadline: '2026-04-26',
 }
 
 // 2025 counts for California, Florida, Illinois, Minnesota, New York, and

@@ -54,7 +54,7 @@ export function HeroSection() {
         {/* Badge */}
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-danger-200 bg-danger-50 px-3 py-1 text-sm font-medium text-danger-700">
           <span className="h-2 w-2 animate-pulse rounded-full bg-danger-500" />
-          New federal deadline: April 26, 2026
+          Free ADA accessibility scan — results in 30 seconds
         </div>
 
         {/* Headline */}
@@ -184,6 +184,10 @@ function ScanCounter() {
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [targetCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The scans table is private (RLS), so an anonymous visitor's count is 0.
+  // Hide the counter instead of showing a misleading "0 websites scanned".
+  if (targetCount === 0) return null;
 
   return (
     <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-400">
