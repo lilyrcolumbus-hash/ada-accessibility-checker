@@ -17,8 +17,8 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "from": "lily@adalawsuitcheck.com",
-              "to": ["lyhoffllc.info@gmail.com"],
+              "to": ["codebake.SaaS@outlook.com"],
               "subject": "SiteSafe Outreach — 6-Month Check-In",
-              "html": "<h2>6-Month Outreach Check-In</h2><p>Han pasado 6 meses desde que arrancó el outreach automático. Aquí lo que revisar:</p><ul><li><strong>Resend:</strong> entra a resend.com/dashboard → verifica bounces y spam reports. Si bounces > 2%, revisa la lista de contactados.</li><li><strong>Supabase:</strong> verifica que el proyecto no esté pausado en supabase.com (Free tier pausa sin tráfico).</li><li><strong>Dominio:</strong> adalawsuitcheck.com vence en junio 2027 — confirma auto-renovación en Cloudflare Registrar.</li><li><strong>Yelp API:</strong> verifica que la key siga activa en fusion.yelp.com.</li><li><strong>Resultados:</strong> revisa cuántas respuestas recibiste en lyhoffllc.info@gmail.com y qué convirtió.</li></ul><p>Si todo está bien, el outreach sigue automático sin tocar nada. 🎉</p>"
+              "html": "<h2>6-Month Outreach Check-In</h2><p>Han pasado 6 meses desde que arrancó el outreach automático. Aquí lo que revisar:</p><ul><li><strong>Resend:</strong> entra a resend.com/dashboard → verifica bounces y spam reports. Si bounces > 2%, revisa la lista de contactados.</li><li><strong>Supabase:</strong> verifica que el proyecto no esté pausado en supabase.com (Free tier pausa sin tráfico).</li><li><strong>Dominio:</strong> adalawsuitcheck.com vence en junio 2027 — confirma auto-renovación en Cloudflare Registrar.</li><li><strong>Yelp API:</strong> verifica que la key siga activa en fusion.yelp.com.</li><li><strong>Resultados:</strong> revisa cuántas respuestas recibiste en codebake.SaaS@outlook.com y qué convirtió.</li></ul><p>Si todo está bien, el outreach sigue automático sin tocar nada. 🎉</p>"
             }'
           echo "Alert email sent!"
