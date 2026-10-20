@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/card.png" alt="SiteSafe"></p>
+
 # SiteSafe — ADA Website Accessibility Checker
 
 A self-service web app that scans any website for ADA/WCAG 2.1 AA accessibility violations, explains each issue in plain English, and provides copy-paste code fixes — so small businesses can catch problems before a lawsuit does.
